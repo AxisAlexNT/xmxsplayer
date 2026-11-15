@@ -150,7 +150,20 @@ export function installIpc(windows: Windows): () => Promise<void> {
     return locate ? pickSoundfont(`Locate missing soundfont — ${file}`) : null
   })
   handle('soundfonts:pick', () => pickSoundfont('Add soundfont'))
-  handle('app:relaunch', () => {
+  handle('app:confirmClose', async () => {
+    const result = await dialog.showMessageBox(ui, {
+      type: 'question',
+      title: 'Unsaved changes',
+      message: 'Discard unsaved changes and quit?',
+      buttons: ['Discard and quit', 'Cancel'],
+      defaultId: 1,
+      cancelId: 1,
+      noLink: true,
+    })
+    return result.response === 0
+  })
+  handle('app:relaunch', async () => {
+    await windows.stopEngine()
     app.relaunch({ args: relaunchArgs(process.argv.slice(1), io.folder) })
     app.exit(0)
   })

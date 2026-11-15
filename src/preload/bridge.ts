@@ -55,6 +55,7 @@ export function installBridge(ui: boolean): void {
     app: {
       onMenu: (handler) => subscribe('app:menu', handler),
       relaunch: () => ipcRenderer.invoke('app:relaunch'),
+      confirmClose: () => ipcRenderer.invoke('app:confirmClose'),
       mounted: () => ipcRenderer.send('ui:mounted'),
       engineReady: () => ipcRenderer.send('engine:ready'),
     },

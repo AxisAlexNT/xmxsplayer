@@ -54,6 +54,20 @@ async function assign(name: string, profileId: string): Promise<void> {
     error.value = String(reason)
   }
 }
+async function forceProgram(event: Event): Promise<void> {
+  const value = settings.value
+  try {
+    await settings.save({
+      ...value,
+      devices: {
+        ...value.devices,
+        arturiaForceProgram: (event.target as HTMLInputElement).checked,
+      },
+    })
+  } catch (reason) {
+    error.value = String(reason)
+  }
+}
 function learn(deviceId: string, controlId?: string): void {
   const d = devices.value.find((d) => d.id === deviceId)
   if (d?.profile)
@@ -101,7 +115,17 @@ defineExpose({ learn })
         v-if="device.profile"
         class="xm-faint"
       >{{ device.profile.controls.filter((c) => c.msg).length }} of
-        {{ device.profile.controls.length }} controls learned</span>
+        {{ device.profile.controls.length }} controls learned</span><span
+        v-if="device.profile?.feedback"
+        class="xm-faint"
+        :class="{
+          'text-danger': runtime.feedback[device.id]?.status === 'error',
+        }"
+      >{{
+        runtime.feedback[device.id]?.status === 'active'
+          ? 'Feedback active'
+          : (runtime.feedback[device.id]?.error ?? 'Feedback unavailable')
+      }}</span>
     </div>
     <div
       v-if="!devices.length"
@@ -110,6 +134,20 @@ defineExpose({ learn })
       No controller connected
     </div>
   </div>
+  <label
+    v-if="devices.some((d) => d.profile?.feedback === 'arturia-mk3')"
+    class="xm-force-program"
+  ><input
+    type="checkbox"
+    :checked="settings.value.devices.arturiaForceProgram"
+    @change="forceProgram"
+  >Select Arturia program on connect</label>
+  <p
+    v-if="settings.value.devices.arturiaForceProgram"
+    class="xm-faint mt-1"
+  >
+    Changes the keyboard's active program.
+  </p>
   <div
     v-if="error"
     class="text-danger mt-2"

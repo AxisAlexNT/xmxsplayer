@@ -1,3 +1,4 @@
+import type { DeviceFeedback } from './feedback'
 import type { RecordedTake } from './recording'
 import type { AudioPeaks, AudioSource } from './audio'
 import type {
@@ -87,6 +88,7 @@ export interface LogEntry {
   message: string
 }
 export interface EventMap {
+  feedback: DeviceFeedback
   'param:change': { action: Extract<Action, { type: 'param' }>; value: number }
   ready: undefined
   'grid:taps': {
@@ -131,6 +133,7 @@ export interface EventMap {
   app: { cmd: string }
 }
 export interface RequestMap {
+  'recording:close': { input: undefined; output: undefined }
   'device:profiles': { input: undefined; output: DeviceProfile[] }
   'recording:flush': { input: undefined; output: undefined }
   'soundfont:resolve': { input: SoundFontRef; output: string | null }

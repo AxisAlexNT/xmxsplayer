@@ -95,3 +95,17 @@ it('opens inputs, ignores MCU/HUI, tracks hot-plug and never opens or sends to o
   expect(output.send).not.toHaveBeenCalled()
   midi.close()
 })
+it('keeps smoke tests from requesting MIDI access or exposing hardware ports', async () => {
+  const request = vi.fn(),
+    ports = vi.fn()
+  vi.stubGlobal('navigator', { requestMIDIAccess: request })
+  const midi = new MidiIO(vi.fn(), ports, vi.fn(), vi.fn())
+  await midi.start(false)
+  expect(request).not.toHaveBeenCalled()
+  expect(ports).toHaveBeenCalledExactlyOnceWith({
+    inputs: [],
+    outputs: [],
+    devices: [],
+  })
+  midi.close()
+})

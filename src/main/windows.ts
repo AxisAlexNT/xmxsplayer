@@ -11,6 +11,7 @@ import {
 export interface Windows {
   ui: BrowserWindow
   getEngine: () => BrowserWindow
+  stopEngine: () => Promise<void>
 }
 export function createWindows(preloadRoot: string): Windows {
   const options = {
@@ -31,7 +32,38 @@ export function createWindows(preloadRoot: string): Windows {
   let engineReady = false
   let shuttingDown = false
   let crashes = 0
+  let engineStopped = false
+  let shutdown: Promise<void> | undefined
+  let shutdownDone: (() => void) | undefined
   let blocker: number | undefined
+  function stopEngine(): Promise<void> {
+    if (shutdown) return shutdown
+    shuttingDown = true
+    stopBlocker()
+    shutdown = new Promise<void>((resolve) => {
+      const timer = setTimeout(() => {
+        console.warn('Engine shutdown acknowledgement timed out')
+        finish()
+      }, 1500)
+      function finish(): void {
+        clearTimeout(timer)
+        engineStopped = true
+        shutdownDone = undefined
+        resolve()
+      }
+      shutdownDone = finish
+      if (engine.isDestroyed()) finish()
+      else engine.webContents.send('engine:shutdown')
+    })
+    return shutdown
+  }
+  ipcMain.on('engine:shutdownDone', (event) => {
+    if (
+      event.sender === engine.webContents &&
+      event.senderFrame === engine.webContents.mainFrame
+    )
+      shutdownDone?.()
+  })
   function stopBlocker(): void {
     if (blocker !== undefined) powerSaveBlocker.stop(blocker)
     blocker = undefined
@@ -68,6 +100,8 @@ export function createWindows(preloadRoot: string): Windows {
       webPreferences: {
         ...options,
         preload: join(preloadRoot, 'engine.cjs'),
+        additionalArguments:
+          process.env.XM_SMOKE === '1' ? ['--xmxs-smoke'] : [],
         backgroundThrottling: false,
       },
     })
@@ -91,6 +125,7 @@ export function createWindows(preloadRoot: string): Windows {
   secure(ui)
   session.defaultSession.setPermissionCheckHandler(
     (contents, permission, origin) =>
+      process.env.XM_SMOKE !== '1' &&
       !!contents &&
       (contents === ui.webContents || contents === engine?.webContents) &&
       ['midi', 'midiSysex'].includes(permission) &&
@@ -99,7 +134,8 @@ export function createWindows(preloadRoot: string): Windows {
   session.defaultSession.setPermissionRequestHandler(
     (contents, permission, callback, details) => {
       callback(
-        (contents === ui.webContents || contents === engine?.webContents) &&
+        process.env.XM_SMOKE !== '1' &&
+          (contents === ui.webContents || contents === engine?.webContents) &&
           ['midi', 'midiSysex'].includes(permission) &&
           details.requestingUrl.startsWith('app://xmxsplayer/'),
       )
@@ -112,14 +148,15 @@ export function createWindows(preloadRoot: string): Windows {
     broker()
   })
   ui.on('closed', () => {
-    shuttingDown = true
-    app.quit()
+    void stopEngine().then(() => app.quit())
   })
-  app.on('before-quit', () => {
-    stopBlocker()
-    shuttingDown = true
+  app.on('before-quit', (event) => {
+    if (engineStopped) return
+    event.preventDefault()
+    if (!ui.isDestroyed()) ui.close()
+    else void stopEngine().then(() => app.quit())
   })
   createEngine()
   void ui.loadURL('app://xmxsplayer/src/ui/index.html')
-  return { ui, getEngine: () => engine }
+  return { ui, getEngine: () => engine, stopEngine }
 }

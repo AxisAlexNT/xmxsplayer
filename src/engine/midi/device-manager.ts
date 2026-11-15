@@ -34,6 +34,11 @@ export class DeviceManager {
     private disconnect: (id: string) => void,
     warn: (message: string) => void,
     captured: (deviceId: string, control: ControlDef) => void = () => undefined,
+    private raw?: (
+      deviceId: string,
+      data: Uint8Array,
+      timestamp: number,
+    ) => void,
   ) {
     this.learn = new Learn(captured)
     this.config = settings
@@ -56,8 +61,8 @@ export class DeviceManager {
       },
     )
   }
-  start(): Promise<void> {
-    return this.io.start()
+  start(enabled = true): Promise<void> {
+    return this.io.start(enabled)
   }
   configure(settings: Settings['devices']): void {
     this.config = settings
@@ -75,6 +80,7 @@ export class DeviceManager {
   receive(source: string, data: Uint8Array, timestamp: number): void {
     const device = this.connected.find((d) => d.id === source)
     if (!device) return
+    this.raw?.(source, data, timestamp)
     const message = decodeMidi(source, data, timestamp)
     if (!message) return
     let decoder = this.decoders.get(source)

@@ -16,6 +16,7 @@ interface Pool {
   id: string
 }
 interface Slot {
+  config?: Instrument
   pool: Pool
   channel: number
   releasing?: boolean
@@ -159,27 +160,45 @@ export class WebSynthBackend implements SynthBackend {
     slot.timer = setTimeout(drain, 80)
   }
   configure(id: SlotId, instrument: Instrument): void {
-    const { pool, channel } = this.get(id)
-    pool.synth.midiChannels[channel].setDrums(instrument.isDrum)
-    pool.synth.controllerChange(channel, 0, instrument.bank & 127)
-    pool.synth.controllerChange(channel, 32, (instrument.bank >> 8) & 127)
-    pool.synth.programChange(channel, instrument.program)
-    pool.synth.controllerChange(channel, 7, Math.round(instrument.volume * 127))
-    pool.synth.controllerChange(
-      channel,
-      10,
-      Math.round((instrument.pan + 1) * 63.5),
-    )
-    pool.synth.controllerChange(
-      channel,
-      91,
-      Math.round(instrument.reverb * 127),
-    )
-    pool.synth.controllerChange(
-      channel,
-      93,
-      Math.round(instrument.chorus * 127),
-    )
+    const slot = this.get(id),
+      { pool, channel } = slot,
+      old = slot.config
+    if (
+      !old ||
+      old.isDrum !== instrument.isDrum ||
+      old.bank !== instrument.bank ||
+      old.program !== instrument.program
+    ) {
+      pool.synth.midiChannels[channel].setDrums(instrument.isDrum)
+      pool.synth.controllerChange(channel, 0, instrument.bank & 127)
+      pool.synth.controllerChange(channel, 32, (instrument.bank >> 8) & 127)
+      pool.synth.programChange(channel, instrument.program)
+    }
+    if (!old || old.volume !== instrument.volume)
+      pool.synth.controllerChange(
+        channel,
+        7,
+        Math.round(instrument.volume * 127),
+      )
+    if (!old || old.pan !== instrument.pan)
+      pool.synth.controllerChange(
+        channel,
+        10,
+        Math.round((instrument.pan + 1) * 63.5),
+      )
+    if (!old || old.reverb !== instrument.reverb)
+      pool.synth.controllerChange(
+        channel,
+        91,
+        Math.round(instrument.reverb * 127),
+      )
+    if (!old || old.chorus !== instrument.chorus)
+      pool.synth.controllerChange(
+        channel,
+        93,
+        Math.round(instrument.chorus * 127),
+      )
+    slot.config = { ...instrument }
   }
   private get(id: SlotId): Slot {
     const slot = this.slots.get(id)

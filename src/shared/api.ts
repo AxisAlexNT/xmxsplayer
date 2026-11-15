@@ -51,13 +51,18 @@ export interface DesktopApi {
   app: {
     onMenu: (handler: (cmd: string) => void) => () => void
     relaunch: () => Promise<void>
+    confirmClose: () => Promise<boolean>
     mounted: () => void
     engineReady: () => void
   }
 }
 declare global {
   interface Window {
-    engineHost: { setPlaying(playing: boolean): void }
+    engineHost: {
+      smoke: boolean
+      setPlaying(playing: boolean): void
+      onShutdown(handler: () => Promise<void>): () => void
+    }
     xm: DesktopApi
   }
 }

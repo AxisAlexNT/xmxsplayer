@@ -280,3 +280,4 @@ button:disabled {
 .xm-action-fields > label { width: 100%; }
 .xm-binding-pop .xm-seg button, .xm-binding-pop .form-select, .xm-binding-pop input:not([type=checkbox]), .xm-binding-pop .btn { min-height: var(--xm-hit); }
 .xm-controls-profile .xm-pad { text-align: left; }
+.xm-force-program { display: flex; gap: 8px; align-items: center; min-height: var(--xm-hit); margin-top: 8px; font-size: var(--xm-fs-sm); color: var(--xm-text-muted); }

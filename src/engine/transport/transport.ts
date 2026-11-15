@@ -1,3 +1,4 @@
+import { sequenceSignature } from './signature'
 import { Recorder } from './recorder'
 import { BeatGrid } from './beat-grid'
 import { Metronome } from './metronome'
@@ -32,6 +33,8 @@ export class Transport {
   private project?: Project
   private signature = ''
   inputLatencyMs = 0
+  onBeat: (tick: number, when: number) => void = () => undefined
+  onTimingChange: (keepBeat: boolean) => void = () => undefined
   private serial = Promise.resolve()
   private starting = false
   private playRevision = 0
@@ -71,6 +74,7 @@ export class Transport {
       () => context.currentTime,
       warn,
       (tick, when) => {
+        this.onBeat(tick, when)
         const m = this.project?.metronome
         if (m?.audible)
           this.metronome.click(
@@ -79,7 +83,10 @@ export class Transport {
             m.toCue,
           )
       },
-      () => this.metronome.cancel(),
+      (keepHeld) => {
+        this.metronome.cancel()
+        this.onTimingChange(keepHeld)
+      },
     )
     this.scheduler = new Scheduler(this.clock, this.output)
     this.audio = new AudioTracks(
@@ -125,41 +132,26 @@ export class Transport {
     )
       this.metronome.cancel()
     this.project = project
-    const signature = JSON.stringify({
-      tempos: project.tempos,
-      timeSigs: project.timeSigs,
-      keySigs: project.keySigs,
-      beatAnchors: project.beatAnchors,
-      mapOwner: project.mapOwner,
-      lengthTicks: project.lengthTicks,
-      loop: project.loop,
-      soundfonts: project.soundfonts,
-      instruments: project.instruments,
-      patch: project.base.patch,
-      tracks: [...project.tracks]
-        .sort((a, b) => a.id.localeCompare(b.id))
-        .map((t) =>
-          t.kind === 'midi'
-            ? {
-                id: t.id,
-                kind: t.kind,
-                notes: t.notes,
-                events: t.events,
-                mode: t.mode,
-                solo: t.solo,
-                volume: t.volume,
-                pan: t.pan,
-              }
-            : { id: t.id, mode: t.mode, solo: t.solo },
-        ),
-    })
+    const signature = sequenceSignature(project)
     if (signature === this.signature) {
-      if (this.gridSeek !== undefined) {
-        this.clock.seek(this.gridSeek)
-        this.gridSeek = undefined
-        this.scheduler.invalidate(false)
-      }
-      return this.audio.synchronize(project).then(() => this.changed())
+      const seek = this.gridSeek
+      this.gridSeek = undefined
+      const work = this.serial.then(async () => {
+        if (this.project !== project) return
+        if (seek !== undefined) {
+          this.clock.seek(seek)
+          this.scheduler.invalidate(false)
+        }
+        await this.output.synchronize(project, true)
+        await this.audio.synchronize(project)
+        if (seek !== undefined) this.changed()
+        else {
+          this.report()
+          this.armDeadline()
+        }
+      })
+      this.serial = work.catch((error) => this.warn(String(error)))
+      return work
     }
     this.signature = signature
     const epoch = ++this.epoch

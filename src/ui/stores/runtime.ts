@@ -37,6 +37,9 @@ export const useRuntimeStore = defineStore('runtime', () => {
     outputs: [],
     devices: [],
   })
+  const feedback = ref<
+    Record<string, import('../../shared/feedback').DeviceFeedback>
+  >({})
   const controls = ref<
     Record<string, import('../../shared/protocol').EventMap['control']>
   >({})
@@ -70,6 +73,7 @@ export const useRuntimeStore = defineStore('runtime', () => {
     ]
   }
   return {
+    feedback,
     controls,
     lastTake,
     tapMap,

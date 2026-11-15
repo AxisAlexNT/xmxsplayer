@@ -86,7 +86,11 @@ export class MidiIO {
       timestamp: number,
     ) => boolean,
   ) {}
-  async start(): Promise<void> {
+  async start(enabled = true): Promise<void> {
+    if (!enabled) {
+      this.report()
+      return
+    }
     if (!navigator.requestMIDIAccess) {
       this.warn('Web MIDI is unavailable')
       return

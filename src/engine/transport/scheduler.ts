@@ -120,6 +120,9 @@ export class Scheduler {
     this.invalidate(true)
     return id
   }
+  isQueued(id: number): boolean {
+    return this.actions.some((a) => a.id === id)
+  }
   cancelAction(id: number): void {
     this.actions = this.actions.filter((a) => a.id !== id)
   }

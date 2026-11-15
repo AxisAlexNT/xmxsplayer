@@ -18,6 +18,7 @@ export interface BindingHost {
   profile(deviceId: string): { id: string; controls: ControlDef[] } | undefined
   queue(at: Timing, run: () => void): number
   cancel(id: number): void
+  isQueued?(id: number): boolean
   run(action: Action, value: number, pressed: boolean, source: string): void
   parameter(action: ParamAction): number | undefined
 }
@@ -64,6 +65,7 @@ interface HeldAction {
 export class Bindings {
   private pickup = new SoftTakeover()
   private held = new Map<string, HeldAction>()
+  private pending = new Map<number, { deviceId: string; controlId: string }>()
   constructor(private host: BindingHost) {}
   private dispatch(
     binding: Binding,
@@ -91,12 +93,29 @@ export class Bindings {
       this.held.set(key, entry)
     }
     entry.pending = this.host.queue(binding.at ?? 'now', () => {
+      this.pending.delete(entry.pending)
       entry.started = true
       this.host.run(action, value, event.pressed, source)
     })
+    if (entry.pending && !entry.started)
+      this.pending.set(entry.pending, {
+        deviceId: event.deviceId,
+        controlId: event.controlId,
+      })
+  }
+  queued(deviceId: string): ReadonlySet<string> {
+    const result = new Set<string>()
+    for (const [id, pending] of this.pending) {
+      if (this.host.isQueued && !this.host.isQueued(id)) this.pending.delete(id)
+      else if (pending.deviceId === deviceId) result.add(pending.controlId)
+    }
+    return result
   }
   private release(entry: HeldAction): void {
-    if (entry.pending) this.host.cancel(entry.pending)
+    if (entry.pending) {
+      this.host.cancel(entry.pending)
+      this.pending.delete(entry.pending)
+    }
     if (entry.started)
       this.host.run(entry.action, entry.value, false, entry.source)
   }
@@ -168,6 +187,11 @@ export class Bindings {
   }
   disconnect(deviceId: string): void {
     this.pickup.clear(`${deviceId}:`)
+    for (const [id, pending] of this.pending)
+      if (pending.deviceId === deviceId) {
+        this.host.cancel(id)
+        this.pending.delete(id)
+      }
     for (const [key, entry] of this.held)
       if (JSON.parse(key)[0] === deviceId) {
         this.release(entry)
@@ -175,6 +199,8 @@ export class Bindings {
       }
   }
   clear(): void {
+    for (const id of this.pending.keys()) this.host.cancel(id)
+    this.pending.clear()
     for (const entry of this.held.values()) this.release(entry)
     this.held.clear()
     this.pickup.clear()

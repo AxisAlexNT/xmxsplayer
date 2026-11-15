@@ -38,6 +38,7 @@ function sync(force = false): void {
 watch(engineBus, (bus) => {
   runtime.connected = false
   runtime.controls = {}
+  runtime.feedback = {}
   runtime.heldKeys = []
   runtime.readyInstruments = []
   runtime.synthLoading = false
@@ -70,6 +71,9 @@ watch(engineBus, (bus) => {
   bus.on('keys', (value) => {
     runtime.heldKeys = value.held
   })
+  bus.on('feedback', (frame) => {
+    runtime.feedback[frame.deviceId] = frame
+  })
   bus.on('control', (value) => {
     runtime.controls[`${value.deviceId}|${value.controlId}`] = value
   })
@@ -77,6 +81,8 @@ watch(engineBus, (bus) => {
     for (const key of Object.keys(runtime.controls))
       if (!value.devices.some((d) => key.startsWith(d.id + '|')))
         delete runtime.controls[key]
+    for (const id of Object.keys(runtime.feedback))
+      if (!value.devices.some((d) => d.id === id)) delete runtime.feedback[id]
     runtime.midi = value
   })
   bus.on('latency', (value) => {

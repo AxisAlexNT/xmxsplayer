@@ -18,12 +18,12 @@ export class SequenceOutput implements SchedulerOutput {
     private now: () => number,
     warn: (message: string) => void,
     readonly beat: (tick: number, when: number) => void,
-    private onReset: () => void = () => undefined,
+    private onReset: (keepHeld: boolean) => void = () => undefined,
   ) {
     this.rack = new InstrumentRack(backend, load, warn)
   }
-  async synchronize(project: Project): Promise<void> {
-    this.reset(false)
+  async synchronize(project: Project, preserve = false): Promise<void> {
+    if (!preserve) this.reset(false)
     const instruments = project.base.patch.flatMap((conn) => {
       const track = project.tracks.find((t) => t.id === conn.trackId),
         instrument = project.instruments.find((i) => i.id === conn.instrumentId)
@@ -122,7 +122,7 @@ export class SequenceOutput implements SchedulerOutput {
         if (voice.off === undefined || voice.off > when) voice.off = when
   }
   reset(keepHeld: boolean): void {
-    this.onReset()
+    this.onReset(keepHeld)
     const now = this.now()
     this.collect(now)
     for (const slots of this.tracks.values())

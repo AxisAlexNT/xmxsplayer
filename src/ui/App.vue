@@ -22,7 +22,12 @@ const doc = useProjectStore()
 const runtime = useRuntimeStore()
 const settings = useSettingsStore()
 const editor = useEditorStore()
-watch(()=>editor.notice,value=>{if(value)notify(value.text)})
+watch(
+  () => editor.notice,
+  (value) => {
+    if (value) notify(value.text)
+  },
+)
 const toast = ref('')
 const pickerId = ref<string | null>(null)
 const showAudio = ref(false)
@@ -112,6 +117,12 @@ function transport(
     action: { type: 'transport', cmd },
     value,
   })
+}
+function setFollowView(mode: 'page' | 'center'): void {
+  doc.update((d) => {
+    d.view.follow = mode
+  })
+  editor.followRevision++
 }
 function laneZoom(factor: number): void {
   doc.update((d) => {
@@ -379,23 +390,28 @@ const stopFiles = window.xm.project.onFilesChanged((change) => {
     fail(error)
   }
 })
+let closeAllowed = false
+let closing = false
+async function prepareClose(): Promise<void> {
+  if (closing) return
+  closing = true
+  try {
+    if (runtime.connected)
+      await engineBus.value?.request('recording:close', undefined)
+    if (doc.dirtyFiles.length && !(await window.xm.app.confirmClose())) return
+    closeAllowed = true
+    window.close()
+  } catch (error) {
+    fail(error)
+  } finally {
+    closing = false
+  }
+}
 function beforeUnload(event: BeforeUnloadEvent): void {
-  if (runtime.transport.recording) {
-    event.preventDefault()
-    event.returnValue = false as unknown as string
-    void engineBus.value
-      ?.request('recording:flush', undefined)
-      .then(() => window.close())
-      .catch(fail)
-    return
-  }
-  if (
-    doc.dirtyFiles.length &&
-    !window.confirm('Discard unsaved changes and quit?')
-  ) {
-    event.preventDefault()
-    event.returnValue = false as unknown as string
-  }
+  if (closeAllowed) return
+  event.preventDefault()
+  event.returnValue = false as unknown as string
+  void prepareClose()
 }
 onMounted(() => {
   if (window.innerWidth < 1400 && localStorage.getItem('collapsed') === null)
@@ -568,12 +584,7 @@ onUnmounted(() => {
           v-for="mode in ['page', 'center'] as const"
           :key="mode"
           :class="{ 'is-on': p.view.follow === mode }"
-          @click="
-            doc.update((d) => {
-              d.view.follow = mode
-            });
-            editor.followRevision++
-          "
+          @click="setFollowView(mode)"
         >
           {{ mode === 'page' ? 'Page' : 'Center' }}
         </button>

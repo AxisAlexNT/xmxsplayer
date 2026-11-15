@@ -49,7 +49,10 @@ it('isolates tracks, chases controllers and preserves only started voices when r
   ]
   output.chase(track, 600, 0.1)
   expect(
-    backend.events.slice().reverse().find((e) => e.type === 'cc' && e.cc === 64)?.value,
+    backend.events
+      .slice()
+      .reverse()
+      .find((e) => e.type === 'cc' && e.cc === 64)?.value,
   ).toBe(127)
   output.boundary(0.5)
   now = 0.5
@@ -59,5 +62,37 @@ it('isolates tracks, chases controllers and preserves only started voices when r
   expect(
     backend.events.filter((e) => e.type === 'cc' && e.cc === 120),
   ).toHaveLength(2)
+  output.close()
+})
+it('updates mixer controls without clearing or retriggering a held sequenced note', async () => {
+  const p = liveProject('Mix'),
+    track = p.tracks[0]
+  if (track.kind !== 'midi') throw Error('Expected MIDI')
+  const backend = new FakeBackend(),
+    output = new SequenceOutput(
+      backend,
+      async () => undefined,
+      () => 0.1,
+      () => undefined,
+      () => undefined,
+    )
+  await output.synchronize(p)
+  const note: ScheduledNote = {
+    id: 'held',
+    track,
+    note: [0, 1920, 60, 100],
+    start: 0,
+    end: 1920,
+    cycle: 0,
+  }
+  output.noteOn(note, 0)
+  backend.events = []
+  track.volume = 0.5
+  p.instruments[0].reverb = 0.3
+  await output.synchronize(p, true)
+  expect(output.hasNote('held')).toBe(true)
+  expect(backend.events.map((e) => e.type)).toEqual(['configure'])
+  output.noteOff(note, 2)
+  expect(backend.events.at(-1)).toMatchObject({ type: 'off', key: 60 })
   output.close()
 })

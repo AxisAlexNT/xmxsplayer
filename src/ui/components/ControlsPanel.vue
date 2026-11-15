@@ -109,14 +109,38 @@ function label(control: ControlDef): string {
 function live(control: ControlDef) {
   return runtime.controls[`${device.value?.id}|${control.id}`]
 }
+function feedback(control: ControlDef) {
+  return device.value
+    ? runtime.feedback[device.value.id]?.controls[control.id]
+    : undefined
+}
 function lit(control: ControlDef): boolean {
+  const value = feedback(control)
+  if (value) return value.level > 0.5 && value.state !== 'off'
   if (live(control)?.pressed) return true
-  const a = binding(control)?.action
-  return a?.type === 'register'
-    ? (runtime.state.registers[a.index] ?? false)
-    : a?.type === 'transport' && a.cmd === 'toggle'
+  const action = binding(control)?.action
+  return action?.type === 'register'
+    ? (runtime.state.registers[action.index] ?? false)
+    : action?.type === 'transport' && action.cmd === 'toggle'
       ? runtime.transport.playing
       : false
+}
+function controlStyle(control: ControlDef) {
+  const value = feedback(control),
+    color =
+      value?.color ?? setup.value.padColors[control.id] ?? 'var(--xm-accent)'
+  return {
+    '--c': color,
+    '--v': live(control)?.value ?? 0,
+    ...(value && control.kind === 'pad'
+      ? {
+          backgroundColor:
+            value.state === 'off'
+              ? 'transparent'
+              : `color-mix(in srgb, ${color} ${Math.round(value.level * 100)}%, var(--xm-bg-2))`,
+        }
+      : {}),
+  }
 }
 function open(event: MouseEvent, control: ControlDef): void {
   if (!control.msg) {
@@ -239,15 +263,15 @@ function relearn(): void {
                       : 'xm-cbtn',
                 {
                   'is-empty':
-                    control.kind === 'pad' && isUnbound(binding(control)),
+                    control.kind === 'pad' &&
+                    (feedback(control)?.state === 'off' ||
+                      (!feedback(control) && isUnbound(binding(control)))),
                   'is-lit': lit(control),
+                  'is-blink': feedback(control)?.state === 'queued',
                   'is-sel': editing?.control.id === control.id,
                 },
               ]"
-              :style="{
-                '--c': setup.padColors[control.id] ?? 'var(--xm-accent)',
-                '--v': live(control)?.value ?? 0,
-              }"
+              :style="controlStyle(control)"
               :aria-label="`Bind ${control.label}`"
               :title="`${control.label} · ${label(control)}${live(control) ? ` · ${Math.round(live(control)!.value * 127)}` : ''}`"
               @click="open($event, control)"

@@ -1,3 +1,4 @@
+import { LedManager } from './feedback/led-manager'
 import { Bindings } from './router/bindings'
 import {
   parameterValue,
@@ -15,7 +16,7 @@ import type {
   Settings,
   SoundFontRef,
 } from '../shared/model'
-import type { CommandMap } from '../shared/protocol'
+import type { CommandMap, RuntimeState } from '../shared/protocol'
 import { AudioGraph } from './audio/graph'
 import { WebSynthBackend } from './synth/web-synth'
 import type { MidiMessage } from './midi/midi-io'
@@ -34,6 +35,17 @@ let router: Router | undefined
 let midi: DeviceManager | undefined
 let transport: Transport | undefined
 let bindings: Bindings | undefined
+let leds: LedManager | undefined
+let engineClosing = false
+const runtimeState: RuntimeState = {
+  activeSceneId: null,
+  registers: Array(8).fill(false),
+  armedCueId: null,
+  pendingActions: [],
+  expectedNext: null,
+  clips: {},
+  effective: { zones: [], patch: [] },
+}
 let masterVolume = 1
 const pendingParameters = new Map<string, { value: number; time: number }>()
 let keysTimer: ReturnType<typeof setTimeout> | undefined
@@ -68,6 +80,7 @@ function liveNote(
   on: boolean,
   when?: number,
 ): void {
+  if (engineClosing) return
   const owner = JSON.stringify([source, channel, key])
   if ((on && audition) || (!on && previews.has(owner)))
     previewNote(owner, key, velocity, on)
@@ -173,7 +186,9 @@ function runAction(
   transport?.actions.run(action, value)
 }
 function receiveControl(event: ControlEvent): void {
+  if (engineClosing) return
   bus?.send('control', event)
+  leds?.control(event)
   try {
     bindings?.receive(event)
   } catch (error) {
@@ -255,12 +270,13 @@ async function initialize(value: Settings): Promise<void> {
       },
       (message) => log('warn', 'midi', message),
       (deviceId, control) => bus?.send('learn:captured', { deviceId, control }),
+      (deviceId, data) => leds?.sysex(deviceId, data),
     )
     bindings = new Bindings({
       project: () => project,
       context: () => ({
-        activeSceneId: null,
-        registers: Array(8).fill(false),
+        activeSceneId: runtimeState.activeSceneId,
+        registers: runtimeState.registers,
         bar: transport?.clock.map.tickToBarBeat(transport.clock.tick).bar ?? 1,
         playing: transport?.clock.playing ?? false,
         holding: transport?.clock.holding ?? false,
@@ -268,10 +284,47 @@ async function initialize(value: Settings): Promise<void> {
       profile: (id) => midi?.devices().find((d) => d.id === id)?.profile,
       queue: (at, run) => transport?.queue(at, run) ?? 0,
       cancel: (id) => transport?.cancelAction(id),
+      isQueued: (id) => transport?.scheduler.isQueued(id) ?? false,
       run: runAction,
       parameter: currentParameter,
     })
-    void midi.start().catch((error) => log('warn', 'midi', String(error)))
+    leds = new LedManager({
+      now: () => performance.now(),
+      state: () =>
+        project && transport
+          ? {
+              project,
+              runtime: runtimeState,
+              playing: transport.clock.playing,
+              recording: transport.clock.recording,
+              holding: transport.clock.holding,
+              tick: transport.clock.tick,
+              rate: transport.clock.speed,
+            }
+          : undefined,
+      devices: () => midi?.devices() ?? [],
+      output: (id) => midi?.output(id),
+      forceProgram: () => settings?.devices.arturiaForceProgram ?? false,
+      queued: (id) => bindings?.queued(id) ?? new Set(),
+      report: (frame) => bus?.send('feedback', frame),
+      warn: (message) => log('warn', 'feedback', message),
+    })
+    transport.onTimingChange = (keepBeat) => leds?.invalidate(keepBeat)
+    transport.onBeat = (tick, when) => {
+      const ctx = graph!.context,
+        stamp = ctx.getOutputTimestamp()
+      const perf =
+        stamp.contextTime && stamp.performanceTime
+          ? stamp.performanceTime + (when - stamp.contextTime) * 1000
+          : performance.now() +
+            (when - ctx.currentTime + ctx.baseLatency + ctx.outputLatency) *
+              1000
+      leds?.beatAt(tick, perf)
+    }
+    leds.start()
+    void midi
+      .start(!window.engineHost.smoke && !engineClosing)
+      .catch((error) => log('warn', 'midi', String(error)))
   })()
   try {
     await initialization
@@ -369,6 +422,7 @@ window.addEventListener('message', (event) => {
   bus?.close()
   bus = new Bus(event.ports[0], 'evt')
   bus.on('settings:set', (value) => {
+    if (engineClosing) return
     settings = value
     midi?.configure(value.devices)
     void initialize(value).catch((error) =>
@@ -406,12 +460,14 @@ window.addEventListener('message', (event) => {
   bus.on('learn:stop', () => midi?.learn.stop())
   bus.on('audio:scope', ({ folder }) => {
     bindings?.clear()
+    leds?.invalidate()
     pendingParameters.clear()
     transport?.recorder.setScope(folder)
     transport?.audio.setScope(folder)
     transport?.grid.reset()
   })
   bus.on('project:meta', (value) => {
+    if (engineClosing) return
     const old = project
     project = applyMetadata(value, old)
     if (old?.name !== value.name || old.tracks.length !== value.tracks.length)
@@ -449,6 +505,10 @@ window.addEventListener('message', (event) => {
     await load(font)
     await synchronize()
     return backend!.listPresets(soundfontId)
+  })
+  bus.respond('recording:close', () => {
+    if (transport?.clock.recording) transport.stop()
+    return undefined
   })
   bus.respond('recording:flush', () => {
     transport?.stop()
@@ -558,4 +618,14 @@ window.addEventListener('message', (event) => {
       `All notes stopped · ${settings?.audio.defaultSynth ?? 'web'}`,
     )
   })
+})
+
+window.engineHost.onShutdown(async () => {
+  engineClosing = true
+  await initialization?.catch(() => undefined)
+  bindings?.clear()
+  transport?.stop()
+  midi?.close()
+  router?.panic()
+  await leds?.close()
 })
