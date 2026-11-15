@@ -1,3 +1,5 @@
+import { ClipPlayer, type ClipFrame } from '../clips/clip-player'
+import { AudioClipVoice } from '../clips/clip-voice'
 import type { ActivityRoute } from '../../shared/activity'
 import { allPatches } from '../../shared/patches'
 import type { ConditionContext } from '../../shared/conditions'
@@ -22,6 +24,7 @@ export class Transport {
   readonly scheduler: Scheduler
   readonly actions: Actions
   readonly audio: AudioTracks
+  readonly clips: ClipPlayer
   readonly grid: BeatGrid
   readonly recorder: Recorder
   private metronome: Metronome
@@ -44,6 +47,7 @@ export class Transport {
     bar: this.clock.map.tickToBarBeat(tick).bar,
     playing: this.clock.playing,
   })
+  onClips: (frame: ClipFrame) => void = () => undefined
   onPosition: () => void = () => undefined
   onSeek: () => void = () => undefined
   onStop: () => void = () => undefined
@@ -113,6 +117,35 @@ export class Transport {
       this.bus,
       warn,
     )
+    this.clips = new ClipPlayer({
+      clock: this.clock,
+      prepare: async (clip) => {
+        const route = graph.route(clip.toCue)
+        await route.context.resume()
+        const decoded = await this.audio.decoder.load(clip.file)
+        return AudioClipVoice.create(
+          route,
+          decoded,
+          clip,
+          route.context !== graph.context,
+        )
+      },
+      validVoice: (voice, clip) => {
+        const route = graph.route(clip.toCue)
+        return (
+          voice instanceof AudioClipVoice &&
+          voice.route.context === route.context &&
+          voice.route.destination === route.destination
+        )
+      },
+      queue: (at, run) => this.queue(at, run),
+      cancel: (id) => this.cancelAction(id),
+      queuedTime: (id) => this.scheduler.queuedTime(id),
+      holdDeadline: () => this.scheduler.holdDeadline(),
+      advance: () => this.scheduler.tick(),
+      report: (frame) => this.onClips(frame),
+      warn,
+    })
     this.scheduler.onEnd = () => this.changed()
     this.scheduler.onBoundary = () => this.changed()
     this.actions = new Actions({
@@ -153,6 +186,7 @@ export class Transport {
     )
       this.metronome.cancel()
     this.project = project
+    this.clips.configure(project.clips)
     const signature = sequenceSignature(project)
     if (signature === this.signature) {
       const seek = this.gridSeek
@@ -218,6 +252,7 @@ export class Transport {
   }
   applyPerformance(project: Project): void {
     this.project = project
+    this.clips.configure(project.clips)
     this.signature = sequenceSignature(project)
     this.eventsSignature = eventSignature(project)
     this.scheduler.setProject(project, true)
@@ -314,6 +349,7 @@ export class Transport {
     )
     window.engineHost.setPlaying(this.clock.playing)
     this.onPosition()
+    this.clips.tick()
     if (!this.syncing) this.scheduler.tick()
     this.audio.refresh(true)
     this.report()

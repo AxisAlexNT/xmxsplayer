@@ -432,6 +432,11 @@ async function initialize(value: Settings): Promise<void> {
       () => bus,
       (message) => log('warn', 'transport', message),
     )
+    transport.onClips = (frame) => {
+      runtimeState.clips = frame.states
+      bus?.send('clips:progress', frame.progress)
+      publishRuntime()
+    }
     script = new ScriptHost(
       (on, state, active) =>
         createApi(
@@ -847,6 +852,7 @@ window.addEventListener('message', (event) => {
     )
   })
   bus.on('audio:scope', ({ folder }) => {
+    transport?.clips.reset()
     syncRevision++
     scriptCommandRevision++
     noteHooks?.clear()
@@ -1006,6 +1012,7 @@ window.addEventListener('message', (event) => {
     bus?.send('doc:patch', { loop })
   })
   bus.on('panic', () => {
+    transport?.clips.stopAll()
     releaseScriptNotes()
     noteHooks?.clear()
     bindings?.clear()
@@ -1031,6 +1038,7 @@ window.engineHost.onShutdown(async () => {
   transport?.stop()
   scriptSession?.clear()
   noteHooks?.clear()
+  transport?.clips.close()
   midi?.close()
   router?.panic()
   await leds?.close()

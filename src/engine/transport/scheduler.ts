@@ -314,6 +314,18 @@ export class Scheduler {
       this.onEnd()
     }
   }
+  queuedTime(id: number): number | null {
+    const action = this.actions.find((action) => action.id === id)
+    return action ? this.clock.contextAt(action.raw) : null
+  }
+  holdDeadline(): number | null {
+    if (!this.clock.playing || this.clock.holding) return null
+    const raw = Math.min(
+      this.holdRaw ?? Infinity,
+      this.timeline?.next(true)?.raw ?? Infinity,
+    )
+    return Number.isFinite(raw) ? this.clock.contextAt(raw) : null
+  }
   audioDeadline(): number | null {
     if (!this.clock.playing || this.clock.holding) return null
     const targets: number[] = []

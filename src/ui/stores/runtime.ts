@@ -55,6 +55,7 @@ export const useRuntimeStore = defineStore('runtime', () => {
     hash: '',
     state: 'empty',
   })
+  const clipProgress = ref<Record<string, number>>({})
   const connected = ref(false)
   const logs = ref<(LogEntry & { time: string })[]>([])
   const transport = ref<TransportState>({
@@ -82,6 +83,7 @@ export const useRuntimeStore = defineStore('runtime', () => {
     ]
   }
   return {
+    clipProgress,
     scriptStatus,
     activity,
     feedback,

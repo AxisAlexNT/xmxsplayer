@@ -141,6 +141,7 @@ export class AudioTracks {
       this.refresh(true)
       this.decoder.prune(
         new Set([...this.players.values()].map((p) => p.decoded.key)),
+        new Set(project.clips.map((clip) => clip.file)),
       )
     })
     this.serial = work.catch((e) => this.warn(String(e)))

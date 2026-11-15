@@ -98,6 +98,7 @@ export interface LogEntry {
   message: string
 }
 export interface EventMap {
+  'clips:progress': Record<Id, number>
   'script:status': ScriptStatus
   feedback: DeviceFeedback
   'param:change': { action: Extract<Action, { type: 'param' }>; value: number }

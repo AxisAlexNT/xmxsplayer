@@ -7,6 +7,8 @@ export interface DecodedAudio extends AudioPeaks {
 }
 export class AudioDecoder {
   private buffers = new Map<string, Promise<DecodedAudio>>()
+  private fileKeys = new Map<string, string>()
+  private revision = 0
   constructor(
     private context: BaseAudioContext,
     private resolve: (file: string, sampleRate: number) => Promise<AudioSource>,
@@ -18,8 +20,12 @@ export class AudioDecoder {
     private warn: (message: string) => void,
   ) {}
   async load(file: string): Promise<DecodedAudio> {
-    const source = await this.resolve(file, this.context.sampleRate),
-      old = this.buffers.get(source.key)
+    const revision = this.revision
+    const source = await this.resolve(file, this.context.sampleRate)
+    if (revision !== this.revision)
+      throw Error('Audio project changed while loading')
+    this.fileKeys.set(file, source.key)
+    const old = this.buffers.get(source.key)
     if (old) return old
     const loading = (async () => {
       const response = await fetch(source.url)
@@ -58,11 +64,18 @@ export class AudioDecoder {
       throw e
     }
   }
-  prune(keys: Set<string>): void {
+  prune(keys: Set<string>, files: ReadonlySet<string> = new Set()): void {
+    keys = new Set(keys)
+    for (const file of files) {
+      const key = this.fileKeys.get(file)
+      if (key) keys.add(key)
+    }
     for (const key of this.buffers.keys())
       if (!keys.has(key)) this.buffers.delete(key)
   }
   clear(): void {
+    this.revision++
+    this.fileKeys.clear()
     this.buffers.clear()
   }
 }
