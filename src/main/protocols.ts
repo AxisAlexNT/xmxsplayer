@@ -17,7 +17,8 @@ protocol.registerSchemesAsPrivileged([
   },
   {
     scheme: 'xmfile',
-    privileges: { corsEnabled: true,
+    privileges: {
+      corsEnabled: true,
       standard: true,
       secure: true,
       supportFetchAPI: true,
@@ -67,13 +68,21 @@ export function installProtocols(rendererRoot: string): void {
     if (path.split('/').includes('..'))
       return new Response('Forbidden', { status: 403 })
     if (process.env.ELECTRON_RENDERER_URL) {
-      const response = await net.fetch(new URL(path + url.search, process.env.ELECTRON_RENDERER_URL).href)
+      const response = await net.fetch(
+        new URL(path + url.search, process.env.ELECTRON_RENDERER_URL).href,
+      )
       if (!path.endsWith('.html')) return response
       const nonce = randomUUID()
-      const html = (await response.text()).replaceAll('__XM_CSP_NONCE__', nonce)
-        .replace("connect-src 'self' xmfile:", "connect-src 'self' xmfile: ws://127.0.0.1:5173")
+      const html = (await response.text())
+        .replaceAll('__XM_CSP_NONCE__', nonce)
+        .replace(
+          "connect-src 'self' xmfile:",
+          "connect-src 'self' xmfile: ws://127.0.0.1:5173",
+        )
         .replace("style-src 'self'", `style-src 'self' 'nonce-${nonce}'`)
-      return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
+      return new Response(html, {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      })
     }
     const file = resolve(rendererRoot, `.${path}`)
     if (!inside(rendererRoot, file))
@@ -87,10 +96,14 @@ export function installProtocols(rendererRoot: string): void {
       return new Response('Not found', { status: 404 })
     }
   })
-  protocol.handle('xmfile', async request => {
+  protocol.handle('xmfile', async (request) => {
     const response = await fileTokens.fetch(new URL(request.url))
     const headers = new Headers(response.headers)
     headers.set('Access-Control-Allow-Origin', 'app://xmxsplayer')
-    return new Response(response.body, { status: response.status, statusText: response.statusText, headers })
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    })
   })
 }

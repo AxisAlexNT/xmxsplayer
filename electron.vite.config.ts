@@ -19,7 +19,12 @@ export default defineConfig({
     root: '.',
     plugins: [vue()],
     html: { cspNonce: '__XM_CSP_NONCE__' },
-    server: { host: '127.0.0.1', port: 5173, strictPort: true, hmr: { protocol: 'ws', host: '127.0.0.1', port: 5173 } },
+    server: {
+      host: '127.0.0.1',
+      port: 5173,
+      strictPort: true,
+      hmr: { protocol: 'ws', host: '127.0.0.1', port: 5173 },
+    },
     build: {
       rollupOptions: {
         input: {

@@ -4,13 +4,18 @@ import { defaultSettings } from '../../shared/defaults'
 import { settingsSchema } from '../../shared/schema'
 import type { Settings } from '../../shared/model'
 function readSections(): Record<string, boolean> {
-  try { const value = JSON.parse(localStorage.getItem('sections') || '{}'); return value && typeof value === 'object' && !Array.isArray(value) ? value : {} } catch { return {} }
+  try {
+    const value = JSON.parse(localStorage.getItem('sections') || '{}')
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? value
+      : {}
+  } catch {
+    return {}
+  }
 }
 export const useSettingsStore = defineStore('settings', () => {
   const value = shallowRef(defaultSettings())
-  const sections = ref<Record<string, boolean>>(
-    readSections(),
-  )
+  const sections = ref<Record<string, boolean>>(readSections())
   const collapsed = ref(localStorage.getItem('collapsed') === 'true')
   const leftWidth = ref(Number(localStorage.getItem('leftWidth')) || 372)
   async function load(): Promise<void> {

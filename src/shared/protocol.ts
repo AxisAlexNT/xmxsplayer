@@ -1,6 +1,5 @@
 import type {
   Action,
-  Binding,
   ControlDef,
   Id,
   Note,
@@ -71,7 +70,7 @@ export interface EventMap {
   keys: { held: { key: number; trackIds: Id[] }[] }
   activity: { trackIds: Id[]; instrumentIds: Id[] }
   recorded: { trackId: Id; notes: Note[] }
-  'doc:patch': { bindings?: Binding[] }
+  'doc:patch': Partial<Project>
   latency: {
     baseMs: number
     outputMs: number

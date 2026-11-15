@@ -1,3 +1,4 @@
+import { syncProject } from '../shared/project-sync'
 import { createApp, watch } from 'vue'
 import { createPinia } from 'pinia'
 import 'bootstrap/dist/css/bootstrap.min.css'
@@ -7,23 +8,45 @@ import './styles/xm.css'
 import './styles/theme.scss'
 import App from './App.vue'
 import { engineBus } from './bus'
+import { useProjectStore } from './stores/project'
 import { useRuntimeStore } from './stores/runtime'
 import { useSettingsStore } from './stores/settings'
+import type { Project } from '../shared/model'
 
 const app = createApp(App)
 app.use(createPinia())
+const doc = useProjectStore()
 const runtime = useRuntimeStore()
 const settings = useSettingsStore()
+let synced: Project | undefined
+function sync(force = false): void {
+  const bus = engineBus.value
+  if (!bus || !runtime.connected) return
+  const p = doc.project
+  if (p === synced && !force) return
+  syncProject(bus, p, synced, force)
+  synced = p
+}
 watch(engineBus, (bus) => {
   runtime.connected = false
   if (!bus) return
   bus.on('ready', () => {
     runtime.connected = true
+    sync(true)
     bus.send('settings:set', settings.value)
     runtime.log({ level: 'ok', source: 'engine', message: 'Engine connected' })
     window.xm.app.engineReady()
   })
   bus.on('log', (entry) => runtime.log(entry))
+  bus.on('doc:patch', (patch) => {
+    try {
+      doc.update((draft) => {
+        Object.assign(draft, patch)
+      })
+    } catch (error) {
+      runtime.log({ level: 'error', source: 'engine', message: String(error) })
+    }
+  })
   bus.on('transport', (value) => {
     runtime.transport = value
   })
@@ -32,6 +55,10 @@ watch(engineBus, (bus) => {
   })
   bus.send('ping', undefined)
 })
+watch(
+  () => doc.project,
+  () => sync(),
+)
 watch(
   () => settings.value,
   (value) => {

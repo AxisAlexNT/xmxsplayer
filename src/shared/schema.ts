@@ -198,14 +198,12 @@ export const setupSchema = z.strictObject({
   padColors: record(color),
   beatChase,
 })
-export const sceneSchema = setupSchema
-  .partial()
-  .extend({
-    id,
-    name: z.string(),
-    color,
-    registers: z.boolean().nullable().array().length(8).optional(),
-  })
+export const sceneSchema = setupSchema.partial().extend({
+  id,
+  name: z.string(),
+  color,
+  registers: z.boolean().nullable().array().length(8).optional(),
+})
 export const mappingSchema = z.strictObject({
   bindings: bindingSchema.array(),
   padColors: record(color),
@@ -388,7 +386,7 @@ export const projectSchema = z
       })
       .array(),
     clips: clipSchema.array(),
-    mappings: record(mappingSchema),
+    mappings: z.record(id, mappingSchema),
     script: z.string(),
     loop: z
       .strictObject({ enabled: z.boolean(), startTick: tick, endTick: tick })

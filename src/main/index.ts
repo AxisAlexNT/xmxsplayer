@@ -3,7 +3,9 @@ import { fileURLToPath } from 'node:url'
 import { app, ipcMain } from 'electron'
 import { installProtocols } from './protocols'
 import { createWindows } from './windows'
-import { loadSettings, saveSettings } from './settings'
+import { installIpc } from './ipc'
+import { installMenu } from './menu'
+import { loadSettings } from './settings'
 
 app.setName('xmxsplayer')
 const settings = loadSettings()
@@ -27,13 +29,10 @@ void app
     const root = fileURLToPath(new URL('..', import.meta.url))
     installProtocols(join(root, 'renderer'))
     const windows = createWindows(join(root, 'preload'))
-    ipcMain.handle('settings:get', event => {
-      if (event.sender !== windows.ui.webContents) throw new Error('Forbidden')
-      return loadSettings()
-    })
-    ipcMain.handle('settings:set', (event, value) => {
-      if (event.sender !== windows.ui.webContents) throw new Error('Forbidden')
-      saveSettings(value)
+    const close = installIpc(windows)
+    installMenu(windows.ui)
+    app.on('before-quit', () => {
+      void close()
     })
     let mounted = false
     let ready = false
@@ -43,14 +42,28 @@ void app
       finishing = true
       if (process.env.XM_SMOKE_SCREENSHOT) {
         const { writeFile } = await import('node:fs/promises')
-        windows.ui.setContentSize(1920, 1080)
+        const contents = windows.ui.webContents
+        contents.debugger.attach('1.3')
+        await contents.debugger.sendCommand(
+          'Emulation.setDeviceMetricsOverride',
+          { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false },
+        )
         await windows.ui.webContents.executeJavaScript(
           'document.fonts.ready.then(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))))',
         )
+        const capture = await contents.debugger.sendCommand(
+          'Page.captureScreenshot',
+          {
+            format: 'png',
+            captureBeyondViewport: true,
+            clip: { x: 0, y: 0, width: 1920, height: 1080, scale: 1 },
+          },
+        )
         await writeFile(
           process.env.XM_SMOKE_SCREENSHOT,
-          (await windows.ui.webContents.capturePage()).resize({ width: 1920, height: 1080 }).toPNG(),
+          Buffer.from(capture.data, 'base64'),
         )
+        contents.debugger.detach()
       }
       console.log('UI mounted; engine ready')
       clearTimeout(timeout)

@@ -18,7 +18,12 @@ window.addEventListener('message', (event) => {
   bus.on('project:meta', (value) => {
     const old = project
     project = applyMetadata(value, old)
-    if (old?.name !== value.name || old.tracks.length !== value.tracks.length) bus!.send('log', { level: 'info', source: 'project', message: `Project synchronized: ${value.name} (${value.tracks.length} tracks)` })
+    if (old?.name !== value.name || old.tracks.length !== value.tracks.length)
+      bus!.send('log', {
+        level: 'info',
+        source: 'project',
+        message: `Project synchronized: ${value.name} (${value.tracks.length} tracks)`,
+      })
   })
   bus.on('track:notes', ({ trackId, notes }) => {
     const track = project?.tracks.find((t) => t.id === trackId)

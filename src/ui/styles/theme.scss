@@ -31,7 +31,6 @@ button:disabled {
   visibility: hidden;
 }
 .xm-left {
-  resize: horizontal;
   position: relative;
 }
 .xm-sec-h {
@@ -153,4 +152,19 @@ button:disabled {
   .xm-loop-field {
     display: none;
   }
+}
+
+.xm-field .form-range { width: 84px; height: 18px; }
+.xm-register-name { text-overflow: ellipsis; }
+.xm-log-error { color: var(--xm-rec); }
+.xm-log-warn { color: var(--xm-warn); }
+.xm-log-ok { color: var(--xm-ok); }
+.xm-log-info { color: var(--xm-accent); }
+@media (max-width: 1599px) {
+  .xm-transport { gap: var(--xm-s1); }
+  .xm-per-track { display: none; }
+  .xm-name { max-width: 100px; }
+}
+@media (max-width: 1399px) {
+  .xm-lane-view, .xm-zoom { display: none; }
 }

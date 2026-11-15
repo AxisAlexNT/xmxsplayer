@@ -1,20 +1,94 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, reactive, ref } from 'vue'
-import { newProject } from '../shared/defaults'
-import type { Project } from '../shared/model'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useProjectStore } from './stores/project'
 import { useRuntimeStore } from './stores/runtime'
 import { useSettingsStore } from './stores/settings'
-const p = reactive(newProject())
-const doc = { dirtyFiles: [] as string[], update: (recipe: (p: Project) => void) => recipe(p) }
+import ConflictBanner from './components/ConflictBanner.vue'
+
+const doc = useProjectStore()
 const runtime = useRuntimeStore()
 const settings = useSettingsStore()
-const sections = ['Scenes','Registers','Patch','Clips','Controls','Signal flow','Devices','Soundfonts','Sources','Script','Log']
 const toast = ref('')
-function command(cmd: string): void { if (cmd === 'engine:restarting') runtime.connected = false; else toast.value = 'Project folders are not connected yet' }
-function renameRegister(index: number, event: Event): void { p.registers[index].name = (event.target as HTMLInputElement).value }
-const whiteKeys = Array.from({length: 61}, (_,i) => i+36).filter(k => ![1,3,6,8,10].includes(k%12))
-const blackKeys = Array.from({length: 61}, (_,i) => i+36).filter(k => [1,3,6,8,10].includes(k%12))
-function blackPosition(key: number): string { return `${whiteKeys.filter(k => k < key).length / whiteKeys.length * 100 - .9}%` }
+let toastTimer: ReturnType<typeof setTimeout>
+const sections = [
+  'Scenes',
+  'Registers',
+  'Patch',
+  'Clips',
+  'Controls',
+  'Signal flow',
+  'Devices',
+  'Soundfonts',
+  'Sources',
+  'Script',
+  'Log',
+]
+const p = computed(() => doc.project)
+const whiteKeys = Array.from({ length: 61 }, (_, i) => i + 36).filter(
+  (k) => ![1, 3, 6, 8, 10].includes(k % 12),
+)
+const blackKeys = Array.from({ length: 61 }, (_, i) => i + 36).filter((k) =>
+  [1, 3, 6, 8, 10].includes(k % 12),
+)
+function blackPosition(key: number): string {
+  return `${(whiteKeys.filter((k) => k < key).length / whiteKeys.length) * 100 - 0.9}%`
+}
+function notify(message: string): void {
+  toast.value = message
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => {
+    toast.value = ''
+  }, 4000)
+}
+function fail(error: unknown): void {
+  runtime.log({ level: 'error', source: 'files', message: String(error) })
+}
+async function command(cmd: string): Promise<void> {
+  try {
+    if (cmd === 'new' || cmd === 'open') {
+      if (
+        doc.dirtyFiles.length &&
+        !window.confirm('Discard unsaved changes and open another project?')
+      )
+        return
+      const snapshot =
+        await window.xm.project[cmd === 'new' ? 'create' : 'open']()
+      if (snapshot) {
+        doc.load(snapshot)
+        runtime.log({
+          level: 'ok',
+          source: 'files',
+          message: `Opened ${snapshot.folder}`,
+        })
+      }
+    } else if (cmd === 'save') {
+      if (!doc.folder) {
+        notify('Create or open a project folder first')
+        return
+      }
+      await doc.save()
+      notify('Project saved')
+    } else if (cmd === 'undo') doc.undo()
+    else if (cmd === 'redo') doc.redo()
+    else if (cmd === 'view:collapse') settings.collapse()
+    else if (cmd.startsWith('view:lanes:')) { const mode = cmd.slice(11); if (mode === 'staff' || mode === 'roll' || mode === 'per-track') doc.update(draft => { draft.view.lanes = mode }) }
+    else if (cmd === 'engine:restarting') {
+      runtime.connected = false
+      runtime.log({
+        level: 'warn',
+        source: 'engine',
+        message: 'Engine restarting…',
+      })
+    } else if (cmd === 'about') notify('xmxsplayer 0.1.0 · Application shell')
+  } catch (error) {
+    fail(error)
+  }
+}
+function renameRegister(index: number, event: Event): void {
+  doc.update((draft) => {
+    draft.registers[index].name = (event.target as HTMLInputElement).value
+  })
+}
 function resize(event: PointerEvent): void {
   const target = event.target as HTMLElement
   target.setPointerCapture(event.pointerId)
@@ -29,9 +103,43 @@ function resize(event: PointerEvent): void {
   target.addEventListener('pointermove', move)
   target.addEventListener('pointerup', up)
 }
-const stopMenu = window.xm.app.onMenu(command)
-onMounted(() => window.xm.app.mounted())
-onUnmounted(stopMenu)
+const stopMenu = window.xm.app.onMenu((cmd) => {
+  void command(cmd)
+})
+const stopFiles = window.xm.project.onFilesChanged((change) => {
+  try {
+    for (const path of doc.reload(change)) {
+      notify(`${path} reloaded`)
+      runtime.log({
+        level: 'info',
+        source: 'files',
+        message: `${path} reloaded from disk`,
+      })
+    }
+  } catch (error) {
+    fail(error)
+  }
+})
+function beforeUnload(event: BeforeUnloadEvent): void {
+  if (
+    doc.dirtyFiles.length &&
+    !window.confirm('Discard unsaved changes and quit?')
+  ) {
+    event.preventDefault()
+    event.returnValue = false as unknown as string
+  }
+}
+onMounted(() => {
+  if (window.innerWidth < 1400 && localStorage.getItem('collapsed') === null) settings.collapsed = true
+  window.xm.app.mounted()
+  window.addEventListener('beforeunload', beforeUnload)
+})
+onUnmounted(() => {
+  stopMenu()
+  stopFiles()
+  clearTimeout(toastTimer)
+  window.removeEventListener('beforeunload', beforeUnload)
+})
 </script>
 
 <template>
@@ -151,11 +259,11 @@ onUnmounted(stopMenu)
           {{ mode === 'page' ? 'Page' : 'Center' }}
         </button>
       </div>
-      <div class="xm-seg">
+      <div class="xm-seg xm-lane-view">
         <button
           v-for="mode in ['staff', 'roll', 'per-track'] as const"
           :key="mode"
-          :class="{ 'is-on': p.view.lanes === mode }"
+          :class="{ 'is-on': p.view.lanes === mode, 'xm-per-track': mode === 'per-track' }"
           @click="
             doc.update((d) => {
               d.view.lanes = mode
@@ -165,7 +273,7 @@ onUnmounted(stopMenu)
           {{ { staff: 'Staff', roll: 'Roll', 'per-track': 'Per track' }[mode] }}
         </button>
       </div>
-      <div class="xm-tgroup">
+      <div class="xm-tgroup xm-zoom">
         <button
           class="xm-tbtn"
           title="Smaller lanes"
@@ -325,7 +433,7 @@ onUnmounted(stopMenu)
     />
 
     <main class="xm-main">
-      <div />
+      <ConflictBanner @error="fail" />
       <div class="xm-rowgrid xm-ruler">
         <div class="xm-corner">
           <i class="bi bi-rulers" /> Bars
