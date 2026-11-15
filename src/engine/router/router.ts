@@ -92,6 +92,7 @@ export class Router {
     instrumentId?: string,
     trackOnly?: string,
     when?: number,
+    recordDirect = false,
   ): void {
     const id = this.noteOwner(source, channel, key)
     const owner = this.owner(source, channel)
@@ -131,7 +132,7 @@ export class Router {
           if (track?.kind !== 'midi') continue
           const postKey = key + zone.transpose
           if (
-            !trackOnly &&
+            (!trackOnly || recordDirect) &&
             postKey >= 0 &&
             postKey <= 127 &&
             !voice.routed.some(
@@ -152,7 +153,7 @@ export class Router {
             this.record(routed)
           }
           if (
-            !trackOnly &&
+            (!trackOnly || recordDirect) &&
             (track.mode === 'mute' ||
               (this.project!.tracks.some((t) => t.solo) && !track.solo))
           )

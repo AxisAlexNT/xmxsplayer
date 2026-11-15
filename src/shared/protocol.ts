@@ -3,6 +3,7 @@ import type { AudioPeaks, AudioSource } from './audio'
 import type {
   Action,
   ControlDef,
+  DeviceProfile,
   Id,
   Note,
   Project,
@@ -42,7 +43,7 @@ export interface CommandMap {
     source: string
   }
   audition: { instrumentId: Id; key: number; on: boolean }
-  'learn:start': { controlId?: string }
+  'learn:start': { controlId?: string; deviceId?: string; control?: ControlDef }
   'learn:stop': undefined
   'device:assign': { portName: string; profileId: string }
   'audition:select': {
@@ -86,6 +87,7 @@ export interface LogEntry {
   message: string
 }
 export interface EventMap {
+  'param:change': { action: Extract<Action, { type: 'param' }>; value: number }
   ready: undefined
   'grid:taps': {
     active: boolean
@@ -129,6 +131,7 @@ export interface EventMap {
   app: { cmd: string }
 }
 export interface RequestMap {
+  'device:profiles': { input: undefined; output: DeviceProfile[] }
   'recording:flush': { input: undefined; output: undefined }
   'soundfont:resolve': { input: SoundFontRef; output: string | null }
   'soundfont:presets': {

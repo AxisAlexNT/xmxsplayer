@@ -1,7 +1,13 @@
-import type { DeviceProfile, Settings } from '../../shared/model'
+import { Learn } from './learn'
+import type { ControlDef, DeviceProfile, Settings } from '../../shared/model'
 import type { EventMap } from '../../shared/protocol'
 import { MidiIO, decodeMidi, type MidiMessage } from './midi-io'
-import { ProfileDecoder, profileForPort, type ControlEvent } from './profile'
+import {
+  ProfileDecoder,
+  profileForPort,
+  profilesFor,
+  type ControlEvent,
+} from './profile'
 
 export interface ControllerDevice {
   id: string
@@ -10,6 +16,7 @@ export interface ControllerDevice {
   outputId?: string
 }
 export class DeviceManager {
+  readonly learn: Learn
   private io: MidiIO
   private config: Settings['devices']
   private ports: EventMap['midi:ports'] = {
@@ -26,7 +33,9 @@ export class DeviceManager {
     private reportPorts: (ports: EventMap['midi:ports']) => void,
     private disconnect: (id: string) => void,
     warn: (message: string) => void,
+    captured: (deviceId: string, control: ControlDef) => void = () => undefined,
   ) {
+    this.learn = new Learn(captured)
     this.config = settings
     this.io = new MidiIO(
       () => undefined,
@@ -35,6 +44,7 @@ export class DeviceManager {
         this.report()
       },
       (id) => {
+        if (this.learn.active(id)) this.learn.stop()
         this.decoders.delete(id)
         this.connected = this.connected.filter((device) => device.id !== id)
         this.disconnect(id)
@@ -53,6 +63,9 @@ export class DeviceManager {
     this.config = settings
     this.report()
   }
+  profiles(): DeviceProfile[] {
+    return profilesFor(this.config)
+  }
   devices(): readonly ControllerDevice[] {
     return this.connected
   }
@@ -70,6 +83,15 @@ export class DeviceManager {
       this.decoders.set(source, decoder)
     }
     const decoded = decoder.decode(device.profile, message)
+    if (this.learn.receive(message)) {
+      if (
+        decoded?.kind === 'key' &&
+        ((message.type === 'note' && !message.on) ||
+          (message.type === 'cc' && message.cc === 64 && message.value === 0))
+      )
+        this.key(message)
+      return
+    }
     if (decoded?.kind === 'key') this.key(decoded.message)
     else if (decoded?.kind === 'control') this.control(decoded.event)
   }
@@ -123,6 +145,7 @@ export class DeviceManager {
     })
   }
   close(): void {
+    this.learn.stop()
     this.io.close()
     this.connected = []
     this.decoders.clear()

@@ -1,3 +1,4 @@
+import { parameterPatch } from '../shared/parameters'
 import { syncProject } from '../shared/project-sync'
 import { createApp, watch } from 'vue'
 import { createPinia } from 'pinia'
@@ -36,6 +37,7 @@ function sync(force = false): void {
 }
 watch(engineBus, (bus) => {
   runtime.connected = false
+  runtime.controls = {}
   runtime.heldKeys = []
   runtime.readyInstruments = []
   runtime.synthLoading = false
@@ -68,7 +70,13 @@ watch(engineBus, (bus) => {
   bus.on('keys', (value) => {
     runtime.heldKeys = value.held
   })
+  bus.on('control', (value) => {
+    runtime.controls[`${value.deviceId}|${value.controlId}`] = value
+  })
   bus.on('midi:ports', (value) => {
+    for (const key of Object.keys(runtime.controls))
+      if (!value.devices.some((d) => key.startsWith(d.id + '|')))
+        delete runtime.controls[key]
     runtime.midi = value
   })
   bus.on('latency', (value) => {
@@ -81,6 +89,20 @@ watch(engineBus, (bus) => {
     window.xm.app.engineReady()
   })
   bus.on('log', (entry) => runtime.log(entry))
+  bus.on('param:change', ({ action, value }) => {
+    try {
+      doc.update((draft) => {
+        const patch = parameterPatch(draft, action, value)
+        if (patch) Object.assign(draft, patch)
+      })
+    } catch (error) {
+      runtime.log({
+        level: 'error',
+        source: 'parameter',
+        message: String(error),
+      })
+    }
+  })
   bus.on('doc:patch', (patch) => {
     try {
       doc.update((draft) => {

@@ -12,6 +12,8 @@ import KeyboardStrip from './components/KeyboardStrip.vue'
 import SoundfontsPanel from './components/SoundfontsPanel.vue'
 import InstrumentPicker from './components/InstrumentPicker.vue'
 import AudioSettings from './components/AudioSettings.vue'
+import DevicesPanel from './components/DevicesPanel.vue'
+import ControlsPanel from './components/ControlsPanel.vue'
 import Timeline from './timeline/Timeline.vue'
 import { TimeMap } from '../shared/time-map'
 import type { Action } from '../shared/model'
@@ -701,22 +703,7 @@ onUnmounted(() => {
               >
             </div>
           </div>
-          <template v-else-if="section === 'Controls'">
-            <div class="xm-ctl">
-              <div class="xm-pads">
-                <button
-                  v-for="pad in 8"
-                  :key="pad"
-                  class="xm-pad is-empty"
-                  disabled
-                >
-                  <span class="xm-pad-n">{{ pad }}</span><span
-                    class="xm-pad-label"
-                  >Unbound</span>
-                </button>
-              </div>
-            </div>
-          </template>
+          <ControlsPanel v-else-if="section === 'Controls'" />
           <template v-else-if="section === 'Log'">
             <button
               class="btn btn-sm btn-ghost mb-2"
@@ -773,19 +760,7 @@ onUnmounted(() => {
               class="xm-faint"
             >No track → instrument connections</span>
           </template>
-          <template v-else-if="section === 'Devices'">
-            <div
-              v-for="input in runtime.midi.inputs"
-              :key="input.id"
-              class="xm-status mb-2"
-            >
-              <span class="xm-dot" />{{ input.name }}
-            </div>
-            <span
-              v-if="!runtime.midi.inputs.length"
-              class="xm-status"
-            ><span class="xm-dot is-off" />No controller</span>
-          </template>
+          <DevicesPanel v-else-if="section === 'Devices'" />
           <template v-else>
             <span class="xm-faint">{{
               {

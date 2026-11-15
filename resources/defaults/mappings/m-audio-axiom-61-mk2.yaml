@@ -1,0 +1,51 @@
+bindings:
+  - control: button.1
+    edge: press
+    action:
+      type: register
+      cmd: toggle
+      index: 0
+  - control: button.2
+    edge: press
+    action:
+      type: register
+      cmd: toggle
+      index: 1
+  - control: button.3
+    edge: press
+    action:
+      type: register
+      cmd: toggle
+      index: 2
+  - control: button.4
+    edge: press
+    action:
+      type: register
+      cmd: toggle
+      index: 3
+  - control: button.5
+    edge: press
+    action:
+      type: register
+      cmd: toggle
+      index: 4
+  - control: button.6
+    edge: press
+    action:
+      type: register
+      cmd: toggle
+      index: 5
+  - control: button.7
+    edge: press
+    action:
+      type: register
+      cmd: toggle
+      index: 6
+  - control: button.8
+    edge: press
+    action:
+      type: register
+      cmd: toggle
+      index: 7
+padColors: {}
+scenes: {}

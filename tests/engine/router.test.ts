@@ -297,3 +297,33 @@ it('captures a post-zone note once before layers and releases it on the original
   input.close()
   rack.close()
 })
+it('records direct pad notes on their track while keeping editor auditions out of takes', async () => {
+  const { project, backend, rack } = await rig(),
+    notes: import('../../src/shared/recording').RoutedNote[] = [],
+    router = new Router(
+      rack,
+      () => undefined,
+      (n) => notes.push(n),
+    )
+  router.setProject(project)
+  router.note('editor', 0, 60, 100, true, undefined, 'piano')
+  router.note('editor', 0, 60, 0, false, undefined, 'piano')
+  expect(notes).toHaveLength(0)
+  router.note('pad', 0, 64, 100, true, undefined, 'strings', undefined, true)
+  router.note('pad', 0, 64, 0, false, undefined, 'strings', undefined, true)
+  expect(
+    notes.map((n) => ({ on: n.on, trackId: n.trackId, key: n.key })),
+  ).toEqual([
+    { on: true, trackId: 'strings', key: 64 },
+    { on: false, trackId: 'strings', key: 64 },
+  ])
+  expect(backend.events.filter((e) => e.type === 'on').at(-1)?.key).toBe(64)
+  const count = backend.events.filter((e) => e.type === 'on').length
+  project.tracks.find((t) => t.id === 'strings')!.mode = 'mute'
+  router.note('pad', 0, 65, 100, true, undefined, 'strings', undefined, true)
+  router.note('pad', 0, 65, 0, false, undefined, 'strings', undefined, true)
+  expect(backend.events.filter((e) => e.type === 'on')).toHaveLength(count)
+  expect(notes.at(-2)).toMatchObject({ on: true, trackId: 'strings', key: 65 })
+  router.close()
+  rack.close()
+})

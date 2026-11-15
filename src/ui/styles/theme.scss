@@ -247,3 +247,36 @@ button:disabled {
 .xm-roll-tools select { background: transparent; border: 0; color: var(--xm-text-muted); height: var(--xm-hit); max-width: 88px; font: var(--xm-fs-xs) var(--xm-font-mono); }
 .xm-roll-tools select option { background: var(--xm-bg-2); }
 .xm-editor-count { padding: 0 6px; color: var(--xm-text-muted); font: var(--xm-fs-xs) var(--xm-font-mono); }
+.xm-learn-dialog { width: min(800px, calc(100vw - 48px)); }
+.xm-learn-body { text-align: center; padding: 28px 16px; min-height: 280px; }
+.xm-learn-eyebrow { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+.xm-learn-body h2 { font-size: 30px; font-weight: 700; margin: 6px 0 14px; }
+.xm-learn-progress { justify-content: center; gap: 14px; margin-bottom: 16px; }
+.xm-learn-progress .is-sel { outline: 1px solid var(--xm-accent); }
+.xm-learn-mode { margin: 16px auto 0; max-width: 260px; }
+.xm-learn-add { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+.xm-learn-add select { width: 160px; }
+.xm-device-row { flex-direction: column; align-items: stretch !important; gap: 8px; }
+.xm-device-row label { width: 100%; }
+.xm-device-row .xm-dot { flex-shrink: 0; }
+.xm-device-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xm-controls-heading { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.xm-controls-heading select { min-width: 0; }
+.xm-controls-heading .xm-seg { flex-shrink: 0; }
+.xm-controls-profile { min-width: 0; }
+.xm-controls-group { min-width: 0; }
+.xm-control-scroll { overflow-x: auto; padding: 3px; margin: -3px; }
+.xm-controls-profile .xm-pads { grid-template-columns: repeat(4, minmax(var(--xm-hit), 1fr)); }
+.xm-controls-profile .xm-ctl-row, .xm-control-buttons { display: grid; gap: 8px; }
+.xm-controls-profile .xm-knob, .xm-controls-profile .xm-fader { background: transparent; border: 0; min-width: var(--xm-hit); padding: 2px; }
+.xm-control-buttons .xm-cbtn { min-height: var(--xm-hit); height: auto; padding: 5px; gap: 4px; }
+.xm-binding-pop { border: 1px solid var(--xm-border-strong); inset: auto; margin: 0; width: min(400px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow-y: auto; color: var(--xm-text); }
+.xm-binding-pad { width: var(--xm-hit); flex: none; }
+.xm-binding-midi { font-size: 11px; }
+.xm-binding-pop .xm-colours { display: flex; flex-wrap: wrap; gap: 6px; }
+.xm-binding-pop .xm-colours button { width: var(--xm-hit); height: var(--xm-hit); padding: 7px; background-clip: content-box; border: 1px solid var(--xm-border-strong); border-radius: 4px; }
+.xm-binding-pop .xm-colours .is-selected { outline: 2px solid var(--xm-text); outline-offset: 2px; }
+.xm-condition-children { margin: 8px 0 0 8px; padding-left: 8px; border-left: 1px solid var(--xm-border); display: grid; gap: 8px; }
+.xm-action-fields > label { width: 100%; }
+.xm-binding-pop .xm-seg button, .xm-binding-pop .form-select, .xm-binding-pop input:not([type=checkbox]), .xm-binding-pop .btn { min-height: var(--xm-hit); }
+.xm-controls-profile .xm-pad { text-align: left; }

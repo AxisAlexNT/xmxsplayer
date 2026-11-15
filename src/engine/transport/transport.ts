@@ -3,7 +3,7 @@ import { BeatGrid } from './beat-grid'
 import { Metronome } from './metronome'
 import { AudioGraph } from '../audio/graph'
 import { AudioTracks } from '../audio/tracks'
-import type { Project, SoundFontRef } from '../../shared/model'
+import type { Project, SoundFontRef, Timing } from '../../shared/model'
 import type { Bus } from '../../shared/bus'
 import { TimeMap } from '../../shared/time-map'
 import { newProject } from '../../shared/defaults'
@@ -233,6 +233,15 @@ export class Transport {
     } finally {
       if (revision === this.playRevision) this.starting = false
     }
+  }
+  queue(at: Timing, run: () => void): number {
+    const id = this.scheduler.queue(at, run)
+    if (id) this.armDeadline()
+    return id
+  }
+  cancelAction(id: number): void {
+    this.scheduler.cancelAction(id)
+    this.armDeadline()
   }
   seek(tick: number): void {
     this.clock.seek(Math.min(this.project?.lengthTicks ?? tick, tick))

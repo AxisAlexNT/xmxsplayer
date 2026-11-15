@@ -1,0 +1,67 @@
+import type { Action, Project } from './model'
+export type ParamAction = Extract<Action, { type: 'param' }>
+export function parameterValue(
+  project: Project,
+  action: ParamAction,
+): number | undefined {
+  const track = project.tracks.find((t) => t.id === action.id),
+    instrument = project.instruments.find((i) => i.id === action.id)
+  switch (action.target) {
+    case 'track.volume':
+      return track?.volume
+    case 'track.pan':
+      return track?.pan
+    case 'instrument.volume':
+      return instrument?.volume
+    case 'instrument.reverb':
+      return instrument?.reverb
+    case 'instrument.chorus':
+      return instrument?.chorus
+    case 'audio.semitones':
+      return track?.kind === 'audio' ? track.semitones : undefined
+    case 'audio.filterFreq':
+      return track?.kind === 'audio' ? track.filter.freq : undefined
+  }
+}
+export function parameterPatch(
+  project: Project,
+  action: ParamAction,
+  value: number,
+): Partial<Project> | undefined {
+  const unit = Math.max(0, Math.min(1, value)),
+    raw = action.min + (action.max - action.min) * unit,
+    clamped = (min: number, max: number) => Math.max(min, Math.min(max, raw))
+  if (
+    action.target.startsWith('track.') ||
+    action.target.startsWith('audio.')
+  ) {
+    const track = project.tracks.find((t) => t.id === action.id)
+    if (!track) return
+    const next =
+      action.target === 'track.volume'
+        ? { ...track, volume: clamped(0, 1) }
+        : action.target === 'track.pan'
+          ? { ...track, pan: clamped(-1, 1) }
+          : track.kind !== 'audio'
+            ? undefined
+            : action.target === 'audio.semitones'
+              ? { ...track, semitones: clamped(-48, 48) }
+              : {
+                  ...track,
+                  filter: { ...track.filter, freq: clamped(20, 20000) },
+                }
+    return next
+      ? { tracks: project.tracks.map((t) => (t.id === track.id ? next : t)) }
+      : undefined
+  }
+  if (action.target.startsWith('instrument.')) {
+    const instrument = project.instruments.find((i) => i.id === action.id)
+    if (!instrument) return
+    const property = action.target.slice(11) as 'volume' | 'reverb' | 'chorus'
+    return {
+      instruments: project.instruments.map((i) =>
+        i.id === instrument.id ? { ...i, [property]: clamped(0, 1) } : i,
+      ),
+    }
+  }
+}

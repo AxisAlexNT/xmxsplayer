@@ -110,3 +110,47 @@ it('refuses ambiguous feedback output pairing and releases notes on profile reas
   expect(off).toHaveBeenCalledTimes(2)
   manager.close()
 })
+it('isolates learning from live controls while releasing previously held keys and sustain', async () => {
+  const a = port('a', 'KL Essential 61 mk3 MIDI'),
+    access = { inputs: new Map([['a', a]]), outputs: new Map() }
+  vi.stubGlobal('navigator', { requestMIDIAccess: async () => access })
+  const key = vi.fn(),
+    control = vi.fn(),
+    captured = vi.fn(),
+    manager = new DeviceManager(
+      defaultSettings().devices,
+      key,
+      control,
+      vi.fn(),
+      vi.fn(),
+      vi.fn(),
+      captured,
+    )
+  await manager.start()
+  const send = (data: number[]) =>
+    a.onmidimessage!({
+      data: new Uint8Array(data),
+      timeStamp: 1,
+    } as MIDIMessageEvent)
+  send([0x96, 60, 100])
+  send([0xb6, 64, 127])
+  expect(key).toHaveBeenCalledTimes(2)
+  manager.learn.start(
+    'a',
+    manager.devices()[0].profile.controls.find((c) => c.id === 'pad.3')!,
+  )
+  send([0x99, 42, 100])
+  send([0x89, 42, 0])
+  send([0xb0, 21, 127])
+  send([0xb0, 21, 0])
+  send([0x86, 60, 0])
+  send([0xb6, 64, 0])
+  expect(captured).toHaveBeenCalledOnce()
+  expect(control).not.toHaveBeenCalled()
+  expect(key).toHaveBeenCalledTimes(4)
+  expect(key.mock.calls.slice(2).map((c) => c[0].type)).toEqual(['note', 'cc'])
+  manager.learn.stop()
+  send([0xb0, 21, 127])
+  expect(control).toHaveBeenCalledOnce()
+  manager.close()
+})

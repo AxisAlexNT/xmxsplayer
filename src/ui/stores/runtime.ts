@@ -37,6 +37,9 @@ export const useRuntimeStore = defineStore('runtime', () => {
     outputs: [],
     devices: [],
   })
+  const controls = ref<
+    Record<string, import('../../shared/protocol').EventMap['control']>
+  >({})
   const heldKeys = ref<
     import('../../shared/protocol').EventMap['keys']['held']
   >([])
@@ -67,6 +70,7 @@ export const useRuntimeStore = defineStore('runtime', () => {
     ]
   }
   return {
+    controls,
     lastTake,
     tapMap,
     selectedAudioId,

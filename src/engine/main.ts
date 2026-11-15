@@ -1,3 +1,11 @@
+import { Bindings } from './router/bindings'
+import {
+  parameterValue,
+  parameterPatch,
+  type ParamAction,
+} from '../shared/parameters'
+import type { Action } from '../shared/model'
+import type { ControlEvent } from './midi/profile'
 import { TimeMap } from '../shared/time-map'
 import { applyMetadata } from '../shared/project-sync'
 import { Bus } from '../shared/bus'
@@ -25,6 +33,9 @@ let rack: InstrumentRack | undefined
 let router: Router | undefined
 let midi: DeviceManager | undefined
 let transport: Transport | undefined
+let bindings: Bindings | undefined
+let masterVolume = 1
+const pendingParameters = new Map<string, { value: number; time: number }>()
 let keysTimer: ReturnType<typeof setTimeout> | undefined
 let syncRevision = 0
 let initialization: Promise<void> | undefined
@@ -103,6 +114,72 @@ function receiveMidi(message: MidiMessage): void {
       message.value,
     )
 }
+function currentParameter(action: ParamAction): number | undefined {
+  if (action.target === 'rate') return transport?.clock.rate
+  if (action.target === 'masterVolume') return masterVolume
+  const pending = pendingParameters.get(`${action.target}|${action.id}`)
+  if (pending && performance.now() - pending.time < 250) return pending.value
+  return project ? parameterValue(project, action) : undefined
+}
+function runAction(
+  action: Action,
+  value = 1,
+  pressed = true,
+  source = 'action',
+): void {
+  if (!project) return
+  if (action.type === 'note') {
+    router?.note(
+      source,
+      0,
+      action.key,
+      action.velocity === 'control'
+        ? Math.max(1, Math.round(value * 127))
+        : action.velocity,
+      pressed,
+      undefined,
+      action.trackId,
+      undefined,
+      true,
+    )
+    return
+  }
+  if (action.type === 'param' && action.target !== 'rate') {
+    const unit = Math.max(0, Math.min(1, value))
+    if (action.target === 'masterVolume') {
+      masterVolume = Math.max(
+        0,
+        Math.min(1, action.min + (action.max - action.min) * unit),
+      )
+      graph?.master.gain.setTargetAtTime(
+        masterVolume,
+        graph.context.currentTime,
+        0.01,
+      )
+    } else {
+      const patch = parameterPatch(project, action, unit)
+      if (patch) {
+        const next = parameterValue({ ...project, ...patch }, action)
+        if (next !== undefined)
+          pendingParameters.set(`${action.target}|${action.id}`, {
+            value: next,
+            time: performance.now(),
+          })
+        bus?.send('param:change', { action, value: unit })
+      }
+    }
+    return
+  }
+  transport?.actions.run(action, value)
+}
+function receiveControl(event: ControlEvent): void {
+  bus?.send('control', event)
+  try {
+    bindings?.receive(event)
+  } catch (error) {
+    log('error', 'bindings', String(error))
+  }
+}
 const fontLoads = new Map<string, { file: string; loading: Promise<void> }>()
 async function load(font: SoundFontRef): Promise<void> {
   if (!backend || !bus) throw new Error('Audio engine is not initialized')
@@ -167,16 +244,33 @@ async function initialize(value: Settings): Promise<void> {
     midi = new DeviceManager(
       settings?.devices ?? value.devices,
       receiveMidi,
-      (event) => bus?.send('control', event),
+      receiveControl,
       (ports) => bus?.send('midi:ports', ports),
       (source) => {
+        bindings?.disconnect(source)
         transport?.recorder.disconnect(source)
         router?.disconnect(source)
         for (const owner of previews.keys())
           if (JSON.parse(owner)[0] === source) previewNote(owner, 0, 0, false)
       },
       (message) => log('warn', 'midi', message),
+      (deviceId, control) => bus?.send('learn:captured', { deviceId, control }),
     )
+    bindings = new Bindings({
+      project: () => project,
+      context: () => ({
+        activeSceneId: null,
+        registers: Array(8).fill(false),
+        bar: transport?.clock.map.tickToBarBeat(transport.clock.tick).bar ?? 1,
+        playing: transport?.clock.playing ?? false,
+        holding: transport?.clock.holding ?? false,
+      }),
+      profile: (id) => midi?.devices().find((d) => d.id === id)?.profile,
+      queue: (at, run) => transport?.queue(at, run) ?? 0,
+      cancel: (id) => transport?.cancelAction(id),
+      run: runAction,
+      parameter: currentParameter,
+    })
     void midi.start().catch((error) => log('warn', 'midi', String(error)))
   })()
   try {
@@ -293,7 +387,26 @@ window.addEventListener('message', (event) => {
       (error) => log('error', 'audio', String(error)),
     )
   })
+  bus.respond('device:profiles', () => midi?.profiles() ?? [])
+  bus.on('learn:start', ({ deviceId, controlId, control }) => {
+    const device = midi?.devices().find((d) => !deviceId || d.id === deviceId)
+    const target =
+      control ??
+      device?.profile.controls.find((c) =>
+        controlId ? c.id === controlId : !c.msg,
+      )
+    if (device && target) midi?.learn.start(device.id, target)
+    else
+      log(
+        'warn',
+        'midi',
+        'Select a connected controller and a control to learn',
+      )
+  })
+  bus.on('learn:stop', () => midi?.learn.stop())
   bus.on('audio:scope', ({ folder }) => {
+    bindings?.clear()
+    pendingParameters.clear()
     transport?.recorder.setScope(folder)
     transport?.audio.setScope(folder)
     transport?.grid.reset()
@@ -408,9 +521,7 @@ window.addEventListener('message', (event) => {
   })
   bus.on('action:run', ({ action, value, at }) => {
     try {
-      transport?.scheduler.queue(at ?? 'now', () =>
-        transport?.actions.run(action, value),
-      )
+      transport?.queue(at ?? 'now', () => runAction(action, value))
     } catch (error) {
       log('error', 'transport', String(error))
     }
@@ -433,6 +544,7 @@ window.addEventListener('message', (event) => {
     bus?.send('doc:patch', { loop })
   })
   bus.on('panic', () => {
+    bindings?.clear()
     transport?.stop()
     previews.forEach((entry) => {
       if (entry.slot) backend?.release(entry.slot)

@@ -1,4 +1,64 @@
 bindings:
+  - control: transport.play
+    edge: press
+    action:
+      type: transport
+      cmd: toggle
+  - control: transport.stop
+    edge: press
+    action:
+      type: transport
+      cmd: stop
+  - control: transport.record
+    edge: press
+    action:
+      type: transport
+      cmd: record
+  - control: transport.rewind
+    edge: press
+    action:
+      type: transport
+      cmd: rewind
+  - control: transport.forward
+    edge: press
+    action:
+      type: transport
+      cmd: forward
+  - control: transport.loop
+    edge: press
+    action:
+      type: transport
+      cmd: loopToggle
+  - control: transport.metronome
+    edge: press
+    action:
+      type: transport
+      cmd: metronome
+  - control: transport.tap
+    edge: press
+    action:
+      type: transport
+      cmd: tap
+  - control: daw.save
+    edge: press
+    action:
+      type: app
+      cmd: save
+  - control: daw.undo
+    edge: press
+    action:
+      type: app
+      cmd: undo
+  - control: daw.redo
+    edge: press
+    action:
+      type: app
+      cmd: redo
+  - control: daw.quantize
+    edge: press
+    action:
+      type: app
+      cmd: quantize
   - control: knob.1
     edge: change
     action:
@@ -6,8 +66,96 @@ bindings:
       target: rate
       min: 0.25
       max: 1.5
+  - control: fader.1
+    edge: change
+    action:
+      type: param
+      target: track.volume
+      min: 0
+      max: 1
+  - control: fader.2
+    edge: change
+    action:
+      type: param
+      target: track.volume
+      min: 0
+      max: 1
+  - control: fader.3
+    edge: change
+    action:
+      type: param
+      target: track.volume
+      min: 0
+      max: 1
+  - control: fader.4
+    edge: change
+    action:
+      type: param
+      target: track.volume
+      min: 0
+      max: 1
+  - control: fader.5
+    edge: change
+    action:
+      type: param
+      target: track.volume
+      min: 0
+      max: 1
+  - control: fader.6
+    edge: change
+    action:
+      type: param
+      target: track.volume
+      min: 0
+      max: 1
+  - control: fader.7
+    edge: change
+    action:
+      type: param
+      target: track.volume
+      min: 0
+      max: 1
+  - control: fader.8
+    edge: change
+    action:
+      type: param
+      target: track.volume
+      min: 0
+      max: 1
+  - control: fader.9
+    edge: change
+    action:
+      type: param
+      target: masterVolume
+      min: 0
+      max: 1
   - control: encoder.main
     edge: change
     action:
       type: transport
       cmd: scrub
+  - control: encoder.main.press
+    edge: press
+    action:
+      type: app
+      cmd: toggleFollowView
+  - control: context.1
+    edge: press
+    action:
+      type: scene
+      cmd: prev
+  - control: context.2
+    edge: press
+    action:
+      type: scene
+      cmd: next
+  - control: context.3
+    edge: press
+    action:
+      type: cue
+      cmd: fireNext
+  - control: context.4
+    edge: press
+    action:
+      type: follow
+      mode: cycle

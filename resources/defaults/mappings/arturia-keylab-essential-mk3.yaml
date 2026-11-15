@@ -1,0 +1,52 @@
+bindings:
+  - control: pad.9
+    edge: press
+    action:
+      type: register
+      cmd: toggle
+      index: 0
+  - control: pad.10
+    edge: press
+    action:
+      type: register
+      cmd: toggle
+      index: 1
+  - control: pad.11
+    edge: press
+    action:
+      type: register
+      cmd: toggle
+      index: 2
+  - control: pad.12
+    edge: press
+    action:
+      type: register
+      cmd: toggle
+      index: 3
+  - control: pad.13
+    edge: press
+    action:
+      type: register
+      cmd: toggle
+      index: 4
+  - control: pad.14
+    edge: press
+    action:
+      type: register
+      cmd: toggle
+      index: 5
+  - control: pad.15
+    edge: press
+    action:
+      type: register
+      cmd: toggle
+      index: 6
+  - control: pad.16
+    edge: press
+    action:
+      type: register
+      cmd: toggle
+      index: 7
+padColors: {}
+scenes: {}
+beatChase: top

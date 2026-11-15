@@ -1,4 +1,4 @@
-import { defaultBindings } from './default-bindings'
+import { defaultBindings, defaultMappings } from './default-bindings'
 import type { Project, Settings } from './model'
 
 export function newProject(name = 'Untitled'): Project {
@@ -30,7 +30,7 @@ export function newProject(name = 'Untitled'): Project {
     scenes: [],
     cues: [],
     clips: [],
-    mappings: {},
+    mappings: structuredClone(defaultMappings),
     script: '',
     loop: { enabled: false, startTick: 0, endTick: 7680 },
     follow: {

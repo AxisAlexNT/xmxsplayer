@@ -4,7 +4,9 @@
   "ports": [
     {
       "role": "main",
-      "match": ["KL Essential 61 mk3 MIDI"],
+      "match": [
+        "KL Essential 61 mk3 MIDI"
+      ],
       "dir": "both"
     },
     {
@@ -450,7 +452,7 @@
       "mode": "momentary",
       "ui": {
         "group": "transport",
-        "row": 0,
+        "row": 1,
         "col": 0
       },
       "msg": {
@@ -467,7 +469,7 @@
       "mode": "momentary",
       "ui": {
         "group": "transport",
-        "row": 0,
+        "row": 1,
         "col": 1
       },
       "msg": {
@@ -484,7 +486,7 @@
       "mode": "momentary",
       "ui": {
         "group": "transport",
-        "row": 0,
+        "row": 1,
         "col": 2
       },
       "msg": {
@@ -502,7 +504,7 @@
       "ui": {
         "group": "transport",
         "row": 0,
-        "col": 3
+        "col": 1
       },
       "ledId": 17
     },
@@ -514,7 +516,7 @@
       "ui": {
         "group": "transport",
         "row": 0,
-        "col": 4
+        "col": 2
       },
       "ledId": 18
     },
@@ -526,7 +528,7 @@
       "ui": {
         "group": "transport",
         "row": 0,
-        "col": 5
+        "col": 0
       },
       "msg": {
         "type": "cc",
@@ -543,7 +545,7 @@
       "ui": {
         "group": "transport",
         "row": 0,
-        "col": 6
+        "col": 3
       },
       "msg": {
         "type": "cc",
@@ -559,8 +561,8 @@
       "mode": "momentary",
       "ui": {
         "group": "transport",
-        "row": 0,
-        "col": 7
+        "row": 1,
+        "col": 3
       },
       "msg": {
         "type": "cc",
@@ -576,7 +578,7 @@
       "mode": "momentary",
       "ui": {
         "group": "buttons",
-        "row": 1,
+        "row": 0,
         "col": 0
       },
       "msg": {
@@ -593,7 +595,7 @@
       "mode": "momentary",
       "ui": {
         "group": "buttons",
-        "row": 1,
+        "row": 0,
         "col": 1
       },
       "msg": {
@@ -610,7 +612,7 @@
       "mode": "momentary",
       "ui": {
         "group": "buttons",
-        "row": 1,
+        "row": 0,
         "col": 2
       },
       "msg": {
@@ -627,7 +629,7 @@
       "mode": "momentary",
       "ui": {
         "group": "buttons",
-        "row": 1,
+        "row": 0,
         "col": 3
       },
       "msg": {
@@ -644,7 +646,7 @@
       "mode": "momentary",
       "ui": {
         "group": "buttons",
-        "row": 2,
+        "row": 1,
         "col": 0
       },
       "msg": {
@@ -661,7 +663,7 @@
       "mode": "momentary",
       "ui": {
         "group": "buttons",
-        "row": 2,
+        "row": 1,
         "col": 1
       },
       "msg": {
@@ -678,7 +680,7 @@
       "mode": "momentary",
       "ui": {
         "group": "buttons",
-        "row": 2,
+        "row": 1,
         "col": 2
       },
       "msg": {
@@ -695,7 +697,7 @@
       "mode": "momentary",
       "ui": {
         "group": "buttons",
-        "row": 2,
+        "row": 1,
         "col": 3
       },
       "msg": {
@@ -712,7 +714,7 @@
       "mode": "relative64",
       "ui": {
         "group": "buttons",
-        "row": 3,
+        "row": 2,
         "col": 0
       }
     },
@@ -723,7 +725,7 @@
       "mode": "momentary",
       "ui": {
         "group": "buttons",
-        "row": 3,
+        "row": 2,
         "col": 1
       },
       "msg": {
