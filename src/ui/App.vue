@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useProjectStore } from './stores/project'
 import { useRuntimeStore } from './stores/runtime'
 import { useSettingsStore } from './stores/settings'
+import { importMidi } from './sources/import-midi'
 import { engineBus } from './bus'
 import KeyboardStrip from './components/KeyboardStrip.vue'
 import SoundfontsPanel from './components/SoundfontsPanel.vue'
@@ -59,6 +60,15 @@ async function command(cmd: string): Promise<void> {
           message: `Opened ${snapshot.folder}`,
         })
       }
+    } else if (cmd === 'import:midi') {
+      if (!doc.folder) { notify('Create or open a project folder first'); return }
+      const file = await window.xm.project.importFile('midi')
+      if (!file) return
+      const response = await fetch(await window.xm.project.urlFor(file))
+      if (!response.ok) throw new Error(`${file}: import failed (${response.status})`)
+      const next = importMidi(doc.project,new Uint8Array(await response.arrayBuffer()),file.split('/').at(-1)!)
+      doc.update(draft => { Object.assign(draft,next) })
+      notify(`${file.split('/').at(-1)} imported`)
     } else if (cmd === 'save') {
       if (!doc.folder) {
         notify('Create or open a project folder first')
