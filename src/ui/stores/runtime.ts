@@ -6,7 +6,24 @@ import type {
   TransportState,
 } from '../../shared/protocol'
 export const useRuntimeStore = defineStore('runtime', () => {
-  const latency = ref<{ baseMs: number; outputMs: number; backend: string; fluidMs: number; sampleRate?: number; bufferSize?: import('../../shared/model').Settings['audio']['bufferSize'] } | null>(null)
+  const latency = ref<{
+    baseMs: number
+    outputMs: number
+    backend: string
+    fluidMs: number
+    sampleRate?: number
+    bufferSize?: import('../../shared/model').Settings['audio']['bufferSize']
+  } | null>(null)
+  const synthLoading = ref(false)
+  const readyInstruments = ref<string[]>([])
+  const midi = ref<import('../../shared/protocol').EventMap['midi:ports']>({
+    inputs: [],
+    outputs: [],
+    devices: [],
+  })
+  const heldKeys = ref<
+    import('../../shared/protocol').EventMap['keys']['held']
+  >([])
   const connected = ref(false)
   const logs = ref<(LogEntry & { time: string })[]>([])
   const transport = ref<TransportState>({
@@ -33,5 +50,16 @@ export const useRuntimeStore = defineStore('runtime', () => {
       { ...entry, time: new Date().toLocaleTimeString() },
     ]
   }
-  return { latency, connected, logs, transport, state, log }
+  return {
+    synthLoading,
+    readyInstruments,
+    midi,
+    heldKeys,
+    latency,
+    connected,
+    logs,
+    transport,
+    state,
+    log,
+  }
 })

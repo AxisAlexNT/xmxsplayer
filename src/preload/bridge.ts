@@ -24,6 +24,7 @@ export function installBridge(ui: boolean): void {
   if (!ui) return
   const api: DesktopApi = {
     project: {
+      restore: () => ipcRenderer.invoke('project:restore'),
       create: () => ipcRenderer.invoke('project:create'),
       open: () => ipcRenderer.invoke('project:open'),
       save: (files, hashes) =>
@@ -32,7 +33,12 @@ export function installBridge(ui: boolean): void {
       urlFor: (path) => ipcRenderer.invoke('project:url', path),
       onFilesChanged: (handler) => subscribe('project:changed', handler),
     },
-    soundfonts: { scan: () => ipcRenderer.invoke('soundfonts:scan'), resolve: (file, locate) => ipcRenderer.invoke('soundfonts:resolve', file, locate), pick: () => ipcRenderer.invoke('soundfonts:pick') },
+    soundfonts: {
+      scan: () => ipcRenderer.invoke('soundfonts:scan'),
+      resolve: (file, locate) =>
+        ipcRenderer.invoke('soundfonts:resolve', file, locate),
+      pick: () => ipcRenderer.invoke('soundfonts:pick'),
+    },
     settings: {
       get: () => ipcRenderer.invoke('settings:get'),
       set: (value) => ipcRenderer.invoke('settings:set', value),

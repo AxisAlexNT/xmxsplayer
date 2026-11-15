@@ -29,9 +29,28 @@ function sync(force = false): void {
 }
 watch(engineBus, (bus) => {
   runtime.connected = false
+  runtime.heldKeys = []
+  runtime.readyInstruments = []
+  runtime.synthLoading = false
   if (!bus) return
-  bus.respond('soundfont:resolve', async font => (await window.xm.soundfonts.resolve(font.file))?.url ?? null)
-  bus.on('latency', value => { runtime.latency = value })
+  bus.respond(
+    'soundfont:resolve',
+    async (font) =>
+      (await window.xm.soundfonts.resolve(font.file))?.url ?? null,
+  )
+  bus.on('synth:state', (value) => {
+    runtime.synthLoading = value.loading
+    runtime.readyInstruments = value.readyIds
+  })
+  bus.on('keys', (value) => {
+    runtime.heldKeys = value.held
+  })
+  bus.on('midi:ports', (value) => {
+    runtime.midi = value
+  })
+  bus.on('latency', (value) => {
+    runtime.latency = value
+  })
   bus.on('ready', () => {
     runtime.connected = true
     sync(true)
@@ -54,7 +73,10 @@ watch(engineBus, (bus) => {
   bus.on('runtime', (value) => {
     runtime.state = value
   })
-  void settingsReady.then(() => { bus.send('settings:set', settings.value); bus.send('ping', undefined) })
+  void settingsReady.then(() => {
+    bus.send('settings:set', settings.value)
+    bus.send('ping', undefined)
+  })
 })
 watch(
   () => doc.project,
@@ -66,5 +88,17 @@ watch(
     if (runtime.connected) engineBus.value?.send('settings:set', value)
   },
 )
-const settingsReady = settings.load().catch(error => runtime.log({ level: 'error', source: 'settings', message: String(error) }))
+const settingsReady = settings
+  .load()
+  .catch((error) =>
+    runtime.log({ level: 'error', source: 'settings', message: String(error) }),
+  )
+void window.xm.project
+  .restore()
+  .then((snapshot) => {
+    if (snapshot) doc.load(snapshot)
+  })
+  .catch((error) =>
+    runtime.log({ level: 'error', source: 'files', message: String(error) }),
+  )
 app.mount('#app')

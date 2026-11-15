@@ -1,6 +1,13 @@
 import type { Settings } from './model'
-export interface SoundFontFile { file: string; bytes: number; gm: boolean }
-export interface ResolvedSoundFont { file: string; url: string }
+export interface SoundFontFile {
+  file: string
+  bytes: number
+  gm: boolean
+}
+export interface ResolvedSoundFont {
+  file: string
+  url: string
+}
 export type FileMap = Record<string, string | Uint8Array>
 export interface ProjectSnapshot {
   folder: string
@@ -14,6 +21,7 @@ export interface FileChanges {
 }
 export interface DesktopApi {
   project: {
+    restore: () => Promise<ProjectSnapshot | null>
     create: () => Promise<ProjectSnapshot | null>
     open: () => Promise<ProjectSnapshot | null>
     save: (
@@ -24,7 +32,14 @@ export interface DesktopApi {
     urlFor: (relPath: string) => Promise<string>
     onFilesChanged: (handler: (changes: FileChanges) => void) => () => void
   }
-  soundfonts: { scan: () => Promise<SoundFontFile[]>; resolve: (file: string, locate?: boolean) => Promise<ResolvedSoundFont | null>; pick: () => Promise<ResolvedSoundFont | null> }
+  soundfonts: {
+    scan: () => Promise<SoundFontFile[]>
+    resolve: (
+      file: string,
+      locate?: boolean,
+    ) => Promise<ResolvedSoundFont | null>
+    pick: () => Promise<ResolvedSoundFont | null>
+  }
   settings: {
     get: () => Promise<Settings>
     set: (settings: Settings) => Promise<void>

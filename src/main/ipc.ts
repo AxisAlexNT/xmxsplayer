@@ -1,3 +1,4 @@
+import { relaunchArgs } from './relaunch'
 import { app, dialog, ipcMain } from 'electron'
 import { basename, dirname, join } from 'node:path'
 import type { FileMap } from '../shared/api'
@@ -6,7 +7,11 @@ import { ProjectWatcher } from './watcher'
 import { fileTokens } from './protocols'
 import { loadSettings, saveSettings } from './settings'
 import { liveProject } from '../shared/template'
-import { defaultSoundfontDirs, findSoundfont, scanSoundfonts } from './soundfonts'
+import {
+  defaultSoundfontDirs,
+  findSoundfont,
+  scanSoundfonts,
+} from './soundfonts'
 import type { Windows } from './windows'
 
 export function installIpc(windows: Windows): () => Promise<void> {
@@ -33,6 +38,16 @@ export function installIpc(windows: Windows): () => Promise<void> {
       if (!ui.isDestroyed()) ui.webContents.send('project:changed', changes)
     })
   }
+  let restored = false
+  handle('project:restore', async () => {
+    if (restored) return null
+    restored = true
+    const index = process.argv.indexOf('--reopen-project')
+    if (index < 0 || !process.argv[index + 1]) return null
+    const snapshot = await io.open(process.argv[index + 1])
+    await watch()
+    return snapshot
+  })
   handle('project:create', async () => {
     const result = await dialog.showOpenDialog(ui, {
       title: 'Choose an empty project folder',
@@ -40,7 +55,10 @@ export function installIpc(windows: Windows): () => Promise<void> {
     })
     if (result.canceled) return null
     const available = await scanSoundfonts(directories())
-    const template = liveProject(basename(result.filePaths[0]), available.find(sf => sf.gm)?.file)
+    const template = liveProject(
+      basename(result.filePaths[0]),
+      available.find((sf) => sf.gm)?.file,
+    )
     const snapshot = await io.create(result.filePaths[0], template)
     await watch()
     return snapshot
@@ -77,15 +95,31 @@ export function installIpc(windows: Windows): () => Promise<void> {
   })
   function directories(): string[] {
     const configured = loadSettings().soundfontDirs
-    return [...(configured.length ? configured : defaultSoundfontDirs()), ...(io.folder ? [join(io.folder, 'soundfonts')] : [])]
+    return [
+      ...(configured.length ? configured : defaultSoundfontDirs()),
+      ...(io.folder ? [join(io.folder, 'soundfonts')] : []),
+    ]
   }
-  async function pickSoundfont(title: string): Promise<{ file: string; url: string } | null> {
-    const chosen = await dialog.showOpenDialog(ui, { title, properties: ['openFile'], filters: [{ name: 'Soundfonts', extensions: ['sf2','sf3'] }] })
+  async function pickSoundfont(
+    title: string,
+  ): Promise<{ file: string; url: string } | null> {
+    const chosen = await dialog.showOpenDialog(ui, {
+      title,
+      properties: ['openFile'],
+      filters: [{ name: 'Soundfonts', extensions: ['sf2', 'sf3'] }],
+    })
     if (chosen.canceled) return null
     const path = chosen.filePaths[0]
     const settings = loadSettings()
     const folder = dirname(path)
-    settings.soundfontDirs = [...new Set([...(settings.soundfontDirs.length ? settings.soundfontDirs : defaultSoundfontDirs()), folder])]
+    settings.soundfontDirs = [
+      ...new Set([
+        ...(settings.soundfontDirs.length
+          ? settings.soundfontDirs
+          : defaultSoundfontDirs()),
+        folder,
+      ]),
+    ]
     saveSettings(settings)
     return { file: basename(path), url: await fileTokens.issue(path, [folder]) }
   }
@@ -97,7 +131,10 @@ export function installIpc(windows: Windows): () => Promise<void> {
     return locate ? pickSoundfont(`Locate missing soundfont — ${file}`) : null
   })
   handle('soundfonts:pick', () => pickSoundfont('Add soundfont'))
-  handle('app:relaunch', () => { app.relaunch(); app.exit(0) })
+  handle('app:relaunch', () => {
+    app.relaunch({ args: relaunchArgs(process.argv.slice(1), io.folder) })
+    app.exit(0)
+  })
   handle('settings:get', () => loadSettings())
   handle('settings:set', (value) => saveSettings(value))
   return () => watcher.close()

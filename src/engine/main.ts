@@ -9,6 +9,8 @@ import type {
 import type { CommandMap } from '../shared/protocol'
 import { AudioGraph } from './audio/graph'
 import { WebSynthBackend } from './synth/web-synth'
+import { MidiIO, type MidiMessage } from './midi/midi-io'
+import { Router } from './router/router'
 import { InstrumentRack } from './synth/rack'
 
 let bus: Bus | undefined
@@ -17,6 +19,10 @@ let settings: Settings | undefined
 let graph: AudioGraph | undefined
 let backend: WebSynthBackend | undefined
 let rack: InstrumentRack | undefined
+let router: Router | undefined
+let midi: MidiIO | undefined
+let keysTimer: ReturnType<typeof setTimeout> | undefined
+let syncRevision = 0
 let initialization: Promise<void> | undefined
 let audition: CommandMap['audition:select'] = null
 const previews = new Map<
@@ -28,6 +34,52 @@ const log = (
   source: string,
   message: string,
 ): void => bus?.send('log', { level, source, message })
+function reportKeys(): void {
+  if (keysTimer) return
+  keysTimer = setTimeout(() => {
+    keysTimer = undefined
+    const held = router?.keys().held ?? []
+    for (const entry of previews.values())
+      if (!held.some((h) => h.key === entry.key))
+        held.push({ key: entry.key, trackIds: [] })
+    bus?.send('keys', { held })
+  }, 34)
+}
+function liveNote(
+  source: string,
+  channel: number,
+  key: number,
+  velocity: number,
+  on: boolean,
+): void {
+  const owner = JSON.stringify([source, channel, key])
+  if ((on && audition) || (!on && previews.has(owner)))
+    previewNote(owner, key, velocity, on)
+  else router?.note(source, channel, key, velocity, on)
+}
+function receiveMidi(message: MidiMessage): void {
+  if (message.type === 'note')
+    liveNote(
+      message.source,
+      message.channel,
+      message.key,
+      message.velocity,
+      message.on,
+    )
+  else if (message.type === 'cc')
+    router?.cc(message.source, message.channel, message.cc, message.value)
+  else if (message.type === 'bend')
+    router?.pitchBend(message.source, message.channel, message.value)
+  else if (message.type === 'pressure')
+    router?.pressure(message.source, message.channel, message.value)
+  else if (message.type === 'poly')
+    router?.polyPressure(
+      message.source,
+      message.channel,
+      message.key,
+      message.value,
+    )
+}
 const fontLoads = new Map<string, { file: string; loading: Promise<void> }>()
 async function load(font: SoundFontRef): Promise<void> {
   if (!backend || !bus) throw new Error('Audio engine is not initialized')
@@ -66,7 +118,22 @@ async function initialize(value: Settings): Promise<void> {
     rack = new InstrumentRack(backend, load, (message) =>
       log('warn', 'synth', message),
     )
-    if (project) await rack.synchronize(project)
+    router = new Router(rack, reportKeys)
+    if (project) {
+      router.setProject(project)
+      await rack.synchronize(project)
+    }
+    midi = new MidiIO(
+      receiveMidi,
+      (ports) => bus?.send('midi:ports', ports),
+      (source) => {
+        router?.disconnect(source)
+        for (const owner of previews.keys())
+          if (JSON.parse(owner)[0] === source) previewNote(owner, 0, 0, false)
+      },
+      (message) => log('warn', 'midi', message),
+    )
+    void midi.start().catch((error) => log('warn', 'midi', String(error)))
   })()
   try {
     await initialization
@@ -81,7 +148,17 @@ async function initialize(value: Settings): Promise<void> {
 }
 async function synchronize(): Promise<void> {
   if (!rack || !project) return
+  const revision = ++syncRevision
+  bus?.send('synth:state', { loading: true, readyIds: [] })
+  router?.setProject(project)
   await rack.synchronize(project)
+  if (revision !== syncRevision) return
+  bus?.send('synth:state', {
+    loading: false,
+    readyIds: project.instruments
+      .filter((i) => rack?.get(i.id))
+      .map((i) => i.id),
+  })
   for (const id of fontLoads.keys())
     if (!project.soundfonts.some((sf) => sf.id === id)) fontLoads.delete(id)
   backend?.prune(new Set(project.soundfonts.map((sf) => sf.id)))
@@ -93,6 +170,7 @@ function previewNote(
   on: boolean,
   preset = audition,
 ): void {
+  reportKeys()
   const previous = previews.get(owner)
   if (previous) {
     if (previous.slot) {
@@ -159,7 +237,11 @@ window.addEventListener('message', (event) => {
     void (
       initialization ?? Promise.reject(new Error('Audio settings not received'))
     ).then(
-      () => bus!.send('ready', undefined),
+      () => {
+        bus!.send('ready', undefined)
+        midi?.report()
+        reportKeys()
+      },
       (error) => log('error', 'audio', String(error)),
     )
   })
@@ -172,6 +254,7 @@ window.addEventListener('message', (event) => {
         'project',
         `Project synchronized: ${value.name} (${value.tracks.length} tracks)`,
       )
+    midi?.report()
     void synchronize().catch((error) => log('error', 'synth', String(error)))
   })
   bus.on('track:notes', ({ trackId, notes }) => {
@@ -186,18 +269,38 @@ window.addEventListener('message', (event) => {
     await synchronize()
     return backend!.listPresets(soundfontId)
   })
+  bus.on('audition', (value) =>
+    router?.note(
+      `instrument-audition-${value.instrumentId}`,
+      0,
+      value.key,
+      100,
+      value.on,
+      value.instrumentId,
+    ),
+  )
+  bus.on('live:note', (value) =>
+    liveNote(value.source ?? 'ui', 0, value.key, value.vel, value.on),
+  )
   bus.on('audition:select', (value) => {
     audition = value
   })
   bus.on('audition:preset', (value) =>
-    previewNote(`audition:${value.key}`, value.key, 100, value.on, value),
+    previewNote(
+      JSON.stringify(['audition', 0, value.key]),
+      value.key,
+      100,
+      value.on,
+      value,
+    ),
   )
   bus.on('panic', () => {
     previews.forEach((entry) => {
       if (entry.slot) backend?.release(entry.slot)
     })
     previews.clear()
-    rack?.panic()
+    router?.panic()
+    reportKeys()
     log(
       'info',
       'engine',

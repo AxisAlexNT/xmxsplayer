@@ -186,3 +186,10 @@ button:disabled {
 .xm-settings-fields { display: grid; grid-template-columns: 1fr 1fr; gap: var(--xm-s3); margin-top: var(--xm-s3); }
 
 .xm-dialog-f { align-items: center; }
+.xm-keybed svg { touch-action: none; user-select: none; }
+.xm-keybed rect { stroke: var(--xm-bg-lane); stroke-width: 1; vector-effect: non-scaling-stroke; cursor: pointer; }
+.xm-keybed rect:focus-visible { outline: none; stroke: var(--xm-accent); stroke-width: 3; }
+.xm-key-label { pointer-events: none; fill: var(--xm-text-faint); font-family: var(--xm-font-mono); font-size: 10px; text-anchor: middle; }
+.xm-key-count { position: absolute; top: 4px; right: 0; z-index: 2; height: 22px; background: var(--xm-bg-1); color: var(--xm-text-muted); border: 1px solid var(--xm-border-strong); border-radius: var(--xm-r-sm); font-size: var(--xm-fs-xs); }
+
+.xm-th > .xm-mode { align-self: flex-start; }

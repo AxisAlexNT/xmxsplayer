@@ -4,9 +4,9 @@ A cross-platform desktop workspace for transcription by ear and live MIDI perfor
 
 ## Status
 
-M2 audio foundation: the hidden engine runs a soundfont synthesizer with timed events, an output graph and optional limiter. New projects find a GM bank and create a piano instrument, track, zone and patch. Soundfonts can be located or added; the instrument picker searches presets and auditions SF2/SF3 sounds. Audio settings expose output, buffer, sample rate, cue routing and latency. YAML projects retain explicit saving, undo/redo, live reload and conflict choices.
+M2: live MIDI input and soundfont performance. The hidden engine runs SF2/SF3 synthesis with timed events, a limiter and output/cue routing. New projects find a GM bank and create a piano instrument, MIDI track, full-range zone and patch. The playable keyboard shows held notes; routing supports splits, overlap, layering, transposition, sustain, wheels and pressure, with note-offs retained across routing changes. The instrument picker searches and auditions presets. Audio settings expose output, buffer, sample rate and latency, with project restoration after restart.
 
-MIDI input and the playable keyboard strip are the remaining M2 work. Playback, recording, editing and score linking follow in later milestones. This is not a release-ready application.
+Verified on Ubuntu 24.04 with an Arturia KeyLab Essential 61 mk3 in Arturia mode. Playback, recording, note editing, controller function mappings, pad feedback and score linking follow in later milestones. Windows and alternate hardware audio outputs are not yet verified. This is not a release-ready application.
 
 ## Development
 
@@ -17,7 +17,7 @@ npm ci
 npm run dev
 ```
 
-Choose **New project** and select an empty folder, or **Open project** to select an existing project folder. Edit the project name or register names, then save with Ctrl+S. Edit `setup.yaml` externally to see live reload; if that file also has unsaved changes, choose **Keep mine** or **Take file**. Ctrl+Z and Ctrl+Y undo and redo document edits, including reloads.
+Choose **New project** and select an empty folder, or **Open project** to select an existing project folder. Play the connected MIDI keyboard or tap the keyboard strip. Click an instrument in Patch to search and audition presets; open Audio settings with the gear. Edit the project name or register names, then save with Ctrl+S. Edit `setup.yaml` externally to see live reload; if that file also has unsaved changes, choose **Keep mine** or **Take file**. Ctrl+Z and Ctrl+Y undo and redo document edits, including reloads.
 
 - `npm run build`: compile all process and renderer entries.
 - `npm run check`: typecheck, lint, and run unit tests.

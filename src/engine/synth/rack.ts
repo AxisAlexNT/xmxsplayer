@@ -102,6 +102,9 @@ export class InstrumentRack {
     if (slot) slot.refs++
     return slot
   }
+  retain(slot: RackSlot): void {
+    slot.refs++
+  }
   release(slot: RackSlot): void {
     slot.refs = Math.max(0, slot.refs - 1)
     if (slot.retired && !slot.refs) {

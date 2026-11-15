@@ -3,6 +3,8 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useProjectStore } from './stores/project'
 import { useRuntimeStore } from './stores/runtime'
 import { useSettingsStore } from './stores/settings'
+import { engineBus } from './bus'
+import KeyboardStrip from './components/KeyboardStrip.vue'
 import SoundfontsPanel from './components/SoundfontsPanel.vue'
 import InstrumentPicker from './components/InstrumentPicker.vue'
 import AudioSettings from './components/AudioSettings.vue'
@@ -29,15 +31,6 @@ const sections = [
   'Log',
 ]
 const p = computed(() => doc.project)
-const whiteKeys = Array.from({ length: 61 }, (_, i) => i + 36).filter(
-  (k) => ![1, 3, 6, 8, 10].includes(k % 12),
-)
-const blackKeys = Array.from({ length: 61 }, (_, i) => i + 36).filter((k) =>
-  [1, 3, 6, 8, 10].includes(k % 12),
-)
-function blackPosition(key: number): string {
-  return `${(whiteKeys.filter((k) => k < key).length / whiteKeys.length) * 100 - 0.9}%`
-}
 function notify(message: string): void {
   toast.value = message
   clearTimeout(toastTimer)
@@ -194,8 +187,9 @@ onUnmounted(() => {
           :key="icon"
           class="xm-tbtn"
           :class="{ 'is-rec': icon === 'record-fill' }"
-          disabled
-          :title="`${title} · Available in a later milestone`"
+          :disabled="icon !== 'stop-fill'"
+          :title="icon === 'stop-fill' ? 'Stop all notes' : `${title} · Available in a later milestone`"
+          @click="icon === 'stop-fill' && engineBus?.send('panic', undefined)"
         >
           <i :class="`bi bi-${icon}`" />
         </button>
@@ -295,13 +289,16 @@ onUnmounted(() => {
       </div>
       <span class="xm-status"><span
         class="xm-dot"
-        :class="{ 'is-off': !runtime.connected }"
+        :class="{ 'is-off': !runtime.connected, 'is-warn': runtime.synthLoading || (p.instruments.length > 0 && !runtime.readyInstruments.length) }"
       /><span
         class="xm-engine-label"
-      >{{ runtime.connected ? (runtime.latency ? `Built-in · ${(runtime.latency.baseMs + runtime.latency.outputMs).toFixed(1)} ms` : 'Engine ready') : 'Engine restarting…' }}</span></span>
-      <span class="xm-status"><span class="xm-dot is-off" /><i class="bi bi-usb-symbol" /><span
+      >{{ runtime.connected ? (runtime.synthLoading ? 'Loading sounds…' : runtime.latency ? `Built-in · ${(runtime.latency.baseMs + runtime.latency.outputMs).toFixed(1)} ms` : 'Engine ready') : 'Engine restarting…' }}</span></span>
+      <span class="xm-status"><span
+        class="xm-dot"
+        :class="{'is-off':!runtime.midi.inputs.some(i=>!/through/i.test(i.name))}"
+      /><i class="bi bi-usb-symbol" /><span
         class="xm-engine-label"
-      >No controller</span></span>
+      >{{ runtime.midi.inputs.some(i=>!/through/i.test(i.name)) ? (runtime.midi.inputs.some(i=>/Essential|KeyLab/i.test(i.name)) ? 'KeyLab' : 'MIDI connected') : 'No controller' }}</span></span>
       <button
         class="xm-tbtn"
         title="Audio settings"
@@ -437,7 +434,16 @@ onUnmounted(() => {
             >No track → instrument connections</span>
           </template>
           <template v-else-if="section === 'Devices'">
-            <span class="xm-status"><span class="xm-dot is-off" />No controller</span>
+            <div
+              v-for="input in runtime.midi.inputs"
+              :key="input.id"
+              class="xm-status mb-2"
+            >
+              <span class="xm-dot" />{{ input.name }}
+            </div><span
+              v-if="!runtime.midi.inputs.length"
+              class="xm-status"
+            ><span class="xm-dot is-off" />No controller</span>
           </template>
           <template v-else>
             <span class="xm-faint">{{
@@ -526,29 +532,7 @@ onUnmounted(() => {
         </div>
       </div>
     </main>
-    <footer class="xm-keys">
-      <div class="xm-zones">
-        <span class="xm-faint">No zones</span>
-      </div>
-      <div
-        class="xm-keybed"
-        aria-label="61-key keyboard preview"
-      >
-        <div
-          v-for="key in whiteKeys"
-          :key="key"
-          class="xm-shell-white"
-        >
-          {{ key % 12 === 0 ? `C${Math.floor(key / 12) - 1}` : '' }}
-        </div>
-        <div
-          v-for="key in blackKeys"
-          :key="key"
-          class="xm-shell-black"
-          :style="{ left: blackPosition(key) }"
-        />
-      </div>
-    </footer>
+    <KeyboardStrip />
     <InstrumentPicker
       v-if="pickerId"
       :instrument-id="pickerId"

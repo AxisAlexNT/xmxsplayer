@@ -22,13 +22,25 @@ export interface CommandMap {
   'transport:setLoop': Project['loop']
   'scene:activate': { sceneId: Id | null }
   'register:set': { index: number; on: boolean }
-  'live:note': { key: number; vel: number; on: boolean }
+  'live:note': { key: number; vel: number; on: boolean; source?: string }
   audition: { instrumentId: Id; key: number; on: boolean }
   'learn:start': { controlId?: string }
   'learn:stop': undefined
   'device:assign': { portName: string; profileId: string }
-  'audition:select': { soundfontId: Id; bank: number; program: number; isDrum: boolean } | null
-  'audition:preset': { soundfontId: Id; bank: number; program: number; isDrum: boolean; key: number; on: boolean }
+  'audition:select': {
+    soundfontId: Id
+    bank: number
+    program: number
+    isDrum: boolean
+  } | null
+  'audition:preset': {
+    soundfontId: Id
+    bank: number
+    program: number
+    isDrum: boolean
+    key: number
+    on: boolean
+  }
   panic: undefined
 }
 export interface TransportState {
@@ -56,6 +68,7 @@ export interface LogEntry {
 }
 export interface EventMap {
   ready: undefined
+  'synth:state': { loading: boolean; readyIds: Id[] }
   transport: TransportState
   runtime: RuntimeState
   'midi:ports': {
