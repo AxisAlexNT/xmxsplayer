@@ -1,3 +1,4 @@
+import { ownsContents, isWindowSender } from './window-sender'
 import { join } from 'node:path'
 import {
   app,
@@ -58,11 +59,7 @@ export function createWindows(preloadRoot: string): Windows {
     return shutdown
   }
   ipcMain.on('engine:shutdownDone', (event) => {
-    if (
-      event.sender === engine.webContents &&
-      event.senderFrame === engine.webContents.mainFrame
-    )
-      shutdownDone?.()
+    if (isWindowSender(engine, event)) shutdownDone?.()
   })
   function stopBlocker(): void {
     if (blocker !== undefined) powerSaveBlocker.stop(blocker)
@@ -70,8 +67,8 @@ export function createWindows(preloadRoot: string): Windows {
   }
   ipcMain.on('engine:playing', (event, playing: unknown) => {
     if (
-      event.sender !== engine.webContents ||
-      event.senderFrame !== engine.webContents.mainFrame ||
+      shuttingDown ||
+      !isWindowSender(engine, event) ||
       typeof playing !== 'boolean'
     )
       return
@@ -111,7 +108,8 @@ export function createWindows(preloadRoot: string): Windows {
       stopBlocker()
       if (shuttingDown) return
       console.error(`Engine renderer exited: ${details.reason}`)
-      ui.webContents.send('app:menu', 'engine:restarting')
+      if (!ui.isDestroyed())
+        ui.webContents.send('app:menu', 'engine:restarting')
       engine.destroy()
       setTimeout(
         () => {
@@ -127,7 +125,7 @@ export function createWindows(preloadRoot: string): Windows {
     (contents, permission, origin) =>
       process.env.XM_SMOKE !== '1' &&
       !!contents &&
-      (contents === ui.webContents || contents === engine?.webContents) &&
+      (ownsContents(ui, contents) || ownsContents(engine, contents)) &&
       ['midi', 'midiSysex'].includes(permission) &&
       origin === 'app://xmxsplayer',
   )
@@ -135,15 +133,16 @@ export function createWindows(preloadRoot: string): Windows {
     (contents, permission, callback, details) => {
       callback(
         process.env.XM_SMOKE !== '1' &&
-          (contents === ui.webContents || contents === engine?.webContents) &&
+          (ownsContents(ui, contents) || ownsContents(engine, contents)) &&
           ['midi', 'midiSysex'].includes(permission) &&
           details.requestingUrl.startsWith('app://xmxsplayer/'),
       )
     },
   )
   ipcMain.on('port:ready', (event) => {
-    if (event.sender === ui.webContents) uiReady = true
-    else if (event.sender === engine.webContents) engineReady = true
+    if (shuttingDown) return
+    if (isWindowSender(ui, event)) uiReady = true
+    else if (isWindowSender(engine, event)) engineReady = true
     else return
     broker()
   })

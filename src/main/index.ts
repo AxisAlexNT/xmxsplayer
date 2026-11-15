@@ -1,3 +1,4 @@
+import { isWindowSender } from './window-sender'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { app, ipcMain } from 'electron'
@@ -70,13 +71,13 @@ void app
       app.quit()
     }
     ipcMain.on('ui:mounted', (event) => {
-      if (event.sender === windows.ui.webContents) {
+      if (isWindowSender(windows.ui, event)) {
         mounted = true
         void finish()
       }
     })
     ipcMain.on('engine:ready', (event) => {
-      if (event.sender === windows.ui.webContents) {
+      if (isWindowSender(windows.ui, event)) {
         ready = true
         void finish()
       }

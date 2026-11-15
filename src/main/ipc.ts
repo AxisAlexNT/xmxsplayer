@@ -1,3 +1,4 @@
+import { isWindowSender } from './window-sender'
 import { AudioCache } from './audio-cache'
 import { audioExtension, audioFormats, type AudioPeaks } from '../shared/audio'
 import { relaunchArgs } from './relaunch'
@@ -25,9 +26,8 @@ export function installIpc(windows: Windows): () => Promise<void> {
   function handle(name: string, fn: (...args: never[]) => unknown): void {
     ipcMain.handle(name, (event, ...args) => {
       if (
-        event.sender !== ui.webContents ||
-        event.senderFrame !== ui.webContents.mainFrame ||
-        !event.senderFrame.url.startsWith('app://xmxsplayer/')
+        !isWindowSender(ui, event) ||
+        !event.senderFrame?.url.startsWith('app://xmxsplayer/')
       )
         throw new Error('Forbidden')
       const work = operations.then(() => fn(...(args as never[])))
