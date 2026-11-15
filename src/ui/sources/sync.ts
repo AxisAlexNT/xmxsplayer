@@ -22,6 +22,7 @@ export interface ScoreTrack {
   drum: boolean
 }
 export interface ParsedScore {
+  durationTicks?: number
   tracks: ScoreTrack[]
   maps: Pick<Project, 'tempos' | 'timeSigs' | 'keySigs'>
 }
@@ -63,7 +64,7 @@ export function parseScore(
     throw Error(`${source.file}: unsupported MIDI time division`)
   const maps = importMidi(newProject(), data.midi, source.file)
   const raw =
-    source.kind === 'mscz'
+    source.kind !== 'mid'
       ? midi.tracks.slice(1)
       : midi.tracks.filter((track) =>
           track.some(
@@ -71,7 +72,7 @@ export function parseScore(
               !('meta' in e) && e.type !== 'sysEx' && e.type !== 'endSysEx',
           ),
         )
-  if (source.kind === 'mscz' && names.length !== raw.length)
+  if (source.kind !== 'mid' && names.length !== raw.length)
     throw Error(
       `${source.file}: MIDI has ${raw.length} staves, MusicXML has ${names.length}; cannot match tracks safely`,
     )
@@ -98,6 +99,13 @@ export function parseScore(
   })
   return {
     tracks,
+    durationTicks:
+      (Math.max(
+        0,
+        ...midi.tracks.map((t) => t.reduce((sum, e) => sum + e.deltaTime, 0)),
+      ) *
+        PPQ) /
+      midi.header.ticksPerBeat,
     maps: {
       tempos: maps.tempos,
       timeSigs: maps.timeSigs,
@@ -200,8 +208,16 @@ export function mergeScore(
   const current = next.sources.find((s) => s.id === source.id)
   if (current) {
     current.lastSync = timestamp
+    if (score.durationTicks !== undefined)
+      current.durationTicks = score.durationTicks
     delete current.error
-  } else next.sources.push({ ...source, lastSync: timestamp, error: undefined })
+  } else
+    next.sources.push({
+      ...source,
+      lastSync: timestamp,
+      durationTicks: score.durationTicks,
+      error: undefined,
+    })
   if (next.mapOwner === null) next.mapOwner = source.id
   if (next.mapOwner === source.id && source.kind !== 'mid') {
     Object.assign(next, score.maps)

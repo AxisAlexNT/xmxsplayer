@@ -148,6 +148,7 @@ export interface Source {
   id: Id
   file: string
   kind: 'mscz' | 'mid' | 'musicxml'
+  durationTicks?: number
   lastSync?: string
   error?: string
 }

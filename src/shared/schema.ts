@@ -361,6 +361,7 @@ export const projectSchema = z
         id,
         file: path,
         kind: enums(['mscz', 'mid', 'musicxml']),
+        durationTicks: tick.optional(),
         lastSync: z.string().optional(),
         error: z.string().optional(),
       })
