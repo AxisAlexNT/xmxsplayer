@@ -3,6 +3,8 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useProjectStore } from './stores/project'
 import { useRuntimeStore } from './stores/runtime'
 import { useSettingsStore } from './stores/settings'
+import { importedAudio } from './sources/import-audio'
+import { audioFormats, audioExtension } from '../shared/audio'
 import { importMidi } from './sources/import-midi'
 import { engineBus } from './bus'
 import KeyboardStrip from './components/KeyboardStrip.vue'
@@ -191,12 +193,32 @@ function notify(message: string): void {
     toast.value = ''
   }, 4000)
 }
+async function addAudio(file: string): Promise<void> {
+  if (!engineBus.value || !runtime.connected) throw Error('Wait for the audio engine to connect')
+  if (!audioFormats.has(audioExtension(file))) throw Error(`${file}: choose WAV, MP3, OGG, FLAC or M4A audio`)
+  notify(`Loading ${file.split('/').at(-1)}…`)
+  const draft=importedAudio(doc.project,file,0)
+  const loaded=await engineBus.value.request('audio:load',{trackId:draft.track.id,url:'',file},120000)
+  const imported=importedAudio(doc.project,file,loaded.durationSec)
+  doc.update(d=>{d.tracks.push(imported.track);d.lengthTicks=imported.lengthTicks})
+  notify(`${imported.track.name} imported`)
+}
+async function drop(event: DragEvent): Promise<void> {
+  if (!event.dataTransfer?.files.length) return
+  if (!doc.folder) {notify('Create or open a project folder first');return}
+  for (const file of event.dataTransfer.files) {try {await addAudio(await window.xm.project.importDropped(file))} catch(error) {fail(error)}}
+}
 function fail(error: unknown): void {
+  notify(error instanceof Error ? error.message : String(error))
   runtime.log({ level: 'error', source: 'files', message: String(error) })
 }
 async function command(cmd: string): Promise<void> {
   try {
-    if (cmd === 'new' || cmd === 'open') {
+    if (cmd === 'import:audio') {
+      if (!doc.folder) { notify('Create or open a project folder first'); return }
+      const file = await window.xm.project.importFile('audio')
+      if (file) await addAudio(file)
+    } else if (cmd === 'new' || cmd === 'open') {
       if (
         doc.dirtyFiles.length &&
         !window.confirm('Discard unsaved changes and open another project?')
@@ -340,6 +362,8 @@ onUnmounted(() => {
     class="xm-app"
     :class="{ 'is-collapsed': settings.collapsed }"
     :style="{ '--xm-w-left': `${settings.leftWidth}px` }"
+    @dragover.prevent
+    @drop.prevent="drop"
   >
     <header class="xm-transport">
       <div class="xm-tgroup">

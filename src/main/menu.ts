@@ -24,7 +24,7 @@ export function installMenu(ui: BrowserWindow): void {
           action('Save', 'save', 'CmdOrCtrl+S'),
           { type: 'separator' },
           action('Import MIDI', 'import:midi'),
-          { label: 'Import Audio', enabled: false },
+          action('Import Audio', 'import:audio'),
           { label: 'Link Score', enabled: false },
           { label: 'Export MIDI for MuseScore', enabled: false },
           { type: 'separator' },

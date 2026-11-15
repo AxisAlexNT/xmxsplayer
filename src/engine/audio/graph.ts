@@ -4,6 +4,33 @@ import type { EventMap } from '../../shared/protocol'
 type AudioContextWithSink = AudioContext & {
   setSinkId?: (id: string) => Promise<void>
 }
+export interface AudioRoute {
+  context: AudioContext
+  destination: AudioNode
+  timeAt: (mainTime: number) => number
+}
+export function contextTimeAt(
+  main: AudioContext,
+  target: AudioContext,
+  time: number,
+): number {
+  if (main === target) return time
+  const from = main.getOutputTimestamp(),
+    to = target.getOutputTimestamp()
+  if (
+    !from.contextTime ||
+    !to.contextTime ||
+    !from.performanceTime ||
+    !to.performanceTime
+  )
+    return target.currentTime + time - main.currentTime
+  return (
+    to.contextTime +
+    (from.performanceTime - to.performanceTime) / 1000 +
+    time -
+    from.contextTime
+  )
+}
 export class AudioGraph {
   readonly context: AudioContextWithSink
   readonly main: GainNode
@@ -15,7 +42,10 @@ export class AudioGraph {
   private merger: ChannelMergerNode
   private bufferSize: Settings['audio']['bufferSize']
   private wired = false
-  private mode: 'off' | 'channels34' = 'off'
+  private mode: 'off' | 'channels34' | 'device' = 'off'
+  private cueContext?: AudioContextWithSink
+  private cueOutput?: GainNode
+  private cueSink = ''
   private limited = true
   private sink = ''
   private timer: ReturnType<typeof setInterval>
@@ -63,11 +93,32 @@ export class AudioGraph {
     }
     let mode = settings.cue.mode
     if (mode === 'device') {
-      this.warn(
-        'A separate cue device is not available yet; cue is mixed into main',
-      )
-      mode = 'off'
+      try {
+        if (!this.cueContext) {
+          this.cueContext = new AudioContext({
+            latencyHint: 0,
+            sampleRate: this.context.sampleRate,
+          })
+          this.cueOutput = this.cueContext.createGain()
+          this.cueOutput.connect(this.cueContext.destination)
+          this.cueSink = '\0'
+        }
+        if (!this.cueContext.setSinkId)
+          throw Error('Separate output selection is unavailable')
+        if (this.cueSink !== settings.cue.deviceId) {
+          await this.cueContext.setSinkId(settings.cue.deviceId)
+          this.cueSink = settings.cue.deviceId
+        }
+        await this.cueContext.resume()
+      } catch (error) {
+        this.warn(
+          `Cue output unavailable; cue is mixed into main. ${String(error)}`,
+        )
+        mode = 'off'
+      }
     }
+    if (mode !== 'device' && this.cueContext?.state === 'running')
+      await this.cueContext.suspend()
     if (mode === 'channels34' && this.context.destination.maxChannelCount < 4) {
       this.warn(
         'This output has fewer than four channels; cue is mixed into main',
@@ -106,6 +157,9 @@ export class AudioGraph {
       this.context.destination.channelCount = 2
       this.cue.connect(this.master)
       output.connect(this.context.destination)
+    } else if (this.mode === 'device') {
+      this.context.destination.channelCount = 2
+      output.connect(this.context.destination)
     } else {
       this.context.destination.channelCount = 4
       output.connect(this.splitMain)
@@ -115,6 +169,21 @@ export class AudioGraph {
       this.splitCue.connect(this.merger, 0, 2)
       this.splitCue.connect(this.merger, 1, 3)
       this.merger.connect(this.context.destination)
+    }
+  }
+  route(toCue: boolean): AudioRoute {
+    if (toCue && this.mode === 'device' && this.cueContext && this.cueOutput) {
+      const context = this.cueContext
+      return {
+        context,
+        destination: this.cueOutput,
+        timeAt: (time) => contextTimeAt(this.context, context, time),
+      }
+    }
+    return {
+      context: this.context,
+      destination: toCue ? this.cue : this.main,
+      timeAt: (time) => time,
     }
   }
   latency(): void {
@@ -135,6 +204,7 @@ export class AudioGraph {
   }
   async close(): Promise<void> {
     clearInterval(this.timer)
+    await this.cueContext?.close()
     await this.context.close()
   }
 }

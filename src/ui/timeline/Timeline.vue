@@ -10,6 +10,8 @@ import { LinearAxis } from './linear-axis'
 import { transportTick, Viewport, type TimelineFrame } from './viewport'
 import Ruler from '../lanes/Ruler.vue'
 import PianoRollLane from '../lanes/PianoRollLane.vue'
+import AudioLane from '../lanes/AudioLane.vue'
+import AudioTrackControls from '../components/tracks/AudioTrackControls.vue'
 import ConflictBanner from '../components/ConflictBanner.vue'
 const emit = defineEmits<{
   instrument: [id: string]
@@ -90,7 +92,7 @@ function edit(id: string, change: (track: Track) => void): void {
 }
 function mode(track: Track): void {
   edit(track.id, (t) => {
-    t.mode = ({ auto: 'live', live: 'mute', mute: 'auto' } as const)[t.mode]
+    t.mode = t.kind === 'audio' ? (t.mode === 'auto' ? 'mute' : 'auto') : ({ auto: 'live', live: 'mute', mute: 'auto' } as const)[t.mode]
   })
 }
 function height(track: Track): number {
@@ -329,7 +331,14 @@ onUnmounted(() => {
               </button>
             </div>
           </div>
-          <div class="xm-wrap">
+          <AudioTrackControls
+            v-if="track.kind==='audio'"
+            :track="track"
+          />
+          <div
+            v-else
+            class="xm-wrap"
+          >
             <template
               v-for="conn in doc.project.base.patch.filter(
                 (c) => c.trackId === track.id,
@@ -385,15 +394,27 @@ onUnmounted(() => {
           :track="track"
           :height="height(track)"
         />
-        <div
+        <AudioLane
           v-else
-          class="xm-lane"
+          :track="track"
+          :height="height(track)"
         />
         <div
           class="xm-lane-resize"
           title="Drag to resize lane"
           @pointerdown="resize($event, track)"
         />
+      </div>
+      <div
+        v-if="tracks.length"
+        class="xm-add-track"
+      >
+        <button
+          class="btn btn-sm btn-ghost"
+          @click="emit('command','import:audio')"
+        >
+          <i class="bi bi-plus-lg" /> Audio track
+        </button>
       </div>
       <div
         v-if="!tracks.length"

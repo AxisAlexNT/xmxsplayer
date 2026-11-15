@@ -14,6 +14,12 @@ export const useRuntimeStore = defineStore('runtime', () => {
     sampleRate?: number
     bufferSize?: import('../../shared/model').Settings['audio']['bufferSize']
   } | null>(null)
+  const audioPeaks = ref<
+    Record<string, import('../../shared/protocol').EventMap['audio:peaks']>
+  >({})
+  const audioStates = ref<
+    Record<string, import('../../shared/protocol').EventMap['audio:state']>
+  >({})
   const synthLoading = ref(false)
   const readyInstruments = ref<string[]>([])
   const midi = ref<import('../../shared/protocol').EventMap['midi:ports']>({
@@ -51,6 +57,8 @@ export const useRuntimeStore = defineStore('runtime', () => {
     ]
   }
   return {
+    audioPeaks,
+    audioStates,
     synthLoading,
     readyInstruments,
     midi,

@@ -1,3 +1,5 @@
+import { AudioCache } from './audio-cache'
+import { audioExtension, audioFormats, type AudioPeaks } from '../shared/audio'
 import { relaunchArgs } from './relaunch'
 import { app, dialog, ipcMain } from 'electron'
 import { basename, dirname, join } from 'node:path'
@@ -17,6 +19,7 @@ import type { Windows } from './windows'
 export function installIpc(windows: Windows): () => Promise<void> {
   const { ui } = windows
   const io = new ProjectIO()
+  const audioCache = new AudioCache(() => io.folder)
   const watcher = new ProjectWatcher()
   let operations = Promise.resolve<unknown>(undefined)
   function handle(name: string, fn: (...args: never[]) => unknown): void {
@@ -89,6 +92,22 @@ export function installIpc(windows: Windows): () => Promise<void> {
     })
     return result.canceled ? null : io.importFile(kind, result.filePaths[0])
   })
+  handle('project:importDropped', (file: string) => {
+    if (typeof file !== 'string' || !audioFormats.has(audioExtension(file)))
+      throw Error('Choose WAV, MP3, OGG, FLAC or M4A audio')
+    return io.importFile('audio', file)
+  })
+  handle('audio:source', async (file: string, rate: number) => {
+    const source = await audioCache.source(file, rate)
+    return {
+      ...source,
+      file: undefined,
+      url: await fileTokens.issue(source.file, [io.folder]),
+    }
+  })
+  handle('audio:cache', (file: string, key: string, data: AudioPeaks) =>
+    audioCache.store(file, key, data),
+  )
   handle('project:url', async (path: string) => {
     if (!io.folder) throw new Error('Open a project first')
     return fileTokens.issue(await confined(io.folder, path), [io.folder])

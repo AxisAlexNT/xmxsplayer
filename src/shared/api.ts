@@ -1,3 +1,4 @@
+import type { AudioPeaks, AudioSource } from './audio'
 import type { Settings } from './model'
 export interface SoundFontFile {
   file: string
@@ -30,6 +31,9 @@ export interface DesktopApi {
     ) => Promise<Record<string, string>>
     importFile: (kind: 'audio' | 'score' | 'midi') => Promise<string | null>
     urlFor: (relPath: string) => Promise<string>
+    importDropped: (file: File) => Promise<string>
+    audioSource: (file: string, sampleRate: number) => Promise<AudioSource>
+    cachePeaks: (file: string, key: string, data: AudioPeaks) => Promise<void>
     onFilesChanged: (handler: (changes: FileChanges) => void) => () => void
   }
   soundfonts: {

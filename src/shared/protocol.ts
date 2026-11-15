@@ -1,3 +1,4 @@
+import type { AudioPeaks, AudioSource } from './audio'
 import type {
   Action,
   ControlDef,
@@ -13,6 +14,7 @@ import type {
 export type ProjectMeta = Project
 export interface CommandMap {
   ping: undefined
+  'audio:scope': { folder: string }
   'project:meta': ProjectMeta
   'track:notes': { trackId: Id; notes: Note[] }
   'settings:set': Settings
@@ -68,6 +70,8 @@ export interface LogEntry {
 }
 export interface EventMap {
   ready: undefined
+  'audio:peaks': AudioPeaks & { trackId: Id; file: string; key: string }
+  'audio:state': { trackId: Id; loading: boolean; error?: string }
   'synth:state': { loading: boolean; readyIds: Id[] }
   transport: TransportState
   runtime: RuntimeState
@@ -104,9 +108,17 @@ export interface RequestMap {
     input: { soundfontId: Id }
     output: { bank: number; program: number; name: string; isDrum: boolean }[]
   }
+  'audio:resolve': {
+    input: { file: string; sampleRate: number }
+    output: AudioSource
+  }
+  'audio:cache': {
+    input: { file: string; key: string; data: AudioPeaks }
+    output: undefined
+  }
   'audio:load': {
-    input: { trackId: Id; url: string }
-    output: { durationSec: number; peaks: number[] }
+    input: { trackId: Id; url: string; file?: string }
+    output: { durationSec: number; peaks: number[]; sampleRate?: number }
   }
   'audio:devices': { input: undefined; output: { id: string; label: string }[] }
 }

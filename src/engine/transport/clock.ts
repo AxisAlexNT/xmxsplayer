@@ -20,7 +20,7 @@ export class TransportClock {
     return (
       this.anchorRaw +
       (this.playing && !this.holding
-        ? (contextTime - this.anchorContext) * this.speed
+        ? Math.max(0, contextTime - this.anchorContext) * this.speed
         : 0)
     )
   }
@@ -49,9 +49,9 @@ export class TransportClock {
     this.anchorRaw = raw
     this.anchorContext = context
   }
-  play(): void {
+  play(leadSec = 0): void {
     if (this.playing && !this.holding) return
-    this.anchor(this.raw)
+    this.anchor(this.raw, this.now() + Math.max(0, leadSec))
     this.playing = true
     this.holding = false
   }

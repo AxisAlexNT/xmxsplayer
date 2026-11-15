@@ -107,6 +107,7 @@ async function initialize(value: Settings): Promise<void> {
   if (initialization) {
     await initialization
     await graph!.apply(value.audio)
+    if (project) await transport?.audio.synchronize(project)
     return
   }
   initialization = (async () => {
@@ -125,7 +126,7 @@ async function initialize(value: Settings): Promise<void> {
     )
     router = new Router(rack, reportKeys)
     transport = new Transport(
-      graph.context,
+      graph,
       backend,
       load,
       () => bus,
@@ -259,6 +260,7 @@ window.addEventListener('message', (event) => {
       (error) => log('error', 'audio', String(error)),
     )
   })
+  bus.on('audio:scope', ({ folder }) => transport?.audio.setScope(folder))
   bus.on('project:meta', (value) => {
     const old = project
     project = applyMetadata(value, old)
@@ -279,6 +281,15 @@ window.addEventListener('message', (event) => {
         void transport
           ?.synchronize(project)
           .catch((error) => log('error', 'transport', String(error)))
+    }
+  })
+  bus.respond('audio:load', async ({ trackId, file }) => {
+    if (!transport || !file) throw Error('Select an audio file first')
+    const data = await transport.audio.load(trackId, file)
+    return {
+      durationSec: data.durationSec,
+      sampleRate: data.sampleRate,
+      peaks: data.peaks,
     }
   })
   bus.respond('audio:devices', () => graph?.devices() ?? [])

@@ -212,7 +212,7 @@ export class Scheduler {
         this.clock.map.tickToSec(this.project.lengthTicks),
       )
     if (this.needChase) {
-      this.chase(rawNow, now)
+      this.chase(rawNow, Math.max(now, this.clock.contextAt(rawNow)))
       this.needChase = false
     }
     let cursor = this.scheduledUntil

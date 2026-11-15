@@ -92,7 +92,7 @@ export class Bus {
             this.port.postMessage({
               ...data,
               kind: 'res',
-              error: String(error),
+              error: error instanceof Error ? error.message : String(error),
               payload: undefined,
             }),
         )

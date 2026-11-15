@@ -1,3 +1,5 @@
+import { AudioGraph } from '../audio/graph'
+import { AudioTracks } from '../audio/tracks'
 import type { Project, SoundFontRef } from '../../shared/model'
 import type { Bus } from '../../shared/bus'
 import { TimeMap } from '../../shared/time-map'
@@ -12,6 +14,8 @@ export class Transport {
   readonly clock: TransportClock
   readonly scheduler: Scheduler
   readonly actions: Actions
+  readonly audio: AudioTracks
+  private context: AudioContext
   private output: SequenceOutput
   private worker = new TimerWorker()
   private deadline?: ReturnType<typeof setTimeout>
@@ -23,12 +27,14 @@ export class Transport {
   private epoch = 0
   private syncing = false
   constructor(
-    private context: AudioContext,
+    graph: AudioGraph,
     backend: SynthBackend,
     load: (font: SoundFontRef) => Promise<void>,
     private bus: () => Bus | undefined,
     private warn: (message: string) => void,
   ) {
+    this.context = graph.context
+    const context = this.context
     this.clock = new TransportClock(
       new TimeMap(newProject()),
       () => context.currentTime,
@@ -41,6 +47,13 @@ export class Transport {
       () => undefined,
     )
     this.scheduler = new Scheduler(this.clock, this.output)
+    this.audio = new AudioTracks(
+      graph,
+      this.clock,
+      () => this.scheduler.nextDeadline(),
+      this.bus,
+      warn,
+    )
     this.scheduler.onEnd = () => this.changed()
     this.scheduler.onBoundary = () => this.changed()
     this.actions = new Actions({
@@ -60,6 +73,7 @@ export class Transport {
     this.worker.onmessage = () => {
       if (this.syncing) return
       this.scheduler.tick()
+      this.audio.tick()
       this.report()
       this.armDeadline()
     }
@@ -94,7 +108,7 @@ export class Transport {
             : { id: t.id, mode: t.mode, solo: t.solo },
         ),
     })
-    if (signature === this.signature) return this.serial
+    if (signature === this.signature) return this.audio.synchronize(project)
     this.signature = signature
     const epoch = ++this.epoch
     this.scheduler.invalidate(false)
@@ -108,6 +122,7 @@ export class Transport {
       await this.output.synchronize(project)
       if (epoch !== this.epoch) return
       this.scheduler.setProject(project)
+      await this.audio.synchronize(project)
       this.syncing = false
       this.changed()
     })
@@ -132,7 +147,7 @@ export class Transport {
         this.clock.seek(
           this.project.loop.enabled ? this.project.loop.startTick : 0,
         )
-      this.clock.play()
+      this.clock.play(this.audio.latency)
       this.scheduler.invalidate(false)
       this.changed()
     } catch (e) {
@@ -162,6 +177,7 @@ export class Transport {
     )
     window.engineHost.setPlaying(this.clock.playing)
     if (!this.syncing) this.scheduler.tick()
+    this.audio.refresh(true)
     this.report()
     this.armDeadline()
   }
@@ -174,7 +190,10 @@ export class Transport {
       tick: c.tick,
       rate: c.rate,
       followFactor: c.followFactor,
-      perfTime: performance.timeOrigin + performance.now(),
+      perfTime:
+        performance.timeOrigin +
+        performance.now() +
+        Math.max(0, c.contextAt(c.raw) - this.context.currentTime) * 1000,
     })
   }
   private armDeadline(): void {

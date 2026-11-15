@@ -19,11 +19,18 @@ const doc = useProjectStore()
 const runtime = useRuntimeStore()
 const settings = useSettingsStore()
 let synced: Project | undefined
+let audioScope: string | undefined
 function sync(force = false): void {
   const bus = engineBus.value
   if (!bus || !runtime.connected) return
   const p = doc.project
   if (p === synced && !force) return
+  if (force || audioScope !== doc.folder) {
+    bus.send('audio:scope', { folder: doc.folder })
+    audioScope = doc.folder
+    runtime.audioPeaks = {}
+    runtime.audioStates = {}
+  }
   syncProject(bus, p, synced, force)
   synced = p
 }
@@ -33,6 +40,19 @@ watch(engineBus, (bus) => {
   runtime.readyInstruments = []
   runtime.synthLoading = false
   if (!bus) return
+  bus.respond('audio:resolve', ({ file, sampleRate }) =>
+    window.xm.project.audioSource(file, sampleRate),
+  )
+  bus.respond('audio:cache', async ({ file, key, data }) => {
+    await window.xm.project.cachePeaks(file, key, data)
+    return undefined
+  })
+  bus.on('audio:peaks', (data) => {
+    runtime.audioPeaks[data.trackId] = data
+  })
+  bus.on('audio:state', (data) => {
+    runtime.audioStates[data.trackId] = data
+  })
   bus.respond(
     'soundfont:resolve',
     async (font) =>

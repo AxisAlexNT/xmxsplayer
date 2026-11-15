@@ -130,13 +130,19 @@ onMounted(() => {
           >
             <option value="off">Off — mix into main</option>
             <option value="channels34">Channels 3–4</option>
-            <option
-              value="device"
-              disabled
-            >
-              Separate device · not available yet
-            </option>
+            <option value="device">Separate device · approximate sync</option>
           </select></label>
+          <label
+            v-if="audio.cue.mode==='device'"
+            class="form-label"
+          >Cue device<select
+            v-model="audio.cue.deviceId"
+            class="form-select"
+          ><option value="">Default output</option><option
+            v-for="output in outputs"
+            :key="output.id"
+            :value="output.id"
+          >{{ output.label }}</option></select><small class="text-body-secondary">Approximate sync; audio re-aligns every 5 seconds.</small></label>
           <label class="form-label">Buffer size<select
             v-model.number="audio.bufferSize"
             class="form-select"

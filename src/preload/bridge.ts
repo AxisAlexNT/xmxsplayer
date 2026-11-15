@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { DesktopApi } from '../shared/api'
 
 function subscribe<T>(
@@ -31,6 +31,15 @@ export function installBridge(ui: boolean): void {
         ipcRenderer.invoke('project:save', files, hashes),
       importFile: (kind) => ipcRenderer.invoke('project:import', kind),
       urlFor: (path) => ipcRenderer.invoke('project:url', path),
+      importDropped: (file) =>
+        ipcRenderer.invoke(
+          'project:importDropped',
+          webUtils.getPathForFile(file),
+        ),
+      audioSource: (file, rate) =>
+        ipcRenderer.invoke('audio:source', file, rate),
+      cachePeaks: (file, key, data) =>
+        ipcRenderer.invoke('audio:cache', file, key, data),
       onFilesChanged: (handler) => subscribe('project:changed', handler),
     },
     soundfonts: {
