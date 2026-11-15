@@ -1,3 +1,4 @@
+import { allPatches } from '../../shared/patches'
 import type { Instrument, Project, SoundFontRef } from '../../shared/model'
 import type { SlotId, SynthBackend } from './backend'
 
@@ -27,7 +28,7 @@ export class InstrumentRack {
       const instruments = project.instruments.flatMap((instrument) => {
         const trackIds = [
           ...new Set(
-            project.base.patch
+            allPatches(project)
               .filter((p) => p.instrumentId === instrument.id)
               .map((p) => p.trackId),
           ),

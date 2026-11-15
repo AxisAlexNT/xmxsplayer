@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import PatchPanel from './components/PatchPanel.vue'
+import ScenesPanel from './components/ScenesPanel.vue'
+import RegistersPanel from './components/RegistersPanel.vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useProjectStore } from './stores/project'
 import { useRuntimeStore } from './stores/runtime'
 import { useEditorStore } from './stores/editor'
@@ -18,6 +21,15 @@ import Timeline from './timeline/Timeline.vue'
 import { TimeMap } from '../shared/time-map'
 import type { Action } from '../shared/model'
 
+const patchPanels = ref<InstanceType<typeof PatchPanel>[]>([])
+async function editPatch(
+  id: string,
+  anchor: { right: number; top: number },
+): Promise<void> {
+  settings.sections.Patch = true
+  await nextTick()
+  patchPanels.value[0]?.open(id, anchor)
+}
 const doc = useProjectStore()
 const runtime = useRuntimeStore()
 const settings = useSettingsStore()
@@ -188,6 +200,11 @@ function shortcut(event: KeyboardEvent): void {
   if (cmd) {
     event.preventDefault()
     transport(cmd)
+  } else if (/^[1-8]$/.test(key)) {
+    event.preventDefault()
+    engineBus.value?.send('action:run', {
+      action: { type: 'register', cmd: 'toggle', index: Number(key) - 1 },
+    })
   } else if (key === 'f') {
     event.preventDefault()
     void command('toggleFollowView')
@@ -353,11 +370,6 @@ async function command(cmd: string): Promise<void> {
   } catch (error) {
     fail(error)
   }
-}
-function renameRegister(index: number, event: Event): void {
-  doc.update((draft) => {
-    draft.registers[index].name = (event.target as HTMLInputElement).value
-  })
 }
 function resize(event: PointerEvent): void {
   const target = event.target as HTMLElement
@@ -687,33 +699,8 @@ onUnmounted(() => {
           v-if="settings.sections[section] !== false"
           class="xm-sec-b"
         >
-          <template v-if="section === 'Scenes'">
-            <div class="xm-wrap">
-              <span class="xm-chip is-active">Base</span>
-            </div>
-            <p class="xm-faint mt-2 mb-0">
-              No scenes yet
-            </p>
-          </template>
-          <div
-            v-else-if="section === 'Registers'"
-            class="xm-regs"
-          >
-            <div
-              v-for="(reg, index) in p.registers"
-              :key="index"
-              class="xm-reg"
-            >
-              <button disabled>
-                {{ index + 1 }}
-              </button><input
-                class="xm-register-name"
-                :aria-label="`Register ${index + 1} name`"
-                :value="reg.name"
-                @change="renameRegister(index, $event)"
-              >
-            </div>
-          </div>
+          <ScenesPanel v-if="section === 'Scenes'" />
+          <RegistersPanel v-else-if="section === 'Registers'" />
           <ControlsPanel v-else-if="section === 'Controls'" />
           <template v-else-if="section === 'Log'">
             <button
@@ -747,30 +734,11 @@ onUnmounted(() => {
             </p>
           </template>
           <SoundfontsPanel v-else-if="section === 'Soundfonts'" />
-          <template v-else-if="section === 'Patch'">
-            <div
-              v-for="connection in p.base.patch"
-              :key="connection.id"
-              class="xm-row mb-2"
-            >
-              <span class="xm-chip is-sm">{{
-                p.tracks.find((t) => t.id === connection.trackId)?.name ??
-                  connection.trackId
-              }}</span><i class="bi bi-arrow-right xm-faint" /><button
-                class="xm-chip is-sm"
-                @click="pickerId = connection.instrumentId"
-              >
-                <i class="bi bi-music-note" />{{
-                  p.instruments.find((i) => i.id === connection.instrumentId)
-                    ?.name ?? connection.instrumentId
-                }}
-              </button>
-            </div>
-            <span
-              v-if="!p.base.patch.length"
-              class="xm-faint"
-            >No track → instrument connections</span>
-          </template>
+          <PatchPanel
+            v-else-if="section === 'Patch'"
+            ref="patchPanels"
+            @instrument="pickerId = $event"
+          />
           <DevicesPanel v-else-if="section === 'Devices'" />
           <template v-else>
             <span class="xm-faint">{{
@@ -793,6 +761,7 @@ onUnmounted(() => {
     />
 
     <Timeline
+      @patch="editPatch"
       @instrument="pickerId = $event"
       @command="command"
       @error="fail"

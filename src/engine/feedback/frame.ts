@@ -1,3 +1,4 @@
+import { registerColor } from '../../shared/register-colors'
 import type { Action, DeviceProfile, Project, Setup } from '../../shared/model'
 import type { RuntimeState } from '../../shared/protocol'
 import type { ControlFeedback } from '../../shared/feedback'
@@ -9,16 +10,6 @@ const blue = '#4cc2ff',
   green = '#3ddc97',
   red = '#ff6b6b',
   grey = '#94a3b8'
-const registerColors = [
-  '#7c8cff',
-  '#b07cff',
-  '#ff7ac8',
-  '#ffd43b',
-  green,
-  '#2dd4bf',
-  '#38bdf8',
-  grey,
-]
 export interface FeedbackState {
   project: Project
   runtime: RuntimeState
@@ -49,12 +40,8 @@ function bindingState(
   setup: Setup,
 ): { color: string; on: boolean; queued?: boolean } {
   if (action.type === 'register') {
-    const group = p.registers[action.index]?.group,
-      first = group
-        ? p.registers.findIndex((r) => r.group === group)
-        : action.index
     return {
-      color: registerColors[Math.max(0, first) % registerColors.length],
+      color: registerColor(p, action.index),
       on: !!s.runtime.registers[action.index],
     }
   }

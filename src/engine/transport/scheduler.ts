@@ -52,17 +52,11 @@ export class Scheduler {
     readonly clock: TransportClock,
     private output: SchedulerOutput,
   ) {}
-  setProject(project: Project): void {
+  setProject(project: Project, keepHeld = false): void {
     this.project = project
-    const solo = project.tracks.some((t) => t.solo)
     this.events = []
     for (const track of project.tracks) {
-      if (
-        track.kind !== 'midi' ||
-        track.mode !== 'auto' ||
-        (solo && !track.solo)
-      )
-        continue
+      if (track.kind !== 'midi') continue
       track.notes.forEach((note, index) => {
         this.events.push({
           sec: this.clock.map.tickToSec(note[0]),
@@ -90,7 +84,13 @@ export class Scheduler {
         })
     }
     this.events.sort((a, b) => a.sec - b.sec || a.order - b.order)
-    this.invalidate(false)
+    this.invalidate(keepHeld)
+  }
+  private plays(track: MidiTrack): boolean {
+    return (
+      track.mode === 'auto' &&
+      (!this.project?.tracks.some((t) => t.solo) || track.solo)
+    )
   }
   invalidate(keepHeld = false): void {
     this.output.reset(keepHeld)
@@ -165,6 +165,7 @@ export class Scheduler {
       cycle = this.cycle(raw)
     const tracks = new Set(this.events.map((e) => e.track))
     for (const track of tracks) {
+      if (!this.plays(track)) continue
       this.output.chase(track, tick, when)
       track.notes.forEach((note, index) => {
         const id = `${cycle}:${track.id}:${index}`
@@ -235,12 +236,16 @@ export class Scheduler {
         if (event.sec < startSong - 1e-9) continue
         if (event.sec >= endSong - 1e-9) break
         const when = this.clock.contextAt(cursor + event.sec - startSong)
-        if (event.event) this.output.event(event.track, event.event, when)
-        else {
+        if (event.event) {
+          if (this.plays(event.track))
+            this.output.event(event.track, event.event, when)
+        } else {
           const note = this.descriptor(event, cycle)
           if (event.on) {
-            if (!this.output.hasNote(note.id)) this.output.noteOn(note, when)
-          } else this.output.noteOff(note, when)
+            if (this.plays(event.track) && !this.output.hasNote(note.id))
+              this.output.noteOn(note, when)
+          } else if (this.output.hasNote(note.id))
+            this.output.noteOff(note, when)
         }
       }
       let beat = this.clock.map.nextBeat(

@@ -1,3 +1,7 @@
+import {
+  matchesCondition,
+  type ConditionContext,
+} from '../../shared/conditions'
 import type { RoutedNote } from '../../shared/recording'
 import type { Project, Zone } from '../../shared/model'
 import type { EventMap } from '../../shared/protocol'
@@ -30,9 +34,16 @@ export class Router {
     private rack: InstrumentRack,
     private report: (keys: EventMap['keys']) => void,
     private record: (note: RoutedNote) => void = () => undefined,
+    private condition: () => ConditionContext = () => ({
+      registers: [],
+      activeSceneId: null,
+      bar: 1,
+      playing: false,
+    }),
   ) {}
   setProject(project: Project): void {
     this.project = project
+    this.releaseUnreachableSustain()
   }
   private owner(source: string, channel: number): string {
     return JSON.stringify([source, channel])
@@ -159,7 +170,9 @@ export class Router {
           )
             continue
           for (const patch of this.project!.base.patch.filter(
-            (p) => p.trackId === trackId && !p.when,
+            (p) =>
+              p.trackId === trackId &&
+              matchesCondition(p.when, this.condition()),
           )) {
             const slot = this.rack.acquire(patch.instrumentId, trackId)
             if (!slot) continue
@@ -198,15 +211,20 @@ export class Router {
           target.slot.backend.noteOff(target.slot.slot, target.key)
         } else this.sounding.set(this.targetKey(target), count)
       }
-      if (this.pedals.has(owner)) {
+      const sustainedTargets = voice.targets.filter((t) =>
+        this.pedals.get(owner)?.has(t.slot),
+      )
+      for (const target of voice.targets)
+        if (!sustainedTargets.includes(target)) this.rack.release(target.slot)
+      if (sustainedTargets.length) {
         const sustained = this.sustained.get(owner) ?? []
-        sustained.push(voice)
+        sustained.push({ ...voice, targets: sustainedTargets })
         this.sustained.set(owner, sustained)
-      } else voice.targets.forEach((t) => this.rack.release(t.slot))
+      }
     }
     this.queueReport()
   }
-  private reachable(source: string, channel: number): Set<RackSlot> {
+  private routeSlots(): Set<RackSlot> {
     const slots = new Set<RackSlot>()
     const trackIds = new Set(
       this.project?.base.zones.flatMap((z) => z.trackIds) ?? [],
@@ -218,12 +236,37 @@ export class Router {
         track?.kind !== 'midi' ||
         track.mode === 'mute' ||
         (this.project!.tracks.some((t) => t.solo) && !track.solo) ||
-        patch.when
+        !matchesCondition(patch.when, this.condition())
       )
         continue
       const slot = this.rack.get(patch.instrumentId, patch.trackId)
       if (slot) slots.add(slot)
     }
+    return slots
+  }
+  private releaseUnreachableSustain(): void {
+    const reachable = this.routeSlots()
+    for (const [owner, slots] of this.pedals) {
+      for (const slot of [...slots]) {
+        if (reachable.has(slot)) continue
+        slots.delete(slot)
+        if (![...this.pedals.values()].some((other) => other.has(slot)))
+          slot.backend.cc(slot.slot, 64, 0)
+        this.rack.release(slot)
+      }
+      const voices = this.sustained.get(owner) ?? []
+      for (const voice of voices) {
+        for (const target of voice.targets)
+          if (!reachable.has(target.slot)) this.rack.release(target.slot)
+        voice.targets = voice.targets.filter((t) => reachable.has(t.slot))
+      }
+      const retained = voices.filter((v) => v.targets.length)
+      if (retained.length) this.sustained.set(owner, retained)
+      else this.sustained.delete(owner)
+    }
+  }
+  private reachable(source: string, channel: number): Set<RackSlot> {
+    const slots = this.routeSlots()
     for (const voices of this.held.values())
       for (const voice of voices)
         if (voice.source === source && voice.channel === channel)

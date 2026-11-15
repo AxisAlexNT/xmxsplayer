@@ -1,3 +1,4 @@
+import { Scenes } from './performance/scenes'
 import { LedManager } from './feedback/led-manager'
 import { Bindings } from './router/bindings'
 import {
@@ -45,6 +46,45 @@ const runtimeState: RuntimeState = {
   expectedNext: null,
   clips: {},
   effective: { zones: [], patch: [] },
+}
+const scenes = new Scenes({
+  queue: (at, run) => {
+    if (transport) return transport.queue(at, run)
+    run()
+    return 0
+  },
+  context: () => ({
+    bar: transport?.clock.map.tickToBarBeat(transport.clock.tick).bar ?? 1,
+    playing: transport?.clock.playing ?? false,
+  }),
+  changed: () => applyPerformance(),
+})
+let runtimeSignature = ''
+function performanceProject(): Project | undefined {
+  return scenes.effectiveProject([], false)
+}
+function publishRuntime(): void {
+  if (!project) return
+  const setup = scenes.setup()
+  if (!setup) return
+  runtimeState.activeSceneId = scenes.activeId
+  runtimeState.registers = scenes.registers.values
+  runtimeState.effective = { zones: setup.zones, patch: setup.patch }
+  const signature = JSON.stringify(runtimeState)
+  if (signature !== runtimeSignature) {
+    runtimeSignature = signature
+    const effective = performanceProject()
+    if (effective) router?.setProject(effective)
+    bus?.send('runtime', runtimeState)
+  }
+}
+function applyPerformance(): void {
+  const effective = performanceProject()
+  if (!effective) return
+  router?.setProject(effective)
+  transport?.applyPerformance(effective)
+  leds?.invalidate(true)
+  publishRuntime()
 }
 let masterVolume = 1
 const pendingParameters = new Map<string, { value: number; time: number }>()
@@ -98,7 +138,9 @@ function receiveMidi(message: MidiMessage): void {
       message.type === 'cc' ? 'cc' : 'bend',
       message.type === 'cc' ? message.cc : 0,
       message.value,
-      new Set(project?.base.zones.flatMap((z) => z.trackIds) ?? []),
+      new Set(
+        performanceProject()?.base.zones.flatMap((z) => z.trackIds) ?? [],
+      ),
       when,
     )
   if (message.type === 'note')
@@ -141,6 +183,14 @@ function runAction(
   source = 'action',
 ): void {
   if (!project) return
+  if (action.type === 'scene') {
+    scenes.run(action)
+    return
+  }
+  if (action.type === 'register') {
+    scenes.register(action, source, pressed)
+    return
+  }
   if (action.type === 'note') {
     router?.note(
       source,
@@ -238,8 +288,11 @@ async function initialize(value: Settings): Promise<void> {
       (message) => log('warn', 'synth', message),
       true,
     )
-    router = new Router(rack, reportKeys, (note) =>
-      transport?.recorder.note(note),
+    router = new Router(
+      rack,
+      reportKeys,
+      (note) => transport?.recorder.note(note),
+      () => scenes.context,
     )
     transport = new Transport(
       graph,
@@ -249,8 +302,14 @@ async function initialize(value: Settings): Promise<void> {
       (message) => log('warn', 'transport', message),
     )
     transport.inputLatencyMs = value.audio.inputLatencyMs
+    transport.resolveProject = (source) => performanceProject() ?? source
+    transport.conditionContext = (tick) => ({
+      ...scenes.context,
+      bar: transport!.clock.map.tickToBarBeat(tick).bar,
+    })
+    transport.onPosition = publishRuntime
     if (project) {
-      router.setProject(project)
+      router.setProject(performanceProject() ?? project)
       await Promise.all([
         rack.synchronize(project),
         transport.synchronize(project),
@@ -321,6 +380,7 @@ async function initialize(value: Settings): Promise<void> {
               1000
       leds?.beatAt(tick, perf)
     }
+    publishRuntime()
     leds.start()
     void midi
       .start(!window.engineHost.smoke && !engineClosing)
@@ -341,12 +401,14 @@ async function synchronize(): Promise<void> {
   if (!rack || !project) return
   const revision = ++syncRevision
   bus?.send('synth:state', { loading: true, readyIds: [] })
-  router?.setProject(project)
+  router?.setProject(performanceProject() ?? project)
   await Promise.all([
     rack.synchronize(project),
     transport?.synchronize(project),
   ])
   if (revision !== syncRevision) return
+  router?.setProject(performanceProject() ?? project)
+  publishRuntime()
   bus?.send('synth:state', {
     loading: false,
     readyIds: project.instruments
@@ -436,6 +498,8 @@ window.addEventListener('message', (event) => {
       () => {
         bus!.send('ready', undefined)
         midi?.report()
+        runtimeSignature = ''
+        publishRuntime()
         reportKeys()
       },
       (error) => log('error', 'audio', String(error)),
@@ -460,6 +524,8 @@ window.addEventListener('message', (event) => {
   bus.on('learn:stop', () => midi?.learn.stop())
   bus.on('audio:scope', ({ folder }) => {
     bindings?.clear()
+    scenes.reset(false)
+    runtimeSignature = ''
     leds?.invalidate()
     pendingParameters.clear()
     transport?.recorder.setScope(folder)
@@ -470,6 +536,7 @@ window.addEventListener('message', (event) => {
     if (engineClosing) return
     const old = project
     project = applyMetadata(value, old)
+    scenes.configure(project)
     if (old?.name !== value.name || old.tracks.length !== value.tracks.length)
       log(
         'info',
@@ -593,6 +660,10 @@ window.addEventListener('message', (event) => {
       log('error', 'transport', String(error))
     }
   })
+  bus.on('scene:activate', ({ sceneId }) => scenes.activate(sceneId))
+  bus.on('register:set', ({ index, on }) =>
+    scenes.register({ type: 'register', cmd: 'set', index, on }, 'ui'),
+  )
   bus.on('transport:setRate', ({ rate }) => {
     try {
       transport?.rate(rate)

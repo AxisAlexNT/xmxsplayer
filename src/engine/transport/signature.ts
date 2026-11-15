@@ -36,3 +36,22 @@ export function sequenceSignature(project: Project): string {
       ),
   })
 }
+
+export function eventSignature(project: Project): string {
+  return JSON.stringify({
+    tempos: project.tempos,
+    timeSigs: project.timeSigs,
+    keySigs: project.keySigs,
+    beatAnchors: project.beatAnchors,
+    mapOwner: project.mapOwner,
+    lengthTicks: project.lengthTicks,
+    loop: project.loop,
+    tracks: project.tracks
+      .map((t) =>
+        t.kind === 'midi'
+          ? { id: t.id, notes: t.notes, events: t.events }
+          : { id: t.id },
+      )
+      .sort((a, b) => a.id.localeCompare(b.id)),
+  })
+}

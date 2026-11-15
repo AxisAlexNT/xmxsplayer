@@ -1,4 +1,6 @@
-import { sequenceSignature } from './signature'
+import { allPatches } from '../../shared/patches'
+import type { ConditionContext } from '../../shared/conditions'
+import { eventSignature, sequenceSignature } from './signature'
 import { Recorder } from './recorder'
 import { BeatGrid } from './beat-grid'
 import { Metronome } from './metronome'
@@ -32,7 +34,16 @@ export class Transport {
   private deadline?: ReturnType<typeof setTimeout>
   private project?: Project
   private signature = ''
+  private eventsSignature = ''
   inputLatencyMs = 0
+  resolveProject: (project: Project) => Project = (project) => project
+  conditionContext: (tick: number) => ConditionContext = (tick) => ({
+    registers: [],
+    activeSceneId: null,
+    bar: this.clock.map.tickToBarBeat(tick).bar,
+    playing: this.clock.playing,
+  })
+  onPosition: () => void = () => undefined
   onBeat: (tick: number, when: number) => void = () => undefined
   onTimingChange: (keepBeat: boolean) => void = () => undefined
   private serial = Promise.resolve()
@@ -87,6 +98,7 @@ export class Transport {
         this.metronome.cancel()
         this.onTimingChange(keepHeld)
       },
+      (tick) => this.conditionContext(tick),
     )
     this.scheduler = new Scheduler(this.clock, this.output)
     this.audio = new AudioTracks(
@@ -118,6 +130,7 @@ export class Transport {
     this.worker.onmessage = () => {
       this.recorder.tick()
       if (this.syncing) return
+      this.onPosition()
       this.scheduler.tick()
       this.audio.tick()
       this.metronome.tick(this.context.currentTime)
@@ -126,6 +139,8 @@ export class Transport {
     }
   }
   synchronize(project: Project): Promise<void> {
+    const available = allPatches(project)
+    project = this.resolveProject(project)
     if (
       this.project?.metronome.audible !== project.metronome.audible ||
       this.project.metronome.toCue !== project.metronome.toCue
@@ -142,7 +157,7 @@ export class Transport {
           this.clock.seek(seek)
           this.scheduler.invalidate(false)
         }
-        await this.output.synchronize(project, true)
+        await this.output.synchronize(project, true, available, this.clock.tick)
         await this.audio.synchronize(project)
         if (seek !== undefined) this.changed()
         else {
@@ -154,8 +169,11 @@ export class Transport {
       return work
     }
     this.signature = signature
+    const events = eventSignature(project)
+    const keepHeld = events === this.eventsSignature
+    this.eventsSignature = events
     const epoch = ++this.epoch
-    this.scheduler.invalidate(false)
+    this.scheduler.invalidate(keepHeld)
     this.syncing = true
     this.worker.postMessage('stop')
     clearTimeout(this.deadline)
@@ -167,9 +185,14 @@ export class Transport {
         this.clock.seek(this.gridSeek)
         this.gridSeek = undefined
       }
-      await this.output.synchronize(project)
+      await this.output.synchronize(
+        project,
+        keepHeld,
+        available,
+        this.clock.tick,
+      )
       if (epoch !== this.epoch) return
-      this.scheduler.setProject(project)
+      this.scheduler.setProject(project, keepHeld)
       await this.audio.synchronize(project)
       this.syncing = false
       this.changed()
@@ -182,6 +205,17 @@ export class Transport {
       this.warn(String(e))
     })
     return work
+  }
+  applyPerformance(project: Project): void {
+    this.project = project
+    this.signature = sequenceSignature(project)
+    this.eventsSignature = eventSignature(project)
+    this.scheduler.setProject(project, true)
+    this.output.route(project.base.patch, this.clock.tick)
+    void this.audio
+      .synchronize(project)
+      .catch((error) => this.warn(String(error)))
+    this.changed()
   }
   applyPatch(patch: Partial<Project>, tick?: number): void {
     this.gridSeek = tick
@@ -264,6 +298,7 @@ export class Transport {
       this.clock.playing && !this.syncing ? 'start' : 'stop',
     )
     window.engineHost.setPlaying(this.clock.playing)
+    this.onPosition()
     if (!this.syncing) this.scheduler.tick()
     this.audio.refresh(true)
     this.report()
@@ -271,6 +306,7 @@ export class Transport {
   }
   private report(): void {
     const c = this.clock
+    this.output.reconcile(c.tick)
     this.bus()?.send('transport', {
       countInBeat:
         c.playing && this.context.currentTime < this.countUntil

@@ -281,3 +281,37 @@ button:disabled {
 .xm-binding-pop .xm-seg button, .xm-binding-pop .form-select, .xm-binding-pop input:not([type=checkbox]), .xm-binding-pop .btn { min-height: var(--xm-hit); }
 .xm-controls-profile .xm-pad { text-align: left; }
 .xm-force-program { display: flex; gap: 8px; align-items: center; min-height: var(--xm-hit); margin-top: 8px; font-size: var(--xm-fs-sm); color: var(--xm-text-muted); }
+.xm-editor-pop { margin: 0; position: fixed; inset: auto; width: 340px; max-width: calc(100vw - 24px); max-height: calc(100vh - 24px); overflow: auto; border: 1px solid var(--xm-border-strong); color: var(--xm-text); }
+.xm-editor-pop .form-label { display: block; width: 100%; color: var(--xm-text-muted); font-size: var(--xm-fs-sm); }
+.xm-editor-pop button, .xm-editor-pop input, .xm-editor-pop select { min-height: var(--xm-hit); }
+.xm-editor-pop input, .xm-editor-pop select { margin-top: 4px; }
+.xm-performance-registers { margin-bottom: 22px; }
+.xm-performance-registers .xm-reg > button:first-child { min-height: var(--xm-hit); }
+
+.xm-scene-chip { display: inline-flex; align-items: center; max-width: 100%; }
+.xm-scene-chip .xm-chip { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.xm-scene-chip button, .xm-sec-b > .xm-wrap > button { min-height: var(--xm-hit); }
+.xm-scene-timing { width: 85px; min-height: var(--xm-hit); font-size: var(--xm-fs-sm); }
+.xm-color-choice { width: var(--xm-hit); height: var(--xm-hit); border: 2px solid transparent; border-radius: var(--xm-r-sm); }
+.xm-color-choice[aria-pressed=true] { outline: 2px solid var(--xm-text); outline-offset: 1px; }
+.xm-zone { overflow: visible; padding: 0; }
+.xm-zone-label { position: relative; display: flex; align-items: center; gap: 6px; width: 100%; height: 100%; min-width: 0; padding: 0 24px; border: 0; color: inherit; font: inherit; background: transparent; }
+.xm-zone-label::after { content: ''; position: absolute; inset: -9px 20px; }
+.xm-zone-label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xm-zone-edge { position: absolute; top: 50%; transform: translateY(-50%); width: var(--xm-hit); height: var(--xm-hit); border: 0; background: transparent; z-index: 2; touch-action: none; cursor: ew-resize; }
+.xm-zone-edge.is-left { left: 0; }
+.xm-zone-edge.is-right { right: 0; }
+.xm-zone-tracks { border: 1px solid var(--xm-border); border-radius: var(--xm-r-sm); background: var(--xm-bg-0); max-height: 180px; overflow: auto; }
+.xm-zone-tracks label { min-height: var(--xm-hit); padding: 0 8px; border-bottom: 1px solid var(--xm-border); }
+.xm-zone-tracks input[type=checkbox] { min-height: 0; margin: 0; }
+.xm-performance-patch > .xm-chip { max-width: 96px; overflow: hidden; text-overflow: ellipsis; }
+.xm-performance-patch .xm-wrap { min-width: 0; }
+.xm-performance-patch button { min-height: var(--xm-hit); max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.xm-chip.is-gated { border-style: dashed; }
+.xm-gate { color: var(--xm-text-muted); font-size: 10px; padding-left: 4px; }
+
+.xm-performance-registers { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.xm-performance-registers .xm-reg { min-width: 0; }
+.xm-performance-registers .xm-reg > button:first-child { position: relative; }
+.xm-performance-registers .xm-reg > button:first-child::after { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: max(100%, var(--xm-hit)); height: 100%; }
+.xm-performance-registers .xm-reg-group::after { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }

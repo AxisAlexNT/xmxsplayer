@@ -107,7 +107,7 @@ it('sends note-off to the original slot and key after routing, transpose and pre
   router.close()
   rack.close()
 })
-it('releases sustain on old and new destinations when routing changes under a held pedal', async () => {
+it('releases unreachable sustain immediately and applies the held pedal to new destinations', async () => {
   const { project, backend, router, rack } = await rig()
   const old = rack.get('piano')!.slot
   router.cc('keys', 0, 64, 127)
@@ -120,7 +120,7 @@ it('releases sustain on old and new destinations when routing changes under a he
   router.setProject(changed)
   router.note('keys', 0, 72, 100, true)
   router.note('keys', 0, 72, 0, false)
-  expect(backend.events).not.toContainEqual({ type: 'release', slot: old })
+  expect(backend.events).toContainEqual({ type: 'release', slot: old })
   router.cc('keys', 0, 64, 0)
   expect(backend.events).toContainEqual({
     type: 'cc',

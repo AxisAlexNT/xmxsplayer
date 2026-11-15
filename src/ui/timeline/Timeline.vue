@@ -9,6 +9,7 @@ import {
   shallowRef,
   watch,
 } from 'vue'
+import { usePerformanceStore } from '../stores/performance'
 import type { Track } from '../../shared/model'
 import { TimeMap } from '../../shared/time-map'
 import { useProjectStore } from '../stores/project'
@@ -24,9 +25,11 @@ import AudioTrackControls from '../components/tracks/AudioTrackControls.vue'
 import ConflictBanner from '../components/ConflictBanner.vue'
 const emit = defineEmits<{
   instrument: [id: string]
+  patch: [connectionId: string, anchor: { right: number; top: number }]
   command: [cmd: string]
   error: [error: unknown]
 }>()
+const rig = usePerformanceStore()
 const doc = useProjectStore(),
   runtime = useRuntimeStore(),
   editor = useEditorStore(),
@@ -189,15 +192,19 @@ function edit(id: string, change: (track: Track) => void): void {
     if (t) change(t)
   })
 }
+function displayedMode(track: Track): Track['mode'] {
+  return rig.setup.trackModes[track.id] ?? track.mode
+}
 function mode(track: Track): void {
-  edit(track.id, (t) => {
-    t.mode =
-      t.kind === 'audio'
-        ? t.mode === 'auto'
-          ? 'mute'
-          : 'auto'
-        : ({ auto: 'live', live: 'mute', mute: 'auto' } as const)[t.mode]
-  })
+  const current = displayedMode(track)
+  rig.mode(
+    track.id,
+    track.kind === 'audio'
+      ? current === 'auto'
+        ? 'mute'
+        : 'auto'
+      : ({ auto: 'live', live: 'mute', mute: 'auto' } as const)[current],
+  )
 }
 function height(track: Track): number {
   return heights.value[track.id] ?? track.height * doc.project.view.laneZoom
@@ -414,7 +421,7 @@ onUnmounted(() => {
         :data-track-id="track.id"
         class="xm-rowgrid xm-track"
         :class="{
-          'is-muted': track.mode === 'mute',
+          'is-muted': displayedMode(track) === 'mute',
           'is-dragging': !!dragOrder,
         }"
         :style="{
@@ -466,13 +473,13 @@ onUnmounted(() => {
           <div class="xm-th-top">
             <button
               class="xm-mode"
-              :class="`is-${track.mode}`"
+              :class="`is-${displayedMode(track)}`"
               :aria-label="`${track.name} mode`"
               @click="mode(track)"
             >
               <i
-                :class="`bi bi-${track.mode === 'live' ? 'person-fill' : track.mode === 'auto' ? 'cpu' : 'volume-mute'}`"
-              />{{ track.mode.toUpperCase() }}
+                :class="`bi bi-${displayedMode(track) === 'live' ? 'person-fill' : displayedMode(track) === 'auto' ? 'cpu' : 'volume-mute'}`"
+              />{{ displayedMode(track).toUpperCase() }}
             </button><button
               class="xm-sq"
               :class="{ 'is-solo': track.solo }"
@@ -530,14 +537,22 @@ onUnmounted(() => {
             class="xm-wrap"
           >
             <template
-              v-for="conn in doc.project.base.patch.filter(
+              v-for="conn in rig.setup.patch.filter(
                 (c) => c.trackId === track.id,
               )"
               :key="conn.id"
             >
               <button
                 class="xm-chip is-sm"
-                @click="emit('instrument', conn.instrumentId)"
+                @click="
+                  emit(
+                    'patch',
+                    conn.id,
+                    (
+                      $event.currentTarget as HTMLElement
+                    ).getBoundingClientRect(),
+                  )
+                "
               >
                 <i class="bi bi-music-note" />{{
                   doc.project.instruments.find(

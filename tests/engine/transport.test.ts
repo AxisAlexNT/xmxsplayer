@@ -13,7 +13,8 @@ function fixture() {
   const track = {
     ...project.tracks[0],
     kind: 'midi' as const,
-    mode: 'auto' as const,
+    id: 'guide',
+    mode: 'auto' as 'auto' | 'live' | 'mute',
     notes: [
       [0, 480, 60, 100],
       [480, 480, 62, 100],
@@ -88,7 +89,7 @@ it('orders note offs before note ons and excludes muted, live and unsoloed track
     'off',
     'on',
   ])
-  f.track.mode = 'live' as 'auto'
+  f.track.mode = 'live'
   f.scheduler.setProject(f.project)
   f.events.length = 0
   f.scheduler.tick(0.6)
@@ -179,4 +180,21 @@ it('caps audio at holds and song end while routing actions leave it running', ()
   expect(f.scheduler.audioDeadline()).toBe(8)
   f.scheduler.holdAt(480)
   expect(f.scheduler.audioDeadline()).toBe(0.5)
+})
+it('preserves a sounding note through an auto-to-live switch and still sends its original note-off', () => {
+  const f = fixture()
+  f.clock.play()
+  f.scheduler.tick(0.1)
+  expect(f.events.filter((e) => e.type === 'on')).toHaveLength(1)
+  f.setNow(0.1)
+  f.track.mode = 'live'
+  f.scheduler.setProject(f.project, true)
+  f.scheduler.tick(0.6)
+  expect(f.events.filter((e) => e.type === 'on')).toHaveLength(1)
+  expect(f.events.filter((e) => e.type === 'off')).toContainEqual({
+    type: 'off',
+    id: '0:guide:0',
+    key: 60,
+    when: 0.5,
+  })
 })

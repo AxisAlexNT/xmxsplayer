@@ -1,9 +1,16 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useProjectStore } from '../stores/project'
 import { useRuntimeStore } from '../stores/runtime'
 import { engineBus } from '../bus'
 import { noteName } from '../../shared/schema'
+import { usePerformanceStore } from '../stores/performance'
+import { uniqueId } from '../../shared/ids'
+import ZoneEditor from './ZoneEditor.vue'
+const performance = usePerformanceStore()
+const selectedZone = ref<string | null>(null),
+  zoneAnchor = ref({ right: 0, top: 0 })
+const preview = ref<{ id: string; lo: number; hi: number } | null>(null)
 const doc = useProjectStore()
 const runtime = useRuntimeStore()
 const count = ref(Number(localStorage.getItem('keyCount')) || 61)
@@ -30,8 +37,8 @@ const color = (key: number): string => {
   const held = runtime.heldKeys.find((h) => h.key === key)
   if (!held) return isBlack(key) ? 'var(--xm-bg-0)' : 'var(--xm-staff-ink)'
   return (
-    doc.project.base.zones.find((z) => key >= z.lo && key <= z.hi)?.color ??
-    'var(--xm-accent)'
+    runtime.state.effective.zones.find((z) => key >= z.lo && key <= z.hi)
+      ?.color ?? 'var(--xm-accent)'
   )
 }
 function x(key: number): number {
@@ -50,10 +57,109 @@ function zoneStyle(lo: number, hi: number, color: string) {
   }
 }
 const zones = computed(() =>
-  doc.project.base.zones.filter(
-    (z) => z.hi >= range.value[0] && z.lo <= range.value[1],
-  ),
+  performance.setup.zones
+    .map((z) =>
+      preview.value?.id === z.id
+        ? { ...z, lo: preview.value.lo, hi: preview.value.hi }
+        : z,
+    )
+    .filter((z) => z.hi >= range.value[0] && z.lo <= range.value[1]),
 )
+watch(
+  () => performance.sceneId,
+  () => {
+    selectedZone.value = null
+    preview.value = null
+  },
+)
+function editZone(id: string, element: HTMLElement): void {
+  selectedZone.value = id
+  zoneAnchor.value = element.getBoundingClientRect()
+}
+function keyAt(clientX: number, element: HTMLElement): number {
+  const r = element.getBoundingClientRect(),
+    position = ((clientX - r.left) / r.width) * white.value.length
+  return allKeys.value.reduce(
+    (best, key) =>
+      Math.abs(x(key) - position) < Math.abs(x(best) - position) ? key : best,
+    allKeys.value[0],
+  )
+}
+async function addZone(event: MouseEvent): Promise<void> {
+  if ((event.target as HTMLElement).closest('.xm-zone,select,button')) return
+  const el = event.currentTarget as HTMLElement,
+    lo = keyAt(event.clientX, el)
+  const id = uniqueId(
+    'zone',
+    performance.setup.zones.map((z) => z.id),
+  )
+  performance.zones((zones) => {
+    zones.push({
+      id,
+      lo,
+      hi: Math.min(127, lo + 11),
+      trackIds: doc.project.tracks
+        .filter((t) => t.kind === 'midi')
+        .slice(0, 1)
+        .map((t) => t.id),
+      transpose: 0,
+      velocity: 'linear',
+      color: '#4cc2ff',
+    })
+  })
+  await nextTick()
+  editZone(id, el)
+}
+function dragEdge(event: PointerEvent, id: string, edge: 'lo' | 'hi'): void {
+  if (event.button !== 0) return
+  const zone = performance.setup.zones.find((z) => z.id === id)
+  if (!zone) return
+  const handle = event.currentTarget as HTMLElement,
+    strip = handle.closest('.xm-zones') as HTMLElement
+  handle.setPointerCapture(event.pointerId)
+  const scope = performance.sceneId
+  const startKey = keyAt(event.clientX, strip)
+  preview.value = { id, lo: zone.lo, hi: zone.hi }
+  const move = (e: PointerEvent): void => {
+    if (e.pointerId !== event.pointerId || !preview.value) return
+    const key = Math.max(
+      0,
+      Math.min(127, zone[edge] + keyAt(e.clientX, strip) - startKey),
+    )
+    preview.value[edge] =
+      edge === 'lo'
+        ? Math.min(key, preview.value.hi)
+        : Math.max(key, preview.value.lo)
+  }
+  const finish = (e: PointerEvent): void => {
+    if (e.pointerId !== event.pointerId) return
+    const value = preview.value
+    preview.value = null
+    handle.removeEventListener('pointermove', move)
+    handle.removeEventListener('pointerup', finish)
+    handle.removeEventListener('pointercancel', cancel)
+    handle.removeEventListener('lostpointercapture', cancel)
+    if (value && scope === performance.sceneId)
+      performance.zones((zones) => {
+        const z = zones.find((z) => z.id === id)
+        if (z) {
+          z.lo = value.lo
+          z.hi = value.hi
+        }
+      })
+  }
+  const cancel = (): void => {
+    preview.value = null
+    handle.removeEventListener('pointermove', move)
+    handle.removeEventListener('pointerup', finish)
+    handle.removeEventListener('pointercancel', cancel)
+    handle.removeEventListener('lostpointercapture', cancel)
+  }
+  handle.addEventListener('pointermove', move)
+  handle.addEventListener('pointerup', finish)
+  handle.addEventListener('pointercancel', cancel)
+  handle.addEventListener('lostpointercapture', cancel)
+}
 function release(source: string): void {
   const key = active.get(source)
   if (key !== undefined) {
@@ -107,20 +213,41 @@ onUnmounted(() => {
 </script>
 <template>
   <footer class="xm-keys">
-    <div class="xm-zones">
+    <div
+      class="xm-zones"
+      @dblclick="addZone"
+    >
       <div
         v-for="zone in zones"
         :key="zone.id"
         class="xm-zone"
         :style="zoneStyle(zone.lo, zone.hi, zone.color)"
       >
-        <span>{{
-          zone.trackIds
-            .map(
-              (id) => doc.project.tracks.find((t) => t.id === id)?.name ?? id,
-            )
-            .join(' + ')
-        }}</span><span class="xm-faint xm-mono">{{ noteName(zone.lo) }}–{{ noteName(zone.hi) }}</span>
+        <button
+          class="xm-zone-edge is-left"
+          :aria-label="`Resize ${zone.id} lower edge`"
+          @pointerdown.stop.prevent="dragEdge($event, zone.id, 'lo')"
+          @click.stop.prevent
+        />
+        <button
+          class="xm-zone-label"
+          :aria-label="`Edit zone ${zone.id}`"
+          @click="editZone(zone.id, $event.currentTarget as HTMLElement)"
+        >
+          <span>{{
+            zone.trackIds
+              .map(
+                (id) => doc.project.tracks.find((t) => t.id === id)?.name ?? id,
+              )
+              .join(' + ') || 'Unassigned'
+          }}</span><span class="xm-faint xm-mono">{{ noteName(zone.lo) }}–{{ noteName(zone.hi) }}</span>
+        </button>
+        <button
+          class="xm-zone-edge is-right"
+          :aria-label="`Resize ${zone.id} upper edge`"
+          @pointerdown.stop.prevent="dragEdge($event, zone.id, 'hi')"
+          @click.stop.prevent
+        />
       </div>
       <span
         v-if="!zones.length"
@@ -205,5 +332,11 @@ onUnmounted(() => {
         />
       </svg>
     </div>
+    <ZoneEditor
+      v-if="selectedZone"
+      :zone-id="selectedZone"
+      :anchor="zoneAnchor"
+      @close="selectedZone = null"
+    />
   </footer>
 </template>

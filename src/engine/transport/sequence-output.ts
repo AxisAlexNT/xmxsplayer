@@ -1,4 +1,14 @@
-import type { MidiTrack, Project, SoundFontRef } from '../../shared/model'
+import type {
+  MidiTrack,
+  PatchConn,
+  Project,
+  SoundFontRef,
+} from '../../shared/model'
+import { allPatches, patchKey } from '../../shared/patches'
+import {
+  matchesCondition,
+  type ConditionContext,
+} from '../../shared/conditions'
 import type { SynthBackend } from '../synth/backend'
 import { InstrumentRack, type RackSlot } from '../synth/rack'
 import type { ScheduledNote, SchedulerOutput } from './scheduler'
@@ -6,11 +16,14 @@ interface Voice {
   slot: RackSlot
   key: number
   on: number
+  trackId: string
   off?: number
 }
 export class SequenceOutput implements SchedulerOutput {
   private rack: InstrumentRack
-  private tracks = new Map<string, RackSlot[]>()
+  private tracks = new Map<string, { slot: RackSlot; patch: PatchConn }[]>()
+  private slots = new Map<string, RackSlot>()
+  private reachable = new Set<RackSlot>()
   private voices = new Map<string, Voice[]>()
   constructor(
     private backend: SynthBackend,
@@ -19,19 +32,30 @@ export class SequenceOutput implements SchedulerOutput {
     warn: (message: string) => void,
     readonly beat: (tick: number, when: number) => void,
     private onReset: (keepHeld: boolean) => void = () => undefined,
+    private condition: (tick: number) => ConditionContext = () => ({
+      registers: [],
+      activeSceneId: null,
+      bar: 1,
+      playing: false,
+    }),
   ) {
     this.rack = new InstrumentRack(backend, load, warn)
   }
-  async synchronize(project: Project, preserve = false): Promise<void> {
+  async synchronize(
+    project: Project,
+    preserve = false,
+    available: readonly PatchConn[] = allPatches(project),
+    tick = 0,
+  ): Promise<void> {
     if (!preserve) this.reset(false)
-    const instruments = project.base.patch.flatMap((conn) => {
+    const instruments = available.flatMap((conn) => {
       const track = project.tracks.find((t) => t.id === conn.trackId),
         instrument = project.instruments.find((i) => i.id === conn.instrumentId)
-      if (!track || track.kind !== 'midi' || !instrument || conn.when) return []
+      if (!track || track.kind !== 'midi' || !instrument) return []
       return [
         {
           ...instrument,
-          id: `seq:${conn.id}`,
+          id: `seq:${patchKey(conn)}`,
           volume: instrument.volume * track.volume,
           pan: Math.max(-1, Math.min(1, instrument.pan + track.pan)),
           transpose: instrument.transpose + (conn.transpose ?? 0),
@@ -39,22 +63,57 @@ export class SequenceOutput implements SchedulerOutput {
       ]
     })
     await this.rack.synchronize({ ...project, instruments })
-    this.tracks.clear()
-    for (const conn of project.base.patch) {
-      const slot = this.rack.get(`seq:${conn.id}`)
-      if (!slot) continue
-      const slots = this.tracks.get(conn.trackId) ?? []
-      slots.push(slot)
-      this.tracks.set(conn.trackId, slots)
+    this.slots.clear()
+    for (const conn of available) {
+      const slot = this.rack.get(`seq:${patchKey(conn)}`)
+      if (slot) this.slots.set(patchKey(conn), slot)
     }
+    this.route(project.base.patch, tick)
+  }
+  route(patches: readonly PatchConn[], tick = 0): void {
+    this.tracks.clear()
+    for (const patch of patches) {
+      const slot = this.slots.get(patchKey(patch))
+      if (!slot) continue
+      const slots = this.tracks.get(patch.trackId) ?? []
+      slots.push({ slot, patch })
+      this.tracks.set(patch.trackId, slots)
+    }
+    this.reconcile(tick)
+  }
+  reconcile(tick: number): void {
+    const reachable = new Set(
+      [...this.tracks.keys()].flatMap((id) => this.destinations(id, tick)),
+    )
+    // A routing change releases the pedal, while key-down voices retain their slots.
+    for (const slot of this.reachable)
+      if (!reachable.has(slot)) slot.backend.cc(slot.slot, 64, 0)
+    this.reachable = reachable
+  }
+  private destinations(trackId: string, tick: number): RackSlot[] {
+    const context = this.condition(tick)
+    return [
+      ...new Set(
+        (this.tracks.get(trackId) ?? [])
+          .filter(({ patch }) => matchesCondition(patch.when, context))
+          .map(({ slot }) => slot),
+      ),
+    ]
+  }
+  private allSlots(): Set<RackSlot> {
+    return new Set([
+      ...this.slots.values(),
+      ...[...this.voices.values()].flatMap((v) => v.map((voice) => voice.slot)),
+    ])
   }
   noteOn(note: ScheduledNote, when: number): void {
     const voices: Voice[] = []
-    for (const slot of this.tracks.get(note.track.id) ?? []) {
+    for (const slot of this.destinations(note.track.id, note.start)) {
       const key = note.note[2] + slot.instrument.transpose
       if (key < 0 || key > 127) continue
       slot.backend.noteOn(slot.slot, key, note.note[3], when)
-      voices.push({ slot, key, on: when })
+      this.rack.retain(slot)
+      voices.push({ slot, key, on: when, trackId: note.track.id })
     }
     this.voices.set(note.id, voices)
   }
@@ -80,7 +139,15 @@ export class SequenceOutput implements SchedulerOutput {
     event: MidiTrack['events'][number],
     when: number,
   ): void {
-    for (const slot of this.tracks.get(track.id) ?? []) {
+    const slots = new Set(this.destinations(track.id, event.tick))
+    for (const voices of this.voices.values())
+      for (const voice of voices)
+        if (
+          voice.trackId === track.id &&
+          (event.type !== 'cc' || event.num !== 64 || event.value < 64)
+        )
+          slots.add(voice.slot)
+    for (const slot of slots) {
       if (event.type === 'bend')
         slot.backend.pitchBend(slot.slot, event.value, when)
       else {
@@ -112,11 +179,10 @@ export class SequenceOutput implements SchedulerOutput {
     this.event(track, { tick, type: 'bend', num: 0, value: bend }, when)
   }
   boundary(when: number): void {
-    for (const slots of this.tracks.values())
-      for (const slot of slots) {
-        slot.backend.cc(slot.slot, 64, 0, when)
-        slot.backend.cc(slot.slot, 123, 0, when)
-      }
+    for (const slot of this.allSlots()) {
+      slot.backend.cc(slot.slot, 64, 0, when)
+      slot.backend.cc(slot.slot, 123, 0, when)
+    }
     for (const voices of this.voices.values())
       for (const voice of voices)
         if (voice.off === undefined || voice.off > when) voice.off = when
@@ -125,16 +191,17 @@ export class SequenceOutput implements SchedulerOutput {
     this.onReset(keepHeld)
     const now = this.now()
     this.collect(now)
-    for (const slots of this.tracks.values())
-      for (const slot of slots) {
-        this.backend.clearScheduled(slot.slot)
-        if (!keepHeld) {
-          this.backend.cc(slot.slot, 64, 0)
-          this.backend.cc(slot.slot, 120, 0)
-        }
+    for (const slot of this.allSlots()) {
+      this.backend.clearScheduled(slot.slot)
+      if (!keepHeld) {
+        this.backend.cc(slot.slot, 64, 0)
+        this.backend.cc(slot.slot, 120, 0)
       }
+    }
     for (const [id, voices] of this.voices) {
       const retained = keepHeld ? voices.filter((v) => v.on <= now) : []
+      for (const voice of voices)
+        if (!retained.includes(voice)) this.rack.release(voice.slot)
       if (!retained.length) this.voices.delete(id)
       else {
         for (const v of retained) v.off = undefined
@@ -147,8 +214,10 @@ export class SequenceOutput implements SchedulerOutput {
   }
   collect(now: number): void {
     for (const [id, voices] of this.voices)
-      if (voices.every((v) => v.off !== undefined && v.off <= now))
+      if (voices.every((v) => v.off !== undefined && v.off <= now)) {
+        for (const voice of voices) this.rack.release(voice.slot)
         this.voices.delete(id)
+      }
   }
   close(): void {
     this.reset(false)
