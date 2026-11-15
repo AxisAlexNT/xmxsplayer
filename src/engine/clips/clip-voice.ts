@@ -2,7 +2,7 @@ import type { Clip } from '../../shared/model'
 import type { DecodedAudio } from '../audio/decode'
 import type { AudioRoute } from '../audio/graph'
 import { stretchNode } from '../audio/stretch'
-import type { StretchNode } from 'signalsmith-stretch'
+import type { StretchNode, StretchSchedule } from 'signalsmith-stretch'
 import type { ClipTone } from './timing'
 export interface VoiceChange {
   at: number
@@ -64,12 +64,16 @@ export class AudioClipVoice implements ClipVoice {
             .slice(start, Math.min(end, buffer.length)),
       )
       const duration = await node.addBuffers(channels)
-      return new AudioClipVoice(
+      const voice = new AudioClipVoice(
         duration,
         route,
         node,
         independentClock ? 5 : undefined,
       )
+      node.addEventListener('processorerror', () => {
+        voice.error = 'Audio stretch processor failed'
+      })
+      return voice
     } catch (error) {
       node.disconnect()
       node.port.close()
@@ -107,23 +111,20 @@ export class AudioClipVoice implements ClipVoice {
     )
     pan.cancelScheduledValues(route.context.currentTime)
     let previous = initial
+    const audioPlan: StretchSchedule[] = []
     const schedule = (segment: Segment, tone: ClipTone): void => {
       this.segments.push(segment)
-      void this.node
-        .schedule({
-          output: route.timeAt(segment.at),
-          input: segment.loop
-            ? ((segment.input % this.duration) + this.duration) % this.duration
-            : segment.input,
-          rate: segment.rate,
-          semitones: tone.semitones,
-          active: segment.active,
-          loopStart: 0,
-          loopEnd: segment.loop ? this.duration : 0,
-        })
-        .catch((error) => {
-          this.error = String(error)
-        })
+      audioPlan.push({
+        output: route.timeAt(segment.at),
+        input: segment.loop
+          ? ((segment.input % this.duration) + this.duration) % this.duration
+          : segment.input,
+        rate: segment.rate,
+        semitones: tone.semitones,
+        active: segment.active,
+        loopStart: 0,
+        loopEnd: segment.loop ? this.duration : 0,
+      })
     }
     const ordered = [...changes].sort((a, b) => a.at - b.at)
     for (let i = 0; i < ordered.length; i++) {
@@ -207,6 +208,7 @@ export class AudioClipVoice implements ClipVoice {
         }
       }
     }
+    this.node.port.postMessage({ type: 'xmxs:clip-plan', changes: audioPlan })
   }
   close(): void {
     if (this.disposed) return

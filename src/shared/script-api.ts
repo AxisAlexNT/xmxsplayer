@@ -72,6 +72,13 @@ export interface XmApi {
     mode: TrackMode
     playNote(key: number, vel: number, beats: number): void
   }
+  clip(id: string): {
+    launch(): void
+    stop(): void
+    readonly playing: boolean
+    semitones: number
+    gain: number
+  }
   follow: { readonly mode: FollowMode; set(mode: FollowMode): void }
   pad(n: number): { color: string }
   display(line1: string, line2: string): void

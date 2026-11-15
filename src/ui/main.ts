@@ -29,6 +29,8 @@ function sync(force = false): void {
   if (force || audioScope !== doc.folder) {
     bus.send('audio:scope', { folder: doc.folder })
     audioScope = doc.folder
+    runtime.clipErrors = {}
+    runtime.clipAudition = { state: 'stopped', error: '' }
     runtime.audioPeaks = {}
     runtime.audioStates = {}
   }
@@ -38,6 +40,8 @@ function sync(force = false): void {
 watch(engineBus, (bus) => {
   runtime.connected = false
   runtime.clipProgress = {}
+  runtime.clipErrors = {}
+  runtime.clipAudition = { state: 'stopped', error: '' }
   runtime.scriptStatus = { hash: '', state: 'empty' }
   runtime.activity = { trackIds: [], instrumentIds: [], routes: [] }
   runtime.controls = {}
@@ -70,6 +74,17 @@ watch(engineBus, (bus) => {
   bus.on('synth:state', (value) => {
     runtime.synthLoading = value.loading
     runtime.readyInstruments = value.readyIds
+  })
+  bus.on('clip:error', ({ clipId, message }) => {
+    runtime.clipErrors[clipId] = message
+  })
+  bus.on('clip:preview', (value) => {
+    runtime.clipAudition = {
+      state: value.state,
+      error:
+        value.error ??
+        (value.state === 'stopped' ? runtime.clipAudition.error : ''),
+    }
   })
   bus.on('clips:progress', (value) => {
     runtime.clipProgress = value
@@ -173,6 +188,8 @@ watch(engineBus, (bus) => {
     runtime.transport = value
   })
   bus.on('runtime', (value) => {
+    for (const [id, state] of Object.entries(value.clips))
+      if (state !== 'stopped') delete runtime.clipErrors[id]
     runtime.state = value
   })
   void settingsReady.then(() => {

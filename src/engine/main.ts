@@ -1,3 +1,6 @@
+import { zeroCrossing } from './clips/zero-crossing'
+import { clipSchema } from '../shared/schema'
+import { ClipActions, type ClipActionContext } from './clips/actions'
 import { ScriptHost } from './script/script-host'
 import { ScriptSession } from './script/script-session'
 import { NoteHooks } from './script/note-hooks'
@@ -47,6 +50,7 @@ let leds: LedManager | undefined
 let cues: Cues | undefined
 let cueNoteSerial = 0
 let activity: Activity | undefined
+let clipActions: ClipActions | undefined
 let script: ScriptHost | undefined
 let scriptSession: ScriptSession | undefined
 let noteHooks: NoteHooks | undefined
@@ -68,6 +72,7 @@ function releaseScriptNotes(): void {
   scriptNotes.clear()
 }
 function resetScriptEffects(): void {
+  clipActions?.clearSources((source) => source.startsWith('script:'))
   releaseScriptNotes()
   scriptPads = {}
   scriptDisplay = undefined
@@ -276,8 +281,13 @@ function runAction(
   value = 1,
   pressed = true,
   source = 'action',
+  context?: ClipActionContext,
 ): void {
   if (!project || engineClosing) return
+  if (action.type === 'clip') {
+    clipActions?.run(action, value, pressed, source, context)
+    return
+  }
   if (action.type === 'script') {
     script?.invoke(action.fn)
     return
@@ -432,6 +442,9 @@ async function initialize(value: Settings): Promise<void> {
       () => bus,
       (message) => log('warn', 'transport', message),
     )
+    clipActions = new ClipActions(transport.clips, () => project)
+    transport.onClipPreview = (state, error) =>
+      bus?.send('clip:preview', { state, ...(error ? { error } : {}) })
     transport.onClips = (frame) => {
       runtimeState.clips = frame.states
       bus?.send('clips:progress', frame.progress)
@@ -489,6 +502,37 @@ async function initialize(value: Settings): Promise<void> {
               }, duration)
               scriptNotes.set(source, { trackId, key, timer })
             },
+            clip: (id) => ({
+              launch: () =>
+                clipActions!.run(
+                  { type: 'clip', cmd: 'launch', clipId: id },
+                  1,
+                  true,
+                  'script:clip',
+                ),
+              stop: () =>
+                clipActions!.run(
+                  { type: 'clip', cmd: 'stop', clipId: id },
+                  1,
+                  true,
+                  'script:clip',
+                ),
+              get playing() {
+                return transport!.clips.playing(id)
+              },
+              get semitones() {
+                return transport!.clips.pitch(id)
+              },
+              set semitones(value) {
+                transport!.clips.setPitch(id, value)
+              },
+              get gain() {
+                return transport!.clips.gain(id)
+              },
+              set gain(value) {
+                transport!.clips.setGain(id, value)
+              },
+            }),
             follow: () => performanceProject()!.follow.mode,
             setFollow: (mode) => scenes.setFollow(mode),
             pad: (n) => scriptPads[`pad.${n}`] ?? '#4cc2ff',
@@ -606,6 +650,7 @@ async function initialize(value: Settings): Promise<void> {
       (source) => {
         noteHooks?.disconnect(source)
         bindings?.disconnect(source)
+        clipActions?.disconnect(source)
         transport?.recorder.disconnect(source)
         router?.disconnect(source)
         for (const owner of previews.keys())
@@ -629,6 +674,8 @@ async function initialize(value: Settings): Promise<void> {
       cancel: (id) => transport?.cancelAction(id),
       isQueued: (id) => transport?.scheduler.isQueued(id) ?? false,
       run: runAction,
+      pressure: (action, value, source) =>
+        clipActions?.pressure(action, value, source),
       parameter: currentParameter,
     })
     leds = new LedManager({
@@ -705,6 +752,7 @@ async function synchronize(forceScript = false): Promise<void> {
   ])
   if (revision !== syncRevision) return
   cues?.configure(project.cues)
+  clipActions?.configure()
   await scriptSession?.update(
     project.script,
     settings?.trustedScripts ?? [],
@@ -836,10 +884,12 @@ window.addEventListener('message', (event) => {
   bus.on('learn:stop', () => midi?.learn.stop())
   bus.respond('control:capture', ({ active }) => {
     controlCapture = active
+    if (active) clipActions?.clear()
     return undefined
   })
   bus.on('control:capture', ({ active }) => {
     controlCapture = active
+    if (active) clipActions?.clear()
   })
   bus.on('script:disable', () => {
     scriptCommandRevision++
@@ -852,6 +902,8 @@ window.addEventListener('message', (event) => {
     )
   })
   bus.on('audio:scope', ({ folder }) => {
+    transport?.clipPreview.reset()
+    clipActions?.clear()
     transport?.clips.reset()
     syncRevision++
     scriptCommandRevision++
@@ -891,6 +943,51 @@ window.addEventListener('message', (event) => {
         void transport
           ?.synchronize(project)
           .catch((error) => log('error', 'transport', String(error)))
+    }
+  })
+  bus.respond('clip:source', async ({ file }) => {
+    if (!transport) throw Error('Wait for the engine to connect')
+    const data = await transport.audio.decoder.load(file)
+    return {
+      key: data.key,
+      durationSec: data.durationSec,
+      sampleRate: data.sampleRate,
+      channels: data.buffer.numberOfChannels,
+      peaks: data.peaks,
+    }
+  })
+  bus.respond('clip:snap', async ({ file, seconds }) => {
+    if (!transport || !Number.isFinite(seconds))
+      throw Error('Choose a valid clip position')
+    const data = await transport.audio.decoder.load(file)
+    return zeroCrossing(
+      Array.from(
+        { length: Math.min(2, data.buffer.numberOfChannels) },
+        (_, i) => data.buffer.getChannelData(i),
+      ),
+      data.sampleRate,
+      seconds,
+    )
+  })
+  bus.on('clip:audition', (value) => {
+    if (!transport || engineClosing) return
+    try {
+      if (!value) {
+        transport.clipPreview.reset()
+        return
+      }
+      const clip = clipSchema.parse({
+        ...value,
+        id: 'clip-preview',
+        sync: false,
+        quantize: 'now',
+        launch: 'oneShot',
+        loop: false,
+      })
+      transport.clipPreview.configure([clip])
+      transport.clipPreview.launch(clip.id)
+    } catch (error) {
+      bus?.send('clip:preview', { state: 'stopped', error: String(error) })
     }
   })
   bus.respond('audio:load', async ({ trackId, file }) => {
@@ -983,13 +1080,18 @@ window.addEventListener('message', (event) => {
       0,
     )
   })
-  bus.on('action:run', ({ action, value, at }) => {
-    try {
-      transport?.queue(at ?? 'now', () => runAction(action, value))
-    } catch (error) {
-      log('error', 'transport', String(error))
-    }
-  })
+  bus.on(
+    'action:run',
+    ({ action, value, at, pressed = true, source = 'action' }) => {
+      try {
+        if (action.type === 'clip')
+          runAction(action, value, pressed, source, { at })
+        else transport?.queue(at ?? 'now', () => runAction(action, value))
+      } catch (error) {
+        log('error', 'transport', String(error))
+      }
+    },
+  )
   bus.on('transport:seek', ({ tick }) => {
     try {
       transport?.seek(tick)
@@ -1012,6 +1114,8 @@ window.addEventListener('message', (event) => {
     bus?.send('doc:patch', { loop })
   })
   bus.on('panic', () => {
+    transport?.clipPreview.reset()
+    clipActions?.clear()
     transport?.clips.stopAll()
     releaseScriptNotes()
     noteHooks?.clear()
@@ -1038,7 +1142,9 @@ window.engineHost.onShutdown(async () => {
   transport?.stop()
   scriptSession?.clear()
   noteHooks?.clear()
+  clipActions?.clear()
   transport?.clips.close()
+  transport?.clipPreview.close()
   midi?.close()
   router?.panic()
   await leds?.close()

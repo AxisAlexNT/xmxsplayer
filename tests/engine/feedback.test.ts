@@ -19,6 +19,7 @@ import {
   FeedbackBudget,
 } from '../../src/engine/feedback/diff-output'
 import { builtinProfiles } from '../../src/engine/midi/profile'
+import { clip } from '../clips/fixture'
 import { newProject } from '../../src/shared/defaults'
 const profile = builtinProfiles.find((p) => p.feedback === 'arturia-mk3')!
 function state(): FeedbackState {
@@ -254,4 +255,29 @@ it('places script colours above bindings and below beat, hit and queued feedback
   expect(
     controlFrame(profile, s, { time: 0, blink: true, beat: 2 })['pad.2'].color,
   ).not.toBe('#b07cff')
+})
+
+it('shows clip identity and stopped, queued and playing binding feedback', () => {
+  const s = state()
+  s.project.clips = [clip('break', { color: '#ff9f43' })]
+  s.project.base.bindings.push({
+    control: 'pad.1',
+    edge: 'press',
+    action: { type: 'clip', cmd: 'launch', clipId: 'break' },
+  })
+  s.runtime.clips.break = 'stopped'
+  expect(
+    controlFrame(profile, s, { time: 0, blink: false })['pad.1'],
+  ).toMatchObject({ state: 'idle', color: '#ff9f43', level: 0.2 })
+  s.runtime.clips.break = 'queued'
+  expect(
+    controlFrame(profile, s, { time: 0, blink: false })['pad.1'],
+  ).toMatchObject({ state: 'queued', level: 0.12 })
+  expect(
+    controlFrame(profile, s, { time: 0, blink: true })['pad.1'].level,
+  ).toBe(1)
+  s.runtime.clips.break = 'playing'
+  expect(
+    controlFrame(profile, s, { time: 0, blink: false })['pad.1'],
+  ).toMatchObject({ state: 'on', color: '#ff9f43', level: 1 })
 })

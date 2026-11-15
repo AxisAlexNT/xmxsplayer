@@ -200,3 +200,45 @@ it('queues ordinary actions and releases active notes on unplug', () => {
   f.bindings.disconnect('a')
   expect(f.run.mock.lastCall?.[2]).toBe(false)
 })
+it('routes clip pressure and release to the press-time action and forwards timing without double queueing', () => {
+  const f = fixture(),
+    pressure = vi.fn()
+  f.host.pressure = pressure
+  f.p.base.bindings = [
+    {
+      control: 'pad.1',
+      edge: 'press',
+      at: 'bar',
+      action: { type: 'clip', cmd: 'launch', clipId: 'old' },
+    },
+  ]
+  f.bindings.receive(event('pad.1', 'press', { value: 0.5 }))
+  expect(f.jobs.size).toBe(0)
+  expect(f.run.mock.lastCall).toEqual([
+    { type: 'clip', cmd: 'launch', clipId: 'old' },
+    0.5,
+    true,
+    'binding:["a","pad.1"]',
+    { at: 'bar', delta: undefined },
+  ])
+  f.p.base.bindings = [
+    {
+      control: 'pad.1',
+      edge: 'press',
+      action: { type: 'clip', cmd: 'launch', clipId: 'new' },
+    },
+  ]
+  f.bindings.receive(event('pad.1', 'change', { pressed: true, value: 0.7 }))
+  expect(pressure).toHaveBeenCalledWith(
+    { type: 'clip', cmd: 'launch', clipId: 'old' },
+    0.7,
+    'binding:["a","pad.1"]',
+  )
+  f.bindings.receive(event('pad.1', 'release'))
+  expect(f.run.mock.lastCall?.[0]).toEqual({
+    type: 'clip',
+    cmd: 'launch',
+    clipId: 'old',
+  })
+  expect(f.run.mock.lastCall?.[2]).toBe(false)
+})

@@ -373,3 +373,214 @@ button:disabled {
 .xm-script-trust { width: min(480px, calc(100vw - 24px)); }
 .xm-script-panel .btn, .xm-script-trust .btn { min-height: 40px; min-width: 40px; }
 .xm-script-log .xm-faint { margin-right: .5em; }
+
+.xm-clip-add {
+  margin-bottom: 6px;
+}
+.xm-clip-add button {
+  min-height: var(--xm-hit);
+}
+.xm-clips .xm-clip {
+  padding: 0;
+  min-width: 0;
+  min-height: 68px;
+}
+.xm-clip-launch {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 8px;
+  padding-right: 8px;
+  min-height: 66px;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  touch-action: manipulation;
+}
+.xm-clip-launch b {
+  max-width: 100%;
+  padding-right: 24px;
+}
+.xm-clip-launch small {
+  flex-wrap: nowrap;
+  width: 100%;
+  min-width: 0;
+}
+.xm-clip-launch small span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.xm-clip-launch small span:first-child { flex: 1; }
+.xm-clip-launch small span:last-child { max-width: 50%; }
+
+.xm-clip-edit {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--xm-hit);
+  height: var(--xm-hit);
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+}
+.xm-clips .is-queued {
+  animation: xm-clip-queue var(--clip-beat, .5s) ease-in-out infinite;
+}
+@keyframes xm-clip-queue {
+  50% {
+    border-color: transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .xm-clips .is-queued {
+    animation: none;
+  }
+}
+.xm-clip-dialog {
+  width: min(860px, calc(100vw - 32px));
+}
+.xm-clip-dialog .xm-dialog-b {
+  max-height: calc(100vh - 220px);
+}
+.xm-clip-dialog button,
+.xm-clip-dialog input,
+.xm-clip-dialog select {
+  min-height: var(--xm-hit);
+}
+.xm-clip-dialog .xm-dialog-h button,
+.xm-clip-dialog .xm-seg button {
+  min-width: var(--xm-hit);
+}
+.xm-clip-colour {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  padding: 4px;
+  background: transparent;
+}
+.xm-clip-meta {
+  font-size: var(--xm-fs-sm);
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.xm-clip-meta > span {
+  overflow-wrap: anywhere;
+}
+.xm-clip-small {
+  width: 68px;
+  flex-shrink: 0;
+  padding-left: 8px;
+  padding-right: 4px;
+}
+.xm-clip-dialog .form-label {
+  font-size: var(--xm-fs-sm);
+  color: var(--xm-text-muted);
+  margin-bottom: 4px;
+}
+.xm-clip-range {
+  margin: 4px 0 12px;
+  flex-wrap: wrap;
+  font-size: var(--xm-fs-sm);
+}
+.xm-clip-range label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.xm-clip-range input {
+  width: 100px;
+}
+.xm-clip-sweep,
+.xm-clip-dialog .xm-wrap {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.xm-clip-sweep .xm-seg {
+  flex-shrink: 0;
+}
+.xm-clip-dialog .xm-row {
+  gap: 6px;
+}
+.xm-clip-dialog .form-range {
+  min-width: 40px;
+}
+.xm-clip-dialog .form-check-input {
+  min-height: 24px;
+  width: 40px;
+  margin: 0;
+  flex-shrink: 0;
+}
+.xm-clip-divider {
+  border-color: var(--xm-border);
+  margin: 0 0 12px;
+}
+.xm-clip-bound {
+  margin-right: auto;
+  font-size: var(--xm-fs-sm);
+  max-width: 50%;
+  overflow-wrap: anywhere;
+}
+.xm-clip-wave {
+  position: relative;
+  height: 120px;
+  border: 1px solid var(--xm-border);
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--xm-bg-0);
+}
+.xm-clip-wave canvas {
+  display: block;
+  width: 100%;
+  height: 120px;
+  touch-action: none;
+}
+.xm-clip-selection {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: color-mix(in srgb, var(--c) 16%, transparent);
+  border-inline: 2px solid var(--c);
+  pointer-events: none;
+}
+.xm-clip-handle {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  touch-action: none;
+}
+.xm-clip-handle span {
+  position: absolute;
+  left: calc(var(--handle-line, 50%) - 1px);
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--c);
+}
+.xm-clip-handle span::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -6px;
+  width: 14px;
+  height: 22px;
+  background: var(--c);
+}
+.xm-clip-wave-tools {
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+.xm-clip-wave-tools button {
+  min-width: 40px;
+}
+@media (max-width: 1400px) {
+  .xm-clip-dialog .xm-dialog-b {
+    max-height: calc(100vh - 190px);
+  }
+}
+.xm-clip-sync-toggle { padding-left: 0; display: inline-flex; align-items: center; min-height: 40px; min-width: 40px; cursor: pointer; }

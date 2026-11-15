@@ -17,7 +17,7 @@ export interface ClipHost {
   holdDeadline(): number | null
   advance(): void
   report(frame: ClipFrame): void
-  warn(message: string): void
+  warn(message: string, clipId?: string): void
 }
 interface Entry {
   clip: Clip
@@ -36,6 +36,8 @@ interface Entry {
   plannedAt?: number
   plannedStart?: number
   plannedStop?: number
+  owner?: string
+  sweepLoop?: boolean
 }
 const mediaKey = (clip: Clip): string =>
   JSON.stringify([clip.file, clip.startSec, clip.endSec, clip.toCue])
@@ -100,26 +102,90 @@ export class ClipPlayer {
           ? 'playing'
           : 'stopped'
   }
-  launch(id: string, pressed = true, value = 1, source = 'action'): void {
+  launch(
+    id: string,
+    pressed = true,
+    value = 1,
+    source = 'action',
+    at?: Timing,
+  ): void {
     const e = this.entries.get(id)
     if (!e || this.disposed) return
     if (!pressed) {
-      if (e.held.delete(source) && !e.held.size) this.stop(id)
+      if (e.held.delete(source) && !e.held.size) this.stop(id, at)
       return
     }
     e.pressure = Math.max(0, Math.min(1, value))
+    e.sweepLoop = false
     if (e.clip.launch === 'hold') {
       e.held.add(source)
-      if (!e.desired) this.start(e, e.clip.quantize, false)
-    } else if (e.clip.launch === 'toggle' && e.desired) this.stop(id)
-    else
+      if (!e.desired) {
+        e.owner = source
+        this.start(e, at ?? e.clip.quantize, false)
+      }
+    } else if (e.clip.launch === 'toggle' && e.desired) this.stop(id, at)
+    else {
+      e.owner = source
       this.start(
         e,
-        e.clip.quantize,
+        at ?? e.clip.quantize,
         e.clip.launch === 'retrigger' || e.clip.launch === 'oneShot',
       )
+    }
     this.ensureTimer()
     this.tick()
+  }
+  playing(id: string): boolean {
+    return this.entries.get(id)?.playing ?? false
+  }
+  owner(id: string): string | undefined {
+    return this.entries.get(id)?.owner
+  }
+  pitch(id: string): number {
+    return this.entries.get(id)?.semitones ?? 0
+  }
+  gain(id: string): number {
+    return this.entries.get(id)?.gain ?? 0
+  }
+  setPitch(id: string, semitones: number): void {
+    const e = this.entries.get(id)
+    if (!e || !Number.isFinite(semitones)) return
+    e.semitones = semitones
+    this.tick()
+  }
+  setGain(id: string, gain: number): void {
+    const e = this.entries.get(id)
+    if (!e || !Number.isFinite(gain) || gain < 0) return
+    e.gain = gain
+    this.tick()
+  }
+  pressure(id: string, value: number, source: string): void {
+    const e = this.entries.get(id)
+    if (
+      !e ||
+      !Number.isFinite(value) ||
+      (e.owner !== source && !e.held.has(source))
+    )
+      return
+    e.pressure = Math.max(0, Math.min(1, value))
+    this.tick()
+  }
+  startSweep(id: string, source: string): void {
+    const e = this.entries.get(id)
+    if (!e) return
+    e.sweepLoop = true
+    e.owner = `sweep:${source}`
+    e.pressure = 1
+    e.held.clear()
+    this.start(e, 'now', false)
+    this.tick()
+  }
+  releaseSources(matches: (source: string) => boolean): void {
+    for (const e of this.entries.values()) {
+      for (const source of e.held) if (matches(source)) e.held.delete(source)
+      if (!e.held.size && e.owner && matches(e.owner.replace(/^sweep:/, '')))
+        this.stop(e.clip.id, 'now')
+    }
   }
   private start(e: Entry, at: Timing, retrigger: boolean): void {
     this.cancel(e)
@@ -178,7 +244,7 @@ export class ClipPlayer {
         e.voice = undefined
         e.held.clear()
         e.transition = undefined
-        this.host.warn(`${e.clip.name}: ${String(error)}`)
+        this.host.warn(`${e.clip.name}: ${String(error)}`, e.clip.id)
         this.report(true)
       })
     this.ensureTimer()
@@ -293,7 +359,7 @@ export class ClipPlayer {
         e.desired = e.playing
       }
       if (e.voice?.error) {
-        this.host.warn(`${e.clip.name}: ${e.voice.error}`)
+        this.host.warn(`${e.clip.name}: ${e.voice.error}`, e.clip.id)
         this.stopNow(e)
         e.voice.close()
         e.voice = undefined
@@ -314,7 +380,7 @@ export class ClipPlayer {
           e.held.clear()
           e.voice.close()
           e.voice = undefined
-          this.host.warn(`${e.clip.name}: ${String(error)}`)
+          this.host.warn(`${e.clip.name}: ${String(error)}`, e.clip.id)
         }
       }
     }
@@ -333,8 +399,8 @@ export class ClipPlayer {
     const c = this.host.clock,
       now = c.now(),
       hold = this.host.holdDeadline()
-    const tone = (at: number) =>
-      clipTone(
+    const tone = (at: number) => {
+      const value = clipTone(
         e.clip,
         e.voice!.duration,
         c,
@@ -343,6 +409,8 @@ export class ClipPlayer {
         e.pressure,
         at,
       )
+      return e.sweepLoop ? { ...value, loop: true } : value
+    }
     const changes: VoiceChange[] = [
       {
         at: now,

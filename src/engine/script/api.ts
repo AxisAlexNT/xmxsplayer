@@ -31,6 +31,7 @@ export interface ApiHost {
   mode(trackId: string): TrackMode
   setMode(trackId: string, mode: TrackMode): void
   playNote(trackId: string, key: number, vel: number, beats: number): void
+  clip(id: string): ReturnType<XmApi['clip']>
   follow(): FollowMode
   setFollow(mode: FollowMode): void
   pad(n: number): string
@@ -217,6 +218,41 @@ export function createApi(
           )
         }),
     }),
+    clip: (id) => {
+      const get = () => {
+        if (!host.project().clips.some((clip) => clip.id === id))
+          throw new Error(`Unknown clip: ${id}`)
+        return host.clip(id)
+      }
+      return {
+        launch: () => effect(() => get().launch()),
+        stop: () => effect(() => get().stop()),
+        get playing() {
+          return call(() => get().playing, false)
+        },
+        get semitones() {
+          return call(() => get().semitones, 0)
+        },
+        set semitones(value) {
+          effect(() => {
+            get().semitones = number(
+              value,
+              'Clip semitones',
+              -Number.MAX_VALUE,
+              Number.MAX_VALUE,
+            )
+          })
+        },
+        get gain() {
+          return call(() => get().gain, 0)
+        },
+        set gain(value) {
+          effect(() => {
+            get().gain = number(value, 'Clip gain', 0, Number.MAX_VALUE)
+          })
+        },
+      }
+    },
     follow: {
       get mode() {
         return call(() => host.follow(), 'written')

@@ -8,6 +8,7 @@ import { useProjectStore } from '../stores/project'
 import { useRuntimeStore } from '../stores/runtime'
 import { useSettingsStore } from '../stores/settings'
 import { engineBus } from '../bus'
+import { CLIP_DRAG_TYPE, bindClip } from '../clips/model'
 import BindingEditor from './BindingEditor.vue'
 import LearnWizard from './LearnWizard.vue'
 const doc = useProjectStore(),
@@ -174,6 +175,34 @@ async function selectControl(
   editing.value = { control, anchor: { left: anchor.right, ...anchor } }
 }
 defineExpose({ selectControl })
+function dragOver(event: DragEvent): void {
+  if (!event.dataTransfer?.types.includes(CLIP_DRAG_TYPE)) return
+  event.preventDefault()
+  event.dataTransfer.dropEffect = 'link'
+}
+function dropClip(event: DragEvent, control: ControlDef): void {
+  const id = event.dataTransfer?.getData(CLIP_DRAG_TYPE)
+  if (!id || !profile.value) return
+  event.preventDefault()
+  try {
+    doc.update((project) =>
+      bindClip(
+        project,
+        {
+          kind: scope.value,
+          profileId: profile.value!.id,
+          sceneId: runtime.state.activeSceneId,
+        },
+        id,
+        control,
+      ),
+    )
+    error.value = ''
+    if (!control.msg) learning.value = control.id
+  } catch (reason) {
+    error.value = String(reason)
+  }
+}
 function relearn(): void {
   if (editing.value) learning.value = editing.value.control.id
   editing.value = null
@@ -296,6 +325,8 @@ function relearn(): void {
               :aria-label="`Bind ${control.label}`"
               :title="`${control.label} · ${label(control)}${live(control) ? ` · ${Math.round(live(control)!.value * 127)}` : ''}`"
               @click="open($event, control)"
+              @dragover="dragOver"
+              @drop.stop="dropClip($event, control)"
             >
               <i v-if="control.kind === 'pad'">{{
                 control.id.split('.').at(-1)

@@ -78,7 +78,18 @@ export function audioFixture(now: () => number, sampleRate = 1000) {
     dropBuffers: vi.fn(async () => ({ start: 0, end: 0 })),
     connect: vi.fn(),
     disconnect: vi.fn(),
-    port: { close: vi.fn() },
+    addEventListener: vi.fn(),
+    port: {
+      close: vi.fn(),
+      postMessage: vi.fn((message: { changes: StretchSchedule[] }) => {
+        scheduled.splice(
+          0,
+          scheduled.length,
+          ...message.changes.map((change) => ({ ...change })),
+        )
+        history.push(...message.changes.map((change) => ({ ...change })))
+      }),
+    },
   } as unknown as StretchNode
   const decoded = {
     key: 'file',

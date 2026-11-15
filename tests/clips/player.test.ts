@@ -1,4 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
+import { ClipActions } from '../../src/engine/clips/actions'
 import { ClipPlayer, type ClipFrame } from '../../src/engine/clips/clip-player'
 import { AudioClipVoice } from '../../src/engine/clips/clip-voice'
 import { stretchNode } from '../../src/engine/audio/stretch'
@@ -12,7 +13,9 @@ import { TimeMap } from '../../src/shared/time-map'
 import { clip, audioFixture } from './fixture'
 vi.mock('../../src/engine/audio/stretch', () => ({ stretchNode: vi.fn() }))
 const players: ClipPlayer[] = []
+const controls: ClipActions[] = []
 afterEach(() => {
+  for (const control of controls.splice(0)) control.clear()
   for (const player of players.splice(0)) player.close()
   vi.useRealTimers()
 })
@@ -311,4 +314,194 @@ it('starts a synced clip silently at position zero during a hold and resumes its
   r.player.tick()
   r.step(1.5)
   expect(r.voices.get('held')!.position(1.5).input).toBeCloseTo(0.2)
+})
+it('starts moving sweeps immediately as loops and stops them after inactivity without waiting for bar quantize', async () => {
+  const definitions = [clip('riser', { launch: 'oneShot', loop: false })],
+    r = rig(definitions)
+  const project = { ...newProject(), clips: definitions },
+    actions = new ClipActions(
+      r.player,
+      () => project,
+      () => Date.now(),
+    )
+  controls.push(actions)
+  actions.run(
+    { type: 'clip', cmd: 'sweep', clipId: 'riser' },
+    0.5,
+    false,
+    'fader',
+  )
+  await settle()
+  expect(r.player.state('riser')).toBe('playing')
+  expect(r.audio.get('riser')!.scheduled[0].loopEnd).toBe(2)
+  vi.advanceTimersByTime(200)
+  actions.run(
+    { type: 'clip', cmd: 'sweep', clipId: 'riser' },
+    0.5,
+    false,
+    'fader',
+  )
+  vi.advanceTimersByTime(100)
+  expect(r.player.state('riser')).toBe('stopped')
+})
+it('keeps position sweeps on while still and leaves pad-started loops alone in pitchOnly mode', async () => {
+  const definitions = [
+      clip('drone', { sweep: { ...clip().sweep, mode: 'position' } }),
+      clip('bend', {
+        quantize: 'now',
+        sweep: { ...clip().sweep, mode: 'pitchOnly' },
+      }),
+    ],
+    r = rig(definitions)
+  const actions = new ClipActions(
+    r.player,
+    () => ({ ...newProject(), clips: definitions }),
+    () => Date.now(),
+  )
+  controls.push(actions)
+  actions.run(
+    { type: 'clip', cmd: 'sweep', clipId: 'drone' },
+    0.8,
+    false,
+    'knob',
+  )
+  actions.run(
+    { type: 'clip', cmd: 'sweep', clipId: 'bend' },
+    0.75,
+    false,
+    'knob2',
+  )
+  await settle()
+  expect(r.player.state('drone')).toBe('playing')
+  expect(r.player.state('bend')).toBe('stopped')
+  r.player.launch('bend', true, 1, 'pad')
+  await settle()
+  actions.run({ type: 'clip', cmd: 'sweep', clipId: 'bend' }, 0, false, 'knob2')
+  vi.advanceTimersByTime(10000)
+  expect(r.player.state('drone')).toBe('playing')
+  expect(r.player.state('bend')).toBe('playing')
+  expect(r.player.pitch('bend')).toBe(-12)
+  actions.run({ type: 'clip', cmd: 'sweep', clipId: 'drone' }, 0, false, 'knob')
+  expect(r.player.state('drone')).toBe('stopped')
+})
+it('combines active sweep sources and releases a disconnected controller without stopping another moving source', async () => {
+  const definitions = [clip()],
+    r = rig(definitions)
+  const actions = new ClipActions(
+    r.player,
+    () => ({ ...newProject(), clips: definitions }),
+    () => Date.now(),
+  )
+  controls.push(actions)
+  actions.run(
+    { type: 'clip', cmd: 'sweep', clipId: 'loop' },
+    0.25,
+    false,
+    'binding:["a","fader.1"]',
+  )
+  await settle()
+  vi.advanceTimersByTime(100)
+  actions.run(
+    { type: 'clip', cmd: 'sweep', clipId: 'loop' },
+    0.5,
+    false,
+    'binding:["b","fader.1"]',
+  )
+  await settle()
+  actions.disconnect('b')
+  expect(r.player.state('loop')).toBe('playing')
+  vi.advanceTimersByTime(200)
+  expect(r.player.state('loop')).toBe('stopped')
+})
+it('maps pitch/gain, preserves relative deltas and applies pressure only to the owning launch', async () => {
+  const definitions = [
+      clip('pressure', { quantize: 'now', pressureToGain: true }),
+    ],
+    r = rig(definitions)
+  const actions = new ClipActions(
+    r.player,
+    () => ({ ...newProject(), clips: definitions }),
+    () => Date.now(),
+  )
+  controls.push(actions)
+  actions.run(
+    { type: 'clip', cmd: 'launch', clipId: 'pressure' },
+    0.5,
+    true,
+    'pad',
+  )
+  await settle()
+  actions.pressure(
+    { type: 'clip', cmd: 'launch', clipId: 'pressure' },
+    0.25,
+    'pad',
+  )
+  expect(
+    r.audio.get('pressure')!.gains[0].events.some((e) => e.value === 0.2),
+  ).toBe(true)
+  actions.run({ type: 'clip', cmd: 'pitch', clipId: 'pressure' }, 1)
+  expect(r.player.pitch('pressure')).toBe(12)
+  actions.run(
+    { type: 'clip', cmd: 'pitch', clipId: 'pressure' },
+    0,
+    false,
+    'encoder',
+    { delta: -127 },
+  )
+  expect(r.player.pitch('pressure')).toBe(-12)
+  actions.run({ type: 'clip', cmd: 'gain', clipId: 'pressure' }, 0.5)
+  expect(r.player.gain('pressure')).toBe(0.5)
+  actions.run(
+    { type: 'clip', cmd: 'gain', clipId: 'pressure' },
+    0,
+    false,
+    'encoder',
+    { delta: -127 },
+  )
+  expect(r.player.gain('pressure')).toBe(0)
+})
+it('overrides launch timing once and keeps a queued stop logically playing until its boundary', async () => {
+  const definitions = [clip()],
+    r = rig(definitions)
+  const actions = new ClipActions(r.player, () => ({
+    ...newProject(),
+    clips: definitions,
+  }))
+  controls.push(actions)
+  r.step(0.1)
+  actions.run({ type: 'clip', cmd: 'launch', clipId: 'loop' }, 1, true, 'pad', {
+    at: 'now',
+  })
+  await settle()
+  expect(r.player.state('loop')).toBe('playing')
+  actions.run({ type: 'clip', cmd: 'stop', clipId: 'loop' })
+  expect(r.player.state('loop')).toBe('queued')
+  expect(r.player.playing('loop')).toBe(true)
+  r.step(2.01)
+  expect(r.player.playing('loop')).toBe(false)
+})
+it('releases script-owned playback on reload while preserving a later controller launch', async () => {
+  const definitions = [
+      clip('script', { quantize: 'now', launch: 'retrigger' }),
+    ],
+    r = rig(definitions)
+  const actions = new ClipActions(r.player, () => ({
+    ...newProject(),
+    clips: definitions,
+  }))
+  controls.push(actions)
+  const action = { type: 'clip', cmd: 'launch', clipId: 'script' } as const
+  actions.run(action, 1, true, 'script:clip')
+  await settle()
+  expect(r.player.playing('script')).toBe(true)
+  actions.clearSources((source) => source.startsWith('script:'))
+  expect(r.player.playing('script')).toBe(false)
+  actions.run(action, 1, true, 'script:clip')
+  await settle()
+  actions.run(action, 1, true, 'binding:["keylab","pad.1"]')
+  await settle()
+  actions.clearSources((source) => source.startsWith('script:'))
+  expect(r.player.playing('script')).toBe(true)
+  actions.run({ type: 'clip', cmd: 'stopAll' })
+  expect(r.player.playing('script')).toBe(false)
 })

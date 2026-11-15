@@ -19,7 +19,14 @@ export interface BindingHost {
   queue(at: Timing, run: () => void): number
   cancel(id: number): void
   isQueued?(id: number): boolean
-  run(action: Action, value: number, pressed: boolean, source: string): void
+  run(
+    action: Action,
+    value: number,
+    pressed: boolean,
+    source: string,
+    context?: { delta?: number; at?: Timing },
+  ): void
+  pressure?(action: Action, value: number, source: string): void
   parameter(action: ParamAction): number | undefined
 }
 interface Pickup {
@@ -61,6 +68,7 @@ interface HeldAction {
   source: string
   pending: number
   started: boolean
+  context: { delta?: number; at?: Timing }
 }
 export class Bindings {
   private pickup = new SoftTakeover()
@@ -86,17 +94,27 @@ export class Bindings {
       source,
       pending: 0,
       started: false,
+      context: { delta: event.delta, at: binding.at },
     }
     if (release) {
       const old = this.held.get(key)
       if (old) this.release(old)
       this.held.set(key, entry)
     }
-    entry.pending = this.host.queue(binding.at ?? 'now', () => {
-      this.pending.delete(entry.pending)
-      entry.started = true
-      this.host.run(action, value, event.pressed, source)
-    })
+    entry.pending = this.host.queue(
+      action.type === 'clip' ? 'now' : (binding.at ?? 'now'),
+      () => {
+        this.pending.delete(entry.pending)
+        entry.started = true
+        this.host.run(
+          entry.action,
+          entry.value,
+          event.pressed,
+          source,
+          entry.context,
+        )
+      },
+    )
     if (entry.pending && !entry.started)
       this.pending.set(entry.pending, {
         deviceId: event.deviceId,
@@ -116,8 +134,17 @@ export class Bindings {
       this.host.cancel(entry.pending)
       this.pending.delete(entry.pending)
     }
-    if (entry.started)
-      this.host.run(entry.action, entry.value, false, entry.source)
+    if (entry.started) {
+      if (entry.action.type === 'clip')
+        this.host.run(
+          entry.action,
+          entry.value,
+          false,
+          entry.source,
+          entry.context,
+        )
+      else this.host.run(entry.action, entry.value, false, entry.source)
+    }
   }
   releaseControl(event: ControlEvent): void {
     if (event.edge !== 'release') return
@@ -133,6 +160,19 @@ export class Bindings {
       profile = this.host.profile(event.deviceId)
     if (!p || !profile) return
     this.releaseControl(event)
+    const held = this.held.get(
+      JSON.stringify([event.deviceId, event.controlId]),
+    )
+    if (
+      held?.action.type === 'clip' &&
+      held.action.cmd === 'launch' &&
+      event.edge === 'change' &&
+      event.pressed
+    ) {
+      held.value = event.value
+      if (held.started)
+        this.host.pressure?.(held.action, event.value, held.source)
+    }
     const context = this.host.context(),
       setup = effectiveSetup(p, context.activeSceneId, [profile.id]),
       binding = setup.bindings.find(
@@ -185,6 +225,7 @@ export class Bindings {
           return
       }
     }
+    if (action.type === 'clip') value = event.value
     this.dispatch(binding, event, action, value)
   }
   disconnect(deviceId: string): void {

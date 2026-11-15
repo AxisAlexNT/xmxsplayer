@@ -1,6 +1,5 @@
 import create, { type StretchNode } from 'signalsmith-stretch'
-import workletUrl from 'signalsmith-stretch?url'
-create.moduleUrl = workletUrl
+create.moduleUrl = '/worklets/signalsmith-stretch.mjs'
 export async function stretchNode(
   context: BaseAudioContext,
 ): Promise<{ node: StretchNode; latency: number }> {

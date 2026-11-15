@@ -5,6 +5,7 @@ import type { RecordedTake } from './recording'
 import type { AudioPeaks, AudioSource } from './audio'
 import type {
   Action,
+  Clip,
   ControlDef,
   DeviceProfile,
   Id,
@@ -19,6 +20,7 @@ import type {
 
 export type ProjectMeta = Project
 export interface CommandMap {
+  'clip:audition': Clip | null
   'script:apply': undefined
   'script:disable': undefined
   ping: undefined
@@ -34,7 +36,13 @@ export interface CommandMap {
   'project:meta': ProjectMeta
   'track:notes': { trackId: Id; notes: Note[] }
   'settings:set': Settings
-  'action:run': { action: Action; value?: number; at?: Timing }
+  'action:run': {
+    action: Action
+    value?: number
+    at?: Timing
+    pressed?: boolean
+    source?: string
+  }
   'transport:seek': { tick: number }
   'transport:setRate': { rate: number }
   'transport:setLoop': Project['loop']
@@ -98,6 +106,8 @@ export interface LogEntry {
   message: string
 }
 export interface EventMap {
+  'clip:preview': { state: 'stopped' | 'queued' | 'playing'; error?: string }
+  'clip:error': { clipId: Id; message: string }
   'clips:progress': Record<Id, number>
   'script:status': ScriptStatus
   feedback: DeviceFeedback
@@ -145,6 +155,11 @@ export interface EventMap {
   app: { cmd: string }
 }
 export interface RequestMap {
+  'clip:source': {
+    input: { file: string }
+    output: AudioPeaks & { channels: number; key: string }
+  }
+  'clip:snap': { input: { file: string; seconds: number }; output: number }
   'control:capture': { input: { active: boolean }; output: undefined }
   'recording:close': { input: undefined; output: undefined }
   'device:profiles': { input: undefined; output: DeviceProfile[] }

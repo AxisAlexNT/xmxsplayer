@@ -44,3 +44,9 @@ it('finds tempo steps and loop wraps ahead of playback, including a speed change
   expect(tempoDeadlines(clock)[0]).toBeCloseTo(2.1)
   expect(clipTone(clip(), 2, clock, 0, 1, 1, 2.1).rate).toBeCloseTo(0.5)
 })
+
+it('rejects pitch or rate values outside the worklet numeric range', () => {
+  const clock = new TransportClock(new TimeMap(newProject()), () => 0)
+  expect(() => clipTone(clip(), 2, clock, 96000)).toThrow('audio engine range')
+  expect(() => clipTone(clip(), 2, clock, -96000)).toThrow('audio engine range')
+})

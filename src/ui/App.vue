@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ClipsPanel from './components/ClipsPanel.vue'
 import ScriptPanel from './components/ScriptPanel.vue'
 import ScriptTrust from './components/ScriptTrust.vue'
 import { useScriptStore } from './stores/script'
@@ -839,10 +840,10 @@ onUnmounted(() => {
             @instrument="pickerId = $event"
           />
           <DevicesPanel v-else-if="section === 'Devices'" />
+          <ClipsPanel v-else-if="section === 'Clips'" />
           <template v-else>
             <span class="xm-faint">{{
               {
-                Clips: 'No clips',
                 Soundfonts: 'No soundfonts',
                 Sources: 'No linked scores',
               }[section]

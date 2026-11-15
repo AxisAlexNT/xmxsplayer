@@ -55,6 +55,11 @@ export const useRuntimeStore = defineStore('runtime', () => {
     hash: '',
     state: 'empty',
   })
+  const clipErrors = ref<Record<string, string>>({})
+  const clipAudition = ref({
+    state: 'stopped' as 'stopped' | 'queued' | 'playing',
+    error: '',
+  })
   const clipProgress = ref<Record<string, number>>({})
   const connected = ref(false)
   const logs = ref<(LogEntry & { time: string })[]>([])
@@ -83,6 +88,8 @@ export const useRuntimeStore = defineStore('runtime', () => {
     ]
   }
   return {
+    clipErrors,
+    clipAudition,
     clipProgress,
     scriptStatus,
     activity,

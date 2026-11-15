@@ -16,7 +16,9 @@
     "smoke": "npm run build && node scripts/smoke.mjs",
     "dist:linux": "npm run build && electron-builder --linux AppImage",
     "dist:win": "npm run build && electron-builder --win portable zip --x64",
-    "postinstall": "node scripts/copy-worklets.mjs"
+    "postinstall": "node scripts/copy-worklets.mjs",
+    "prebuild": "node scripts/copy-worklets.mjs",
+    "predev": "node scripts/copy-worklets.mjs"
   },
   "dependencies": {
     "@codemirror/commands": "^6.11.1",

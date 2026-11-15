@@ -1,3 +1,4 @@
+import type { ClipHost } from '../clips/clip-player'
 import { ClipPlayer, type ClipFrame } from '../clips/clip-player'
 import { AudioClipVoice } from '../clips/clip-voice'
 import type { ActivityRoute } from '../../shared/activity'
@@ -25,6 +26,7 @@ export class Transport {
   readonly actions: Actions
   readonly audio: AudioTracks
   readonly clips: ClipPlayer
+  readonly clipPreview: ClipPlayer
   readonly grid: BeatGrid
   readonly recorder: Recorder
   private metronome: Metronome
@@ -47,6 +49,10 @@ export class Transport {
     bar: this.clock.map.tickToBarBeat(tick).bar,
     playing: this.clock.playing,
   })
+  onClipPreview: (
+    state: 'stopped' | 'queued' | 'playing',
+    error?: string,
+  ) => void = () => undefined
   onClips: (frame: ClipFrame) => void = () => undefined
   onPosition: () => void = () => undefined
   onSeek: () => void = () => undefined
@@ -117,7 +123,7 @@ export class Transport {
       this.bus,
       warn,
     )
-    this.clips = new ClipPlayer({
+    const clipHost: Omit<ClipHost, 'report' | 'warn'> = {
       clock: this.clock,
       prepare: async (clip) => {
         const route = graph.route(clip.toCue)
@@ -143,8 +149,23 @@ export class Transport {
       queuedTime: (id) => this.scheduler.queuedTime(id),
       holdDeadline: () => this.scheduler.holdDeadline(),
       advance: () => this.scheduler.tick(),
+    }
+    this.clips = new ClipPlayer({
+      ...clipHost,
       report: (frame) => this.onClips(frame),
-      warn,
+      warn: (message, clipId) => {
+        warn(message)
+        if (clipId) this.bus()?.send('clip:error', { clipId, message })
+      },
+    })
+    this.clipPreview = new ClipPlayer({
+      ...clipHost,
+      report: (frame) =>
+        this.onClipPreview(frame.states['clip-preview'] ?? 'stopped'),
+      warn: (message) => {
+        warn(message)
+        this.onClipPreview('stopped', message)
+      },
     })
     this.scheduler.onEnd = () => this.changed()
     this.scheduler.onBoundary = () => this.changed()

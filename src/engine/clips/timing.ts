@@ -37,10 +37,15 @@ export function clipTone(
   const rate = clip.sync
     ? clipRate(duration, clip.beats, clock.map.tempoAt(tick), clock.speed)
     : 1
-  const tapeRate = clip.pitchMode === 'tape' ? 2 ** (semitones / 12) : 1
+  const pitchFactor = 2 ** (semitones / 12)
+  const tapeRate = clip.pitchMode === 'tape' ? pitchFactor : 1
   const volume = gain * (clip.pressureToGain ? pressure : 1)
   if (
+    !Number.isFinite(pitchFactor) ||
+    pitchFactor < 1.175e-38 ||
+    pitchFactor > 3.4e38 ||
     !Number.isFinite(rate * tapeRate) ||
+    rate * tapeRate > 3.4e38 ||
     rate * tapeRate <= 0 ||
     !Number.isFinite(volume) ||
     Math.abs(volume) > 3.4e38

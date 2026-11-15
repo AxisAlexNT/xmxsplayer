@@ -1,6 +1,6 @@
 # Project scripts
 
-Each project contains `script.ts` and a standalone `xm.d.ts` API declaration file. Open the Script section to edit TypeScript with highlighting, bracket matching, line numbers and local undo. **Apply** or **Ctrl+Enter** uses the draft; saving the project also applies and saves it. Collapsing the section retains your draft. **Disable** stops hooks and script-created notes. Apply re-enables a disabled script.
+Each project contains `script.ts` and a standalone `xm.d.ts` API declaration file. Open the Script section to edit TypeScript with highlighting, bracket matching, line numbers and local undo. **Apply** or **Ctrl+Enter** uses the draft; saving the project also applies and saves it. Collapsing the section retains your draft. **Disable** stops hooks, script-created notes and script-owned clips. Apply re-enables a disabled script.
 
 A new script version asks **Enable this project's script?** before compilation or execution. Approval records a SHA-256 hash of its exact UTF-8 bytes in local settings. Opening another copy of the same approved source does not ask again. Changed external `script.ts` files reload through the normal file watcher and need fresh approval. Keep disabled leaves keyboard routing available without the script; Apply can ask again. Unsaved file conflicts still use Keep mine / Take file. If an external version replaces the document while you have an unapplied editor draft, a banner lets you use the project version or apply your draft explicitly.
 
@@ -47,6 +47,8 @@ Control hooks do not consume events. A matching binding still runs afterward. Re
 | `xm.patch.set(trackId, instrumentIds)` | Replace that MIDI track's runtime connections; `[]` closes the track; IDs must exist |
 | `xm.track(id).mode` | Read/write `auto`, `live`, `mute`; audio supports `auto`/`mute` |
 | `xm.track(id).playNote(key, vel, beats)` | A bounded note action through a MIDI track's current patch; key 0–127, velocity 1–127, duration 1/480–4096 quarter beats |
+| `xm.clip(id).launch()`, `.stop()`, `.playing` | Launch with the clip’s pad mode and timing, stop at its boundary, read actual playing state |
+| `xm.clip(id).semitones`, `.gain` | Read/write runtime pitch and nonnegative gain; saved clip values remain unchanged |
 | `xm.follow.mode`, `.set(mode)` | Select `written`, `waitNotes` or `tempoTrack`; the follower itself arrives in M8 |
 | `xm.pad(n).color` | Read/write a `#rrggbb` override for pad **1–16** on connected controllers supporting feedback |
 | `xm.display(line1, line2)` | Override the supported controller display; at most 32 input characters per line; KeyLab feedback clips each line to 16 ASCII characters |
@@ -55,7 +57,7 @@ Control hooks do not consume events. A matching binding still runs afterward. Re
 
 Complete types are available in the editor's API pane and in `xm.d.ts`. Zone note limits use MIDI numbers (`C4 = 60`). IDs are case-sensitive. Invalid API arguments log an error and leave that operation unapplied. Calls in later handlers can still run.
 
-Zones, patch connections, track modes, follow selection and feedback overrides are runtime state; they do not rewrite project YAML. When the Scene editing scope is selected, the keyboard strip displays script-owned zones; clicking one opens Script. Select Base to edit the saved base zones. Scene activation clears script routing/mode/follow overrides. Script reload/Disable clears all script overrides and releases script-created notes; it preserves normal register choices and notes still held on your keyboard. Project document edits remain in the UI's normal undo/save path.
+Zones, patch connections, track modes, follow selection and feedback overrides are runtime state; they do not rewrite project YAML. When the Scene editing scope is selected, the keyboard strip displays script-owned zones; clicking one opens Script. Select Base to edit the saved base zones. Scene activation clears script routing/mode/follow overrides. Script reload/Disable clears all script overrides and releases script-created notes and script-owned clips; it preserves normal register choices and notes still held on your keyboard. Project document edits remain in the UI's normal undo/save path.
 
 Scripted `playNote` durations use tempo and effective speed at the instant of the call, then run in elapsed time, including while the transport is stopped or held. These are one-shot gestures; use a track's written notes for accompaniment that must follow later speed changes and holds. Stop, Disable, reload and project changes release outstanding script notes. Programs and routing variants are prepared for every MIDI track/instrument pair in projects containing scripts, so `patch.set` can take effect without an asynchronous preset load in a handler. Large scripted rigs therefore allocate more synth slots.
 
