@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 import type {
   LogEntry,
   RuntimeState,
@@ -20,6 +20,9 @@ export const useRuntimeStore = defineStore('runtime', () => {
   const audioStates = ref<
     Record<string, import('../../shared/protocol').EventMap['audio:state']>
   >({})
+  const lastTake = shallowRef<
+    { trackId: string; notes: import('../../shared/model').Note[] }[]
+  >([])
   const selectedAudioId = ref<string | null>(null)
   const tapMap = ref<import('../../shared/protocol').EventMap['grid:taps']>({
     active: false,
@@ -64,6 +67,7 @@ export const useRuntimeStore = defineStore('runtime', () => {
     ]
   }
   return {
+    lastTake,
     tapMap,
     selectedAudioId,
     audioPeaks,

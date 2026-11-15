@@ -71,6 +71,13 @@ export class Actions {
         h.scheduler.clearActions()
         break
       case 'record':
+        if (
+          !c.recording &&
+          !p.tracks.some((t) => t.kind === 'midi' && t.armed)
+        ) {
+          h.app('record:armRequired')
+          return
+        }
         c.recording = !c.recording
         if (c.recording && !c.playing) void h.play()
         break

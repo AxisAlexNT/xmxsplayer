@@ -1,3 +1,4 @@
+import { Recorder } from './recorder'
 import { BeatGrid } from './beat-grid'
 import { Metronome } from './metronome'
 import { AudioGraph } from '../audio/graph'
@@ -18,6 +19,7 @@ export class Transport {
   readonly actions: Actions
   readonly audio: AudioTracks
   readonly grid: BeatGrid
+  readonly recorder: Recorder
   private metronome: Metronome
   private gridSeek: number | undefined
   private countUntil = 0
@@ -29,6 +31,7 @@ export class Transport {
   private deadline?: ReturnType<typeof setTimeout>
   private project?: Project
   private signature = ''
+  inputLatencyMs = 0
   private serial = Promise.resolve()
   private starting = false
   private playRevision = 0
@@ -46,6 +49,12 @@ export class Transport {
     this.clock = new TransportClock(
       new TimeMap(newProject()),
       () => context.currentTime,
+    )
+    this.recorder = new Recorder(
+      this.clock,
+      () => this.project,
+      () => this.inputLatencyMs,
+      (take) => this.bus()?.send('recorded', take),
     )
     this.metronome = new Metronome(graph)
     this.grid = new BeatGrid(
@@ -100,6 +109,7 @@ export class Transport {
       pending: (cmd) => warn(`${cmd} is not available yet`),
     })
     this.worker.onmessage = () => {
+      this.recorder.tick()
       if (this.syncing) return
       this.scheduler.tick()
       this.audio.tick()
@@ -240,6 +250,7 @@ export class Transport {
     this.changed()
   }
   changed(): void {
+    this.recorder.clockChanged()
     if (
       !this.clock.playing ||
       (this.countUntil > this.context.currentTime &&

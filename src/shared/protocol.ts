@@ -1,3 +1,4 @@
+import type { RecordedTake } from './recording'
 import type { AudioPeaks, AudioSource } from './audio'
 import type {
   Action,
@@ -33,6 +34,13 @@ export interface CommandMap {
   'scene:activate': { sceneId: Id | null }
   'register:set': { index: number; on: boolean }
   'live:note': { key: number; vel: number; on: boolean; source?: string }
+  'track:audition': {
+    trackId: Id
+    key: number
+    vel: number
+    on: boolean
+    source: string
+  }
   audition: { instrumentId: Id; key: number; on: boolean }
   'learn:start': { controlId?: string }
   'learn:stop': undefined
@@ -104,7 +112,7 @@ export interface EventMap {
   'learn:captured': { deviceId: string; control: ControlDef }
   keys: { held: { key: number; trackIds: Id[] }[] }
   activity: { trackIds: Id[]; instrumentIds: Id[] }
-  recorded: { trackId: Id; notes: Note[] }
+  recorded: { trackId: Id; notes: Note[] } | RecordedTake
   'doc:patch': Partial<Project>
   latency: {
     baseMs: number
@@ -118,6 +126,7 @@ export interface EventMap {
   app: { cmd: string }
 }
 export interface RequestMap {
+  'recording:flush': { input: undefined; output: undefined }
   'soundfont:resolve': { input: SoundFontRef; output: string | null }
   'soundfont:presets': {
     input: { soundfontId: Id }

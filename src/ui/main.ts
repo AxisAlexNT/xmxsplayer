@@ -90,6 +90,45 @@ watch(engineBus, (bus) => {
       runtime.log({ level: 'error', source: 'engine', message: String(error) })
     }
   })
+  bus.on('recorded', (value) => {
+    try {
+      if ('tracks' in value && value.scope !== doc.folder) return
+      const tracks =
+        'tracks' in value ? value.tracks : [{ ...value, events: [] }]
+      doc.update((d) => {
+        for (const data of tracks) {
+          const track = d.tracks.find((t) => t.id === data.trackId)
+          if (track?.kind !== 'midi') continue
+          track.notes = [...track.notes, ...data.notes].sort(
+            (a, b) => a[0] - b[0] || a[2] - b[2],
+          )
+          track.events = [...track.events, ...data.events].sort(
+            (a, b) => a.tick - b.tick,
+          )
+          if (track.link) track.link.state = 'ahead'
+          d.lengthTicks = Math.max(
+            d.lengthTicks,
+            ...data.notes.map((n) => n[0] + n[1]),
+          )
+        }
+      })
+      runtime.lastTake = tracks.map((t) => ({
+        trackId: t.trackId,
+        notes: t.notes,
+      }))
+      runtime.log({
+        level: 'ok',
+        source: 'recording',
+        message: `Recorded ${tracks.reduce((n, t) => n + t.notes.length, 0)} notes`,
+      })
+    } catch (error) {
+      runtime.log({
+        level: 'error',
+        source: 'recording',
+        message: String(error),
+      })
+    }
+  })
   bus.on('transport', (value) => {
     runtime.transport = value
   })

@@ -54,13 +54,28 @@ function liveNote(
   key: number,
   velocity: number,
   on: boolean,
+  when?: number,
 ): void {
   const owner = JSON.stringify([source, channel, key])
   if ((on && audition) || (!on && previews.has(owner)))
     previewNote(owner, key, velocity, on)
-  else router?.note(source, channel, key, velocity, on)
+  else
+    router?.note(source, channel, key, velocity, on, undefined, undefined, when)
 }
 function receiveMidi(message: MidiMessage): void {
+  const when = graph
+    ? graph.context.currentTime + (message.timestamp - performance.now()) / 1000
+    : undefined
+  if (message.type === 'cc' || message.type === 'bend')
+    transport?.recorder.control(
+      message.source,
+      message.channel,
+      message.type === 'cc' ? 'cc' : 'bend',
+      message.type === 'cc' ? message.cc : 0,
+      message.value,
+      new Set(project?.base.zones.flatMap((z) => z.trackIds) ?? []),
+      when,
+    )
   if (message.type === 'note')
     liveNote(
       message.source,
@@ -68,6 +83,10 @@ function receiveMidi(message: MidiMessage): void {
       message.key,
       message.velocity,
       message.on,
+      graph
+        ? graph.context.currentTime +
+            (message.timestamp - performance.now()) / 1000
+        : undefined,
     )
   else if (message.type === 'cc')
     router?.cc(message.source, message.channel, message.cc, message.value)
@@ -108,6 +127,7 @@ async function initialize(value: Settings): Promise<void> {
   if (initialization) {
     await initialization
     await graph!.apply(value.audio)
+    if (transport) transport.inputLatencyMs = value.audio.inputLatencyMs
     if (project) await transport?.audio.synchronize(project)
     return
   }
@@ -125,7 +145,9 @@ async function initialize(value: Settings): Promise<void> {
       (message) => log('warn', 'synth', message),
       true,
     )
-    router = new Router(rack, reportKeys)
+    router = new Router(rack, reportKeys, (note) =>
+      transport?.recorder.note(note),
+    )
     transport = new Transport(
       graph,
       backend,
@@ -133,6 +155,7 @@ async function initialize(value: Settings): Promise<void> {
       () => bus,
       (message) => log('warn', 'transport', message),
     )
+    transport.inputLatencyMs = value.audio.inputLatencyMs
     if (project) {
       router.setProject(project)
       await Promise.all([
@@ -144,6 +167,7 @@ async function initialize(value: Settings): Promise<void> {
       receiveMidi,
       (ports) => bus?.send('midi:ports', ports),
       (source) => {
+        transport?.recorder.disconnect(source)
         router?.disconnect(source)
         for (const owner of previews.keys())
           if (JSON.parse(owner)[0] === source) previewNote(owner, 0, 0, false)
@@ -266,6 +290,7 @@ window.addEventListener('message', (event) => {
     )
   })
   bus.on('audio:scope', ({ folder }) => {
+    transport?.recorder.setScope(folder)
     transport?.audio.setScope(folder)
     transport?.grid.reset()
   })
@@ -308,6 +333,21 @@ window.addEventListener('message', (event) => {
     await synchronize()
     return backend!.listPresets(soundfontId)
   })
+  bus.respond('recording:flush', () => {
+    transport?.stop()
+    return undefined
+  })
+  bus.on('track:audition', (value) =>
+    router?.note(
+      value.source,
+      0,
+      value.key,
+      value.vel,
+      value.on,
+      undefined,
+      value.trackId,
+    ),
+  )
   bus.on('audition', (value) =>
     router?.note(
       `instrument-audition-${value.instrumentId}`,

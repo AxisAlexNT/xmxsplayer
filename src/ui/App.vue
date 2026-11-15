@@ -238,6 +238,10 @@ function fail(error: unknown): void {
 }
 async function command(cmd: string): Promise<void> {
   try {
+    if (cmd === 'record:armRequired') {
+      notify('Arm a MIDI track before recording')
+      return
+    }
     if (cmd === 'import:audio') {
       if (!doc.folder) {
         notify('Create or open a project folder first')
@@ -246,6 +250,8 @@ async function command(cmd: string): Promise<void> {
       const file = await window.xm.project.importFile('audio')
       if (file) await addAudio(file)
     } else if (cmd === 'new' || cmd === 'open') {
+      if (runtime.transport.recording)
+        await engineBus.value?.request('recording:flush', undefined)
       if (
         doc.dirtyFiles.length &&
         !window.confirm('Discard unsaved changes and open another project?')
@@ -358,6 +364,15 @@ const stopFiles = window.xm.project.onFilesChanged((change) => {
   }
 })
 function beforeUnload(event: BeforeUnloadEvent): void {
+  if (runtime.transport.recording) {
+    event.preventDefault()
+    event.returnValue = false as unknown as string
+    void engineBus.value
+      ?.request('recording:flush', undefined)
+      .then(() => window.close())
+      .catch(fail)
+    return
+  }
   if (
     doc.dirtyFiles.length &&
     !window.confirm('Discard unsaved changes and quit?')

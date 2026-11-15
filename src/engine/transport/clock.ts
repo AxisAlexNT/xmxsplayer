@@ -79,11 +79,16 @@ export class TransportClock {
     this.followFactor = factor
   }
   setMap(map: TimeMap): void {
+    if (JSON.stringify(this.map.tempos) === JSON.stringify(map.tempos)) {
+      this.map = map
+      return
+    }
     const tick = this.tick
     this.map = map
     this.anchor(map.tickToSec(tick))
   }
   setLoop(loop: Project['loop']): void {
+    if (JSON.stringify(this.loop) === JSON.stringify(loop)) return
     const song = this.songAt()
     this.loop = { ...loop }
     this.anchor(song)

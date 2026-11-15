@@ -1,3 +1,4 @@
+import type { RoutedNote } from '../../shared/recording'
 import type { Project, Zone } from '../../shared/model'
 import type { EventMap } from '../../shared/protocol'
 import { InstrumentRack, type RackSlot } from '../synth/rack'
@@ -12,9 +13,11 @@ interface Voice {
   channel: number
   key: number
   targets: Target[]
+  routed: RoutedNote[]
 }
 export class Router {
   private project?: Project
+  private noteSerial = 0
   private held = new Map<string, Voice[]>()
   private sustained = new Map<string, Voice[]>()
   private pedals = new Map<string, Set<RackSlot>>()
@@ -26,6 +29,7 @@ export class Router {
   constructor(
     private rack: InstrumentRack,
     private report: (keys: EventMap['keys']) => void,
+    private record: (note: RoutedNote) => void = () => undefined,
   ) {}
   setProject(project: Project): void {
     this.project = project
@@ -86,11 +90,14 @@ export class Router {
     velocity: number,
     on: boolean,
     instrumentId?: string,
+    trackOnly?: string,
+    when?: number,
   ): void {
     const id = this.noteOwner(source, channel, key)
     const owner = this.owner(source, channel)
     if (on && velocity > 0) {
-      const voice: Voice = { source, channel, key, targets: [] }
+      const voice: Voice = { source, channel, key, targets: [], routed: [] }
+      const serial = ++this.noteSerial
       if (instrumentId) {
         const slot = this.rack.acquire(instrumentId)
         const sentKey = key + (slot?.instrument.transpose ?? 0)
@@ -103,14 +110,51 @@ export class Router {
           )
         else if (slot) this.rack.release(slot)
       }
-      for (const zone of instrumentId ? [] : (this.project?.base.zones ?? [])) {
+      for (const zone of instrumentId
+        ? []
+        : trackOnly
+          ? [
+              {
+                id: 'audition',
+                lo: 0,
+                hi: 127,
+                trackIds: [trackOnly],
+                transpose: 0,
+                velocity: 'linear' as const,
+                color: '#4cc2ff',
+              },
+            ]
+          : (this.project?.base.zones ?? [])) {
         if (key < zone.lo || key > zone.hi) continue
         for (const trackId of new Set(zone.trackIds)) {
           const track = this.project?.tracks.find((t) => t.id === trackId)
+          if (track?.kind !== 'midi') continue
+          const postKey = key + zone.transpose
           if (
-            track?.kind !== 'midi' ||
-            track.mode === 'mute' ||
-            (this.project!.tracks.some((t) => t.solo) && !track.solo)
+            !trackOnly &&
+            postKey >= 0 &&
+            postKey <= 127 &&
+            !voice.routed.some(
+              (n) => n.trackId === trackId && n.key === postKey,
+            )
+          ) {
+            const routed: RoutedNote = {
+              id: `${serial}:${trackId}:${postKey}`,
+              source,
+              channel,
+              trackId,
+              key: postKey,
+              velocity: this.velocity(velocity, zone.velocity),
+              on: true,
+              when,
+            }
+            voice.routed.push(routed)
+            this.record(routed)
+          }
+          if (
+            !trackOnly &&
+            (track.mode === 'mute' ||
+              (this.project!.tracks.some((t) => t.solo) && !track.solo))
           )
             continue
           for (const patch of this.project!.base.patch.filter(
@@ -144,6 +188,8 @@ export class Router {
       const voice = voices?.shift()
       if (!voice) return
       if (!voices!.length) this.held.delete(id)
+      for (const routed of voice.routed)
+        this.record({ ...routed, on: false, when })
       for (const target of voice.targets) {
         const count = (this.sounding.get(this.targetKey(target)) ?? 1) - 1
         if (count <= 0) {

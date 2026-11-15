@@ -263,3 +263,37 @@ it('isolates mixer levels for two live tracks sharing an instrument', async () =
   live.close()
   isolated.close()
 })
+it('captures a post-zone note once before layers and releases it on the original track', async () => {
+  const { project, backend, rack, router } = await rig()
+  router.close()
+  project.base.zones[0].transpose = 12
+  project.base.zones[0].velocity = 'soft'
+  project.base.patch.push({
+    id: 'layer',
+    trackId: 'piano',
+    instrumentId: 'strings',
+    transpose: 7,
+  })
+  const recorded: import('../../src/shared/recording').RoutedNote[] = []
+  const input = new Router(
+    rack,
+    () => undefined,
+    (n) => recorded.push(n),
+  )
+  input.setProject(project)
+  input.note('keys', 4, 48, 64, true)
+  expect(backend.events.filter((e) => e.type === 'on')).toHaveLength(2)
+  expect(recorded).toHaveLength(1)
+  expect(recorded[0]).toMatchObject({ trackId: 'piano', key: 60, on: true })
+  expect(recorded[0].velocity).toBeGreaterThan(64)
+  project.base.zones[0].trackIds = ['strings']
+  input.note('keys', 4, 48, 0, false)
+  expect(recorded[1]).toMatchObject({
+    id: recorded[0].id,
+    trackId: 'piano',
+    key: 60,
+    on: false,
+  })
+  input.close()
+  rack.close()
+})
