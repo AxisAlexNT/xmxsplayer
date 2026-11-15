@@ -302,6 +302,7 @@ export interface ControlDef {
 }
 
 export interface Settings {
+  chaseCuesOnSeek?: boolean
   audio: {
     defaultSynth: 'web' | 'fluid'
     bufferSize: 0 | 128 | 256 | 512 | 1024

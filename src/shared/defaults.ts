@@ -61,6 +61,7 @@ export function newProject(name = 'Untitled'): Project {
 }
 export function defaultSettings(): Settings {
   return {
+    chaseCuesOnSeek: true,
     audio: {
       defaultSynth: 'web',
       bufferSize: 0,

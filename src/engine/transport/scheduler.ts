@@ -23,6 +23,14 @@ export interface SchedulerOutput {
   chase(track: MidiTrack, tick: number, when: number): void
   collect(now: number): void
 }
+export interface TimelineBoundary {
+  raw: number
+  hold: boolean
+  run(): void
+}
+export interface SchedulerTimeline {
+  next(waitOnly?: boolean): TimelineBoundary | null
+}
 interface MusicalEvent {
   sec: number
   order: number
@@ -46,6 +54,7 @@ export class Scheduler {
   private actionSerial = 0
   private holdRaw: number | null = null
   private ticking = false
+  timeline?: SchedulerTimeline
   onBoundary: () => void = () => undefined
   onEnd: () => void = () => undefined
   constructor(
@@ -195,20 +204,46 @@ export class Scheduler {
     this.output.collect(now)
     if (!this.clock.playing || this.clock.holding) return
     let rawNow = this.clock.raw
-    if (this.holdRaw !== null && rawNow >= this.holdRaw - 1e-9) {
-      this.clock.hold(this.holdRaw)
-      this.onBoundary()
-      return
-    }
-    while (this.actions[0] && this.actions[0].raw <= rawNow + 1e-9) {
-      const action = this.actions.shift()!
-      action.run()
+    let boundary = this.timeline?.next() ?? null
+    let boundaries = 0
+    while (boundaries++ < 1000) {
+      const action = this.actions[0]
+      const nextRaw = Math.min(
+        action?.raw ?? Infinity,
+        boundary?.raw ?? Infinity,
+        this.holdRaw ?? Infinity,
+      )
+      if (nextRaw > rawNow + 1e-9 || this.clock.contextAt(nextRaw) > now + 1e-9)
+        break
+      if (
+        this.holdRaw !== null &&
+        this.holdRaw === nextRaw &&
+        action?.raw !== nextRaw &&
+        boundary?.raw !== nextRaw
+      ) {
+        this.clock.hold(this.holdRaw)
+        this.onBoundary()
+        return
+      }
+      if (action?.raw === nextRaw) {
+        this.actions.shift()
+        action.run()
+      } else if (boundary) {
+        if (boundary.hold) this.clock.hold(boundary.raw)
+        boundary.run()
+      }
       this.onBoundary()
       if (!this.clock.playing || this.clock.holding) return
       rawNow = this.clock.raw
+      boundary = this.timeline?.next() ?? null
     }
-    let until = rawNow + lookahead * this.clock.speed
+    const horizon =
+      this.timeline?.next(true) || this.project?.follow.mode !== 'written'
+        ? Math.min(lookahead, 0.04)
+        : lookahead
+    let until = rawNow + horizon * this.clock.speed
     if (this.holdRaw !== null) until = Math.min(until, this.holdRaw)
+    if (boundary) until = Math.min(until, boundary.raw)
     if (this.actions[0]) until = Math.min(until, this.actions[0].raw)
     if (!this.clock.loopRange.enabled && this.project)
       until = Math.min(
@@ -283,14 +318,18 @@ export class Scheduler {
     if (!this.clock.playing || this.clock.holding) return null
     const targets: number[] = []
     if (this.holdRaw !== null) targets.push(this.holdRaw)
+    const wait = this.timeline?.next(true)
+    if (wait) targets.push(wait.raw)
     if (!this.clock.loopRange.enabled && this.project)
       targets.push(this.clock.map.tickToSec(this.project.lengthTicks))
     return targets.length ? this.clock.contextAt(Math.min(...targets)) : null
   }
   nextDeadline(): number | null {
-    const candidates = [this.holdRaw, this.actions[0]?.raw].filter(
-      (v): v is number => typeof v === 'number',
-    )
+    const candidates = [
+      this.holdRaw,
+      this.actions[0]?.raw,
+      this.timeline?.next()?.raw,
+    ].filter((v): v is number => typeof v === 'number')
     if (!this.clock.loopRange.enabled && this.project)
       candidates.push(this.clock.map.tickToSec(this.project.lengthTicks))
     if (!this.clock.playing || this.clock.holding || !candidates.length)

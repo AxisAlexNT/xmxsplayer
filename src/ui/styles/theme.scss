@@ -315,3 +315,24 @@ button:disabled {
 .xm-performance-registers .xm-reg > button:first-child { position: relative; }
 .xm-performance-registers .xm-reg > button:first-child::after { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: max(100%, var(--xm-hit)); height: 100%; }
 .xm-performance-registers .xm-reg-group::after { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.xm-cue-dialog { width: min(660px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--xm-border-strong); color: var(--xm-text); max-height: calc(100vh - 32px); }
+.xm-cue-dialog .xm-dialog-b { max-height: calc(100vh - 200px); overflow-y: auto; }
+.xm-cue-dialog .form-label { font-size: var(--xm-fs-sm); color: var(--xm-text-muted); }
+.xm-cue-dialog button, .xm-cue-dialog input, .xm-cue-dialog select { min-height: var(--xm-hit); }
+.xm-cue-dialog input { margin-top: 4px; }
+.xm-cue-triggers { display: flex; flex-wrap: wrap; }
+.xm-cue-actions > .xm-row { border-bottom: 1px solid var(--xm-border); padding: var(--xm-s1); gap: 0; }
+.xm-cue-actions > .xm-row > .btn { min-width: var(--xm-hit); }
+.xm-cue-tool { position: relative; width: var(--xm-hit); height: var(--xm-h-cues); padding: 0; border: 0; background: transparent; color: var(--xm-text-muted); }
+.xm-cue-tool::after { content: ''; position: absolute; top: 50%; left: 0; transform: translateY(-50%); width: 100%; height: var(--xm-hit); }
+.xm-cue-tool:hover { color: var(--xm-text); background: var(--xm-bg-3); }
+.xm-cue-surface { touch-action: none; }
+.xm-cue { color: var(--xm-text); touch-action: none; cursor: grab; }
+.xm-cue:active { cursor: grabbing; }
+.xm-cue::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); height: var(--xm-hit); }
+.xm-editor-pop input[type=checkbox] { min-height: 0; }
+
+.xm-cue-surface { overflow: visible; clip-path: inset(calc((var(--xm-h-cues) - var(--xm-hit)) * 0.5) 0); z-index: 4; }
+.xm-cue { max-width: var(--xm-w-header); }
+.xm-cue-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.xm-editor-pop > label.xm-row { min-height: var(--xm-hit); }

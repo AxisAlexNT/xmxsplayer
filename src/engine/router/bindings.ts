@@ -119,18 +119,20 @@ export class Bindings {
     if (entry.started)
       this.host.run(entry.action, entry.value, false, entry.source)
   }
+  releaseControl(event: ControlEvent): void {
+    if (event.edge !== 'release') return
+    const key = JSON.stringify([event.deviceId, event.controlId]),
+      old = this.held.get(key)
+    if (old) {
+      this.release(old)
+      this.held.delete(key)
+    }
+  }
   receive(event: ControlEvent): void {
     const p = this.host.project(),
       profile = this.host.profile(event.deviceId)
     if (!p || !profile) return
-    const key = JSON.stringify([event.deviceId, event.controlId])
-    if (event.edge === 'release') {
-      const old = this.held.get(key)
-      if (old) {
-        this.release(old)
-        this.held.delete(key)
-      }
-    }
+    this.releaseControl(event)
     const context = this.host.context(),
       setup = effectiveSetup(p, context.activeSceneId, [profile.id]),
       binding = setup.bindings.find(

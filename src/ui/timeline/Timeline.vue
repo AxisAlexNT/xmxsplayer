@@ -19,6 +19,7 @@ import { timelineKey } from './context'
 import { LinearAxis } from './linear-axis'
 import { transportTick, Viewport, type TimelineFrame } from './viewport'
 import Ruler from '../lanes/Ruler.vue'
+import CueLane from '../lanes/CueLane.vue'
 import PianoRollLane from '../lanes/PianoRollLane.vue'
 import AudioLane from '../lanes/AudioLane.vue'
 import AudioTrackControls from '../components/tracks/AudioTrackControls.vue'
@@ -193,7 +194,11 @@ function edit(id: string, change: (track: Track) => void): void {
   })
 }
 function displayedMode(track: Track): Track['mode'] {
-  return rig.setup.trackModes[track.id] ?? track.mode
+  return (
+    runtime.state.trackModes?.[track.id] ??
+    rig.setup.trackModes[track.id] ??
+    track.mode
+  )
 }
 function mode(track: Track): void {
   const current = displayedMode(track)
@@ -405,12 +410,7 @@ onUnmounted(() => {
   >
     <ConflictBanner @error="emit('error', $event)" />
     <Ruler />
-    <div class="xm-rowgrid xm-cues">
-      <div class="xm-corner">
-        Cues
-      </div>
-      <div class="xm-lanearea" />
-    </div>
+    <CueLane @error="emit('error', $event)" />
     <div
       ref="list"
       class="xm-tracks"

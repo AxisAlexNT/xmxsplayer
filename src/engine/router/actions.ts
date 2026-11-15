@@ -11,6 +11,7 @@ export interface ActionHost {
   tapBeat: () => void
   rate: (rate: number) => void
   changed: () => void
+  onSeek?: () => void
   patch: (patch: Partial<Project>) => void
   app: (cmd: string) => void
   pending: (cmd: string) => void
@@ -45,6 +46,11 @@ export class Actions {
     }
     const cmd = action.cmd,
       c = h.clock
+    const seek = (tick: number): void => {
+      c.seek(tick)
+      h.scheduler.clearActions()
+      h.onSeek?.()
+    }
     if (cmd !== 'stop') this.stopped = false
     switch (cmd) {
       case 'toggle':
@@ -66,7 +72,7 @@ export class Actions {
       case 'stop':
         h.cancelPlay()
         c.pause()
-        if (this.stopped) c.seek(p.loop.enabled ? p.loop.startTick : 0)
+        if (this.stopped) seek(p.loop.enabled ? p.loop.startTick : 0)
         this.stopped = true
         h.scheduler.clearActions()
         break
@@ -82,11 +88,11 @@ export class Actions {
         if (c.recording && !c.playing) void h.play()
         break
       case 'toStart':
-        c.seek(0)
+        seek(0)
         break
       case 'rewind': {
         const pos = c.map.tickToBarBeat(c.tick)
-        c.seek(
+        seek(
           c.map.barToTick(
             Math.max(1, pos.bar - Math.max(1, Math.round(value))),
           ),
@@ -94,7 +100,7 @@ export class Actions {
         break
       }
       case 'forward':
-        c.seek(
+        seek(
           Math.min(
             p.lengthTicks,
             c.map.barToTick(
@@ -104,7 +110,7 @@ export class Actions {
         )
         break
       case 'scrub':
-        c.seek(Math.max(0, Math.min(p.lengthTicks, c.tick + value * 480)))
+        seek(Math.max(0, Math.min(p.lengthTicks, c.tick + value * 480)))
         break
       case 'loopToggle':
         h.patch({ loop: { ...p.loop, enabled: !p.loop.enabled } })

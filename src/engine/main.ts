@@ -1,3 +1,4 @@
+import { Cues } from './performance/cues'
 import { Scenes } from './performance/scenes'
 import { LedManager } from './feedback/led-manager'
 import { Bindings } from './router/bindings'
@@ -37,7 +38,10 @@ let midi: DeviceManager | undefined
 let transport: Transport | undefined
 let bindings: Bindings | undefined
 let leds: LedManager | undefined
+let cues: Cues | undefined
+let cueNoteSerial = 0
 let engineClosing = false
+let controlCapture = false
 const runtimeState: RuntimeState = {
   activeSceneId: null,
   registers: Array(8).fill(false),
@@ -67,6 +71,12 @@ function publishRuntime(): void {
   if (!project) return
   const setup = scenes.setup()
   if (!setup) return
+  runtimeState.trackModes = Object.fromEntries(
+    (performanceProject()?.tracks ?? []).map((t) => [t.id, t.mode]),
+  )
+  runtimeState.armedCueId = cues?.armedId ?? null
+  runtimeState.queuedCueIds = cues?.queuedIds ?? []
+  runtimeState.pendingActions = cues?.pendingActions ?? []
   runtimeState.activeSceneId = scenes.activeId
   runtimeState.registers = scenes.registers.values
   runtimeState.effective = { zones: setup.zones, patch: setup.patch }
@@ -124,8 +134,24 @@ function liveNote(
   const owner = JSON.stringify([source, channel, key])
   if ((on && audition) || (!on && previews.has(owner)))
     previewNote(owner, key, velocity, on)
-  else
+  else {
+    if (on && velocity > 0) {
+      const effective = performanceProject()
+      cues?.key(
+        !!effective?.base.zones.some(
+          (zone) =>
+            key >= zone.lo &&
+            key <= zone.hi &&
+            zone.trackIds.some((id) =>
+              effective.tracks.some(
+                (t) => t.id === id && t.kind === 'midi' && t.mode === 'live',
+              ),
+            ),
+        ),
+      )
+    }
     router?.note(source, channel, key, velocity, on, undefined, undefined, when)
+  }
 }
 function receiveMidi(message: MidiMessage): void {
   const when = graph
@@ -182,7 +208,19 @@ function runAction(
   pressed = true,
   source = 'action',
 ): void {
-  if (!project) return
+  if (!project || engineClosing) return
+  if (action.type === 'trackMode') {
+    scenes.mode(action)
+    return
+  }
+  if (action.type === 'cue') {
+    if (action.cmd === 'prev' || action.cmd === 'next')
+      cues?.navigate(action.cmd)
+    else cues?.fire(action.cmd === 'fire' ? action.cueId : undefined)
+    return
+  }
+  if (action.type === 'transport' && action.cmd === 'skipHold' && cues?.skip())
+    return
   if (action.type === 'scene') {
     scenes.run(action)
     return
@@ -234,13 +272,21 @@ function runAction(
     return
   }
   transport?.actions.run(action, value)
+  if (action.type === 'transport' && action.cmd === 'stop') cues?.stop()
 }
 function receiveControl(event: ControlEvent): void {
   if (engineClosing) return
   bus?.send('control', event)
   leds?.control(event)
+  if (controlCapture) {
+    bindings?.releaseControl(event)
+    return
+  }
   try {
-    bindings?.receive(event)
+    if (
+      !cues?.control(event.controlId, event.edge === 'press' && event.pressed)
+    )
+      bindings?.receive(event)
   } catch (error) {
     log('error', 'bindings', String(error))
   }
@@ -271,7 +317,7 @@ async function initialize(value: Settings): Promise<void> {
     await initialization
     await graph!.apply(value.audio)
     if (transport) transport.inputLatencyMs = value.audio.inputLatencyMs
-    if (project) await transport?.audio.synchronize(project)
+    if (project) await transport?.audio.synchronize(performanceProject() ?? project)
     return
   }
   initialization = (async () => {
@@ -301,19 +347,53 @@ async function initialize(value: Settings): Promise<void> {
       () => bus,
       (message) => log('warn', 'transport', message),
     )
+    cues = new Cues({
+      clock: transport.clock,
+      queue: (at, run) => transport!.queue(at, run),
+      cancel: (id) => transport!.cancelAction(id),
+      isQueued: (id) => transport!.scheduler.isQueued(id),
+      invalidate: () => transport!.scheduler.invalidate(true),
+      changed: () => {
+        transport!.changed()
+        publishRuntime()
+      },
+      seek: (tick) => transport!.seek(tick),
+      warn: (message) => log('error', 'cues', message),
+      run: (action) => {
+        if (action.type !== 'note') {
+          runAction(action)
+          return
+        }
+        const source = `cue-note:${++cueNoteSerial}`
+        runAction(action, 1, true, source)
+        const duration =
+          15000 /
+          transport!.clock.map.tempoAt(transport!.clock.tick) /
+          transport!.clock.speed
+        setTimeout(() => runAction(action, 0, false, source), duration)
+      },
+    })
+    cues.chaseOnSeek = value.chaseCuesOnSeek ?? true
+    transport.scheduler.timeline = cues
+    transport.onSeek = () => cues!.seek()
+    transport.onStop = () => cues!.stop()
     transport.inputLatencyMs = value.audio.inputLatencyMs
     transport.resolveProject = (source) => performanceProject() ?? source
     transport.conditionContext = (tick) => ({
       ...scenes.context,
       bar: transport!.clock.map.tickToBarBeat(tick).bar,
     })
-    transport.onPosition = publishRuntime
+    transport.onPosition = () => {
+      if (!transport!.clock.playing) cues?.pause()
+      publishRuntime()
+    }
     if (project) {
       router.setProject(performanceProject() ?? project)
       await Promise.all([
         rack.synchronize(project),
         transport.synchronize(project),
       ])
+      cues.configure(project.cues)
     }
     midi = new DeviceManager(
       settings?.devices ?? value.devices,
@@ -407,6 +487,7 @@ async function synchronize(): Promise<void> {
     transport?.synchronize(project),
   ])
   if (revision !== syncRevision) return
+  cues?.configure(project.cues)
   router?.setProject(performanceProject() ?? project)
   publishRuntime()
   bus?.send('synth:state', {
@@ -482,10 +563,12 @@ window.addEventListener('message', (event) => {
   )
     return
   bus?.close()
+  controlCapture = false
   bus = new Bus(event.ports[0], 'evt')
   bus.on('settings:set', (value) => {
     if (engineClosing) return
     settings = value
+    if (cues) cues.chaseOnSeek = value.chaseCuesOnSeek ?? true
     midi?.configure(value.devices)
     void initialize(value).catch((error) =>
       log('error', 'audio', String(error)),
@@ -522,8 +605,16 @@ window.addEventListener('message', (event) => {
       )
   })
   bus.on('learn:stop', () => midi?.learn.stop())
+  bus.respond('control:capture', ({ active }) => {
+    controlCapture = active
+    return undefined
+  })
+  bus.on('control:capture', ({ active }) => {
+    controlCapture = active
+  })
   bus.on('audio:scope', ({ folder }) => {
     bindings?.clear()
+    cues?.reset()
     scenes.reset(false)
     runtimeSignature = ''
     leds?.invalidate()

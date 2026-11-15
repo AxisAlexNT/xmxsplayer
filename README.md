@@ -4,11 +4,11 @@ A cross-platform desktop workspace for transcription by ear and live MIDI perfor
 
 ## Status
 
-M0–M5 are implemented. M7 now provides scenes, registers, editable zones and conditional patching. M6 software includes device profiles, MIDI control decoding, learning, scoped bindings and KeyLab pad/display feedback; physical controller capture and feedback verification remain pending. Projects support explicit saves, undo/redo and live YAML reload with conflict handling. The hidden engine provides SF2/SF3 synthesis, live MIDI splits and layers, sustain and controller expression, and retained note-offs across routing changes.
+M0–M5 are implemented. M7 now provides scenes, registers, editable zones, conditional patching and timeline cues. M6 software includes device profiles, MIDI control decoding, learning, scoped bindings and KeyLab pad/display feedback; physical controller capture and feedback verification remain pending. Projects support explicit saves, undo/redo and live YAML reload with conflict handling. The hidden engine provides SF2/SF3 synthesis, live MIDI splits and layers, sustain and controller expression, and retained note-offs across routing changes.
 
 The transcription workspace imports MIDI and audio, shares a transport and timeline, loops sections, changes playback speed without changing pitch, and provides beat-grid anchors, time/key maps, a metronome and count-in. Armed MIDI tracks record post-zone notes and expression with latency compensation and loop overdub. Each take is one undo step. The piano roll supports snapped drawing, selection, moving, resizing, velocity edits, duplication, deletion and quantization, with mouse, touch and pen input. Two-finger gestures pan and zoom; double-click a MIDI track header to expand its lane.
 
-Verified on Ubuntu 24.04, including live input from an Arturia KeyLab Essential 61 mk3. Automated desktop checks cover recording at 60% speed over looping audio, take undo/redo, native pointer editing, simulated pen pressure and touch zoom. Physical Windows pen/eraser behavior, Windows audio codecs and alternate hardware outputs remain unverified. Some KeyLab pad, knob, fader and encoder messages still require physical capture; Windows port names remain unverified. Timeline cues, scene scripting, score linking and staff rendering follow in later milestones. This is not a release-ready application.
+Verified on Ubuntu 24.04, including live input from an Arturia KeyLab Essential 61 mk3. Automated desktop checks cover recording at 60% speed over looping audio, take undo/redo, native pointer editing, simulated pen pressure and touch zoom. Physical Windows pen/eraser behavior, Windows audio codecs and alternate hardware outputs remain unverified. Some KeyLab pad, knob, fader and encoder messages still require physical capture; Windows port names remain unverified. Signal flow, scripting, score linking and staff rendering remain in development. This is not a release-ready application.
 
 ## Development
 
@@ -38,7 +38,7 @@ Devices lists the main MIDI ports and their assigned profiles. Use **Learn…** 
 
 Click a learned control to edit its binding. Choose its edge, action, condition and timing; edits apply immediately. Store bindings in Shared, This controller, This scene, or a controller's scene override. Unbind disables that edge in the selected scope. Absolute parameter controls use soft takeover: move to the parameter's current value before they take control. Relative encoders apply changes from the current value.
 
-New projects include transport and DAW bindings, speed on knob 1, track volumes by fader order and master volume on fader 9. The KeyLab mapping assigns bank B pads to registers 1–8; the Axiom mapping uses buttons 1–8. Scene and register actions update the live routing. Cue, clip and script execution follow in the remaining performance work.
+New projects include transport and DAW bindings, speed on knob 1, track volumes by fader order and master volume on fader 9. The KeyLab mapping assigns bank B pads to registers 1–8; the Axiom mapping uses buttons 1–8. Scene and register actions update the live routing. Cues can run actions automatically or wait for a control; clip and script execution follow in the remaining performance work.
 
 KeyLab feedback uses only its paired main MIDI output. Mapping colours, binding state, beat chase, hit flashes and queued-cue blinking share the same states on the screen and keyboard. Turn **Visual pads** off in Bar grid to disable beat chase. The display shows the project or scene name, position, speed and follow state. Feedback reinitializes after a program change and refreshes after pad release. **Select Arturia program on connect** is off by default; enabling it changes the keyboard's active program. Physical colours, release repainting, program-selection display and timing still need confirmation on the keyboard.
 
@@ -53,6 +53,10 @@ Registers 1–8 toggle from their buttons, number keys or controller bindings. R
 Drag either end of a zone above the keyboard, or click its label to edit the note range, target tracks, transpose and velocity curve. Double-click empty space in the zone strip to add a zone. Learn range collects the lowest and highest keys you play. Each edge drag is one undo step.
 
 Patch lists one row per MIDI track. Click + to add another instrument connection, then choose its instrument, condition and transpose. Connections can be always active, gated by a register or use a custom condition. Change preset opens the soundfont picker; New instrument creates an independent sound. The same connection editor opens from a track header’s instrument chip.
+
+Add a cue at the playhead with + in the cue lane, or double-click empty lane space. Drag a cue to move it with the current snap; each drag is one undo step. Click a marker to edit its name, bar/beat, trigger, control, firing boundary and ordered actions. Learn captures an already learned controller control while suspending its normal binding.
+
+Automatic cues run when playback reaches them. Armed cues accept their assigned control until fired or replaced by the next cue. Wait cues freeze the transport and audio at their marker; release with the assigned control, a live-zone key when no control is assigned, or Skip hold in Cue options. Then fire can defer the actions to the next beat or bar after release. Automatic cues already on that boundary run there. Cue note actions tap a note for one quarter beat. Seeking cancels queued actions; Chase cues on seek, enabled by default in Cue options, applies the scene/register/track-mode actions of the last scene-affecting cue before the destination without replaying note hits.
 
 ## Project files
 

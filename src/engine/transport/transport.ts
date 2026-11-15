@@ -44,6 +44,8 @@ export class Transport {
     playing: this.clock.playing,
   })
   onPosition: () => void = () => undefined
+  onSeek: () => void = () => undefined
+  onStop: () => void = () => undefined
   onBeat: (tick: number, when: number) => void = () => undefined
   onTimingChange: (keepBeat: boolean) => void = () => undefined
   private serial = Promise.resolve()
@@ -123,6 +125,7 @@ export class Transport {
         this.starting = false
       },
       changed: () => this.changed(),
+      onSeek: () => this.onSeek(),
       patch: (patch) => this.bus()?.send('doc:patch', patch),
       app: (cmd) => this.bus()?.send('app', { cmd }),
       pending: (cmd) => warn(`${cmd} is not available yet`),
@@ -155,6 +158,8 @@ export class Transport {
         if (this.project !== project) return
         if (seek !== undefined) {
           this.clock.seek(seek)
+          this.scheduler.clearActions()
+          this.onSeek()
           this.scheduler.invalidate(false)
         }
         await this.output.synchronize(project, true, available, this.clock.tick)
@@ -183,6 +188,8 @@ export class Transport {
       this.clock.setLoop(project.loop)
       if (this.gridSeek !== undefined) {
         this.clock.seek(this.gridSeek)
+        this.scheduler.clearActions()
+        this.onSeek()
         this.gridSeek = undefined
       }
       await this.output.synchronize(
@@ -229,10 +236,13 @@ export class Transport {
       await this.serial
       await this.context.resume()
       if (revision !== this.playRevision) return
-      if (this.project && this.clock.tick >= this.project.lengthTicks)
+      if (this.project && this.clock.tick >= this.project.lengthTicks) {
         this.clock.seek(
           this.project.loop.enabled ? this.project.loop.startTick : 0,
         )
+        this.scheduler.clearActions()
+        this.onSeek()
+      }
       const p = this.project!,
         sig = this.clock.map.signatureAt(this.clock.tick),
         beatSec =
@@ -271,6 +281,8 @@ export class Transport {
   }
   seek(tick: number): void {
     this.clock.seek(Math.min(this.project?.lengthTicks ?? tick, tick))
+    this.scheduler.clearActions()
+    this.onSeek()
     this.scheduler.invalidate(false)
     this.changed()
   }
@@ -349,6 +361,7 @@ export class Transport {
     this.clock.pause()
     this.scheduler.clearActions()
     this.scheduler.invalidate(false)
+    this.onStop()
     this.changed()
   }
 }

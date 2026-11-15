@@ -1,4 +1,10 @@
-import type { Action, Project, Setup, Timing } from '../../shared/model'
+import type {
+  Action,
+  Project,
+  Setup,
+  Timing,
+  TrackMode,
+} from '../../shared/model'
 import type { ConditionContext } from '../../shared/conditions'
 import { matchesCondition } from '../../shared/conditions'
 import { effectiveSetup } from '../../shared/overlay'
@@ -13,8 +19,23 @@ export class Scenes {
   readonly registers = new Registers()
   activeId: string | null = null
   private project?: Project
+  private modes: Record<string, TrackMode> = {}
   constructor(private host: SceneHost) {}
   configure(project: Project): void {
+    const previous = this.project
+      ? effectiveSetup(this.project, this.activeId)
+      : undefined
+    const next = effectiveSetup(project, this.activeId)
+    for (const id of Object.keys(this.modes)) {
+      const oldTrack = this.project?.tracks.find((t) => t.id === id)
+      const track = project.tracks.find((t) => t.id === id)
+      if (
+        !track ||
+        (previous?.trackModes[id] ?? oldTrack?.mode) !==
+          (next.trackModes[id] ?? track.mode)
+      )
+        delete this.modes[id]
+    }
     this.project = project
     this.registers.configure(project.registers)
     if (!project.scenes.some((scene) => scene.id === this.activeId))
@@ -26,6 +47,7 @@ export class Scenes {
       const scene = this.project?.scenes.find((s) => s.id === id)
       if (id !== null && !scene) return
       this.activeId = id
+      this.modes = {}
       if (scene?.registers) this.registers.preset(scene.registers)
       this.host.changed()
     })
@@ -58,6 +80,22 @@ export class Scenes {
     else this.registers.toggle(action.index)
     this.host.changed()
   }
+  mode(action: Extract<Action, { type: 'trackMode' }>): void {
+    const track = this.project?.tracks.find((t) => t.id === action.trackId)
+    if (!track) return
+    const current = this.setup([], false)!.trackModes[track.id] ?? track.mode
+    const next =
+      action.mode === 'cycle'
+        ? track.kind === 'audio'
+          ? current === 'auto'
+            ? 'mute'
+            : 'auto'
+          : ({ auto: 'live', live: 'mute', mute: 'auto' } as const)[current]
+        : action.mode
+    if (track.kind === 'audio' && next === 'live') return
+    this.modes[track.id] = next
+    this.host.changed()
+  }
   get context(): ConditionContext {
     return {
       ...this.host.context(),
@@ -71,6 +109,7 @@ export class Scenes {
   ): Setup | undefined {
     if (!this.project) return undefined
     const setup = effectiveSetup(this.project, this.activeId, profileIds)
+    setup.trackModes = { ...setup.trackModes, ...this.modes }
     if (!filterPatch) return setup
     return {
       ...setup,
@@ -100,6 +139,7 @@ export class Scenes {
   }
   reset(notify = true): void {
     this.activeId = null
+    this.modes = {}
     this.registers.reset()
     if (notify) this.host.changed()
   }

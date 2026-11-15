@@ -68,7 +68,10 @@ function bindingState(
     }
   if (action.type === 'trackMode') {
     const track = p.tracks.find((t) => t.id === action.trackId),
-      mode = setup.trackModes[action.trackId] ?? track?.mode
+      mode =
+        s.runtime.trackModes?.[action.trackId] ??
+        setup.trackModes[action.trackId] ??
+        track?.mode
     return {
       color: mode === 'live' ? '#ff9f43' : mode === 'auto' ? green : grey,
       on: action.mode === 'cycle' ? mode !== 'mute' : mode === action.mode,
@@ -166,6 +169,11 @@ export function controlFrame(
           control.id
         : false,
       pending =
+        p.cues.some(
+          (c) =>
+            c.control === control.id &&
+            state.runtime.queuedCueIds?.includes(c.id),
+        ) ||
         options.queued?.has(control.id) ||
         active?.queued ||
         (bound &&

@@ -11,6 +11,7 @@ import type {
   Settings,
   Setup,
   Timing,
+  TrackMode,
   SoundFontRef,
 } from './model'
 
@@ -46,6 +47,7 @@ export interface CommandMap {
   audition: { instrumentId: Id; key: number; on: boolean }
   'learn:start': { controlId?: string; deviceId?: string; control?: ControlDef }
   'learn:stop': undefined
+  'control:capture': { active: boolean }
   'device:assign': { portName: string; profileId: string }
   'audition:select': {
     soundfontId: Id
@@ -77,6 +79,8 @@ export interface RuntimeState {
   activeSceneId: Id | null
   registers: boolean[]
   armedCueId: Id | null
+  queuedCueIds?: Id[]
+  trackModes?: Record<Id, TrackMode>
   pendingActions: { action: Action; tick: number }[]
   expectedNext: { tick: number; keys: number[] } | null
   clips: Record<Id, 'stopped' | 'queued' | 'playing'>
@@ -133,6 +137,7 @@ export interface EventMap {
   app: { cmd: string }
 }
 export interface RequestMap {
+  'control:capture': { input: { active: boolean }; output: undefined }
   'recording:close': { input: undefined; output: undefined }
   'device:profiles': { input: undefined; output: DeviceProfile[] }
   'recording:flush': { input: undefined; output: undefined }

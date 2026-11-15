@@ -240,3 +240,30 @@ it('changes a conditional split while held notes finish on their original instru
   router.close()
   rack.close()
 })
+it('keeps runtime track modes across mixer refreshes, then clears them on a scene activation or explicit mode edit', () => {
+  const project = liveProject('Modes')
+  project.scenes = [{ id: 'a', name: 'A', color: '#4cc2ff' }]
+  const scenes = new Scenes({
+    queue(_at, run) {
+      run()
+      return 0
+    },
+    changed() {},
+    context: () => ({ bar: 1, playing: false }),
+  })
+  scenes.configure(project)
+  scenes.mode({ type: 'trackMode', trackId: 'piano', mode: 'auto' })
+  expect(scenes.effectiveProject()!.tracks[0].mode).toBe('auto')
+  expect(project.tracks[0].mode).toBe('live')
+  scenes.configure({ ...project, name: 'Renamed' })
+  expect(scenes.effectiveProject()!.tracks[0].mode).toBe('auto')
+  scenes.activate('a')
+  expect(scenes.effectiveProject()!.tracks[0].mode).toBe('live')
+  scenes.mode({ type: 'trackMode', trackId: 'piano', mode: 'cycle' })
+  expect(scenes.effectiveProject()!.tracks[0].mode).toBe('mute')
+  scenes.configure({
+    ...project,
+    tracks: project.tracks.map((t) => ({ ...t, mode: 'auto' })),
+  })
+  expect(scenes.effectiveProject()!.tracks[0].mode).toBe('auto')
+})
