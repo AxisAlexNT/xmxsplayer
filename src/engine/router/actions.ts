@@ -7,6 +7,9 @@ export interface ActionHost {
   project: () => Project | undefined
   play: () => Promise<void>
   cancelPlay: () => void
+  tap: () => void
+  tapBeat: () => void
+  rate: (rate: number) => void
   changed: () => void
   patch: (patch: Partial<Project>) => void
   app: (cmd: string) => void
@@ -19,6 +22,19 @@ export class Actions {
     const h = this.host,
       p = h.project()
     if (!p) return
+    if (action.type === 'param' && action.target === 'rate') {
+      h.rate(
+        Math.max(
+          0.25,
+          Math.min(
+            2,
+            action.min +
+              (action.max - action.min) * Math.max(0, Math.min(1, value)),
+          ),
+        ),
+      )
+      return
+    }
     if (action.type === 'app') {
       h.app(action.cmd)
       return
@@ -111,8 +127,10 @@ export class Actions {
         h.scheduler.releaseHold()
         break
       case 'tap':
+        h.tap()
+        return
       case 'tapBeat':
-        h.pending(cmd)
+        h.tapBeat()
         return
     }
     h.scheduler.invalidate(cmd === 'skipHold')

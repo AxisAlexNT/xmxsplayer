@@ -271,6 +271,14 @@ export class Scheduler {
       this.onEnd()
     }
   }
+  audioDeadline(): number | null {
+    if (!this.clock.playing || this.clock.holding) return null
+    const targets: number[] = []
+    if (this.holdRaw !== null) targets.push(this.holdRaw)
+    if (!this.clock.loopRange.enabled && this.project)
+      targets.push(this.clock.map.tickToSec(this.project.lengthTicks))
+    return targets.length ? this.clock.contextAt(Math.min(...targets)) : null
+  }
   nextDeadline(): number | null {
     const candidates = [this.holdRaw, this.actions[0]?.raw].filter(
       (v): v is number => typeof v === 'number',

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineOptions({name:'TrackTimeline'})
+defineOptions({ name: 'TrackTimeline' })
 import { computed, onMounted, onUnmounted, provide, ref, shallowRef } from 'vue'
 import type { Track } from '../../shared/model'
 import { TimeMap } from '../../shared/time-map'
@@ -25,7 +25,8 @@ const doc = useProjectStore(),
   width = ref(1296),
   overlayTop = ref(56),
   dragOrder = ref<string[] | null>(null),
-  heights = ref<Record<string, number>>({})
+  heights = ref<Record<string, number>>({}),
+  loopPreview = ref<import('../../shared/model').Project['loop'] | null>(null)
 const map = computed(() => new TimeMap(doc.project)),
   axis = computed(
     () => new LinearAxis(map.value, width.value, doc.project.view.pxPerQuarter),
@@ -48,9 +49,9 @@ const tracks = computed(() =>
     : doc.project.tracks,
 )
 const loops = computed(() => {
-  if (!doc.project.loop.enabled) return []
+  if (!(loopPreview.value ?? doc.project.loop).enabled) return []
   const a = axis.value,
-    l = doc.project.loop
+    l = loopPreview.value ?? doc.project.loop
   return frame.value.pages.flatMap((page) => {
     const [start, end] = a.pageRange(page),
       lo = Math.max(start, l.startTick),
@@ -92,7 +93,12 @@ function edit(id: string, change: (track: Track) => void): void {
 }
 function mode(track: Track): void {
   edit(track.id, (t) => {
-    t.mode = t.kind === 'audio' ? (t.mode === 'auto' ? 'mute' : 'auto') : ({ auto: 'live', live: 'mute', mute: 'auto' } as const)[t.mode]
+    t.mode =
+      t.kind === 'audio'
+        ? t.mode === 'auto'
+          ? 'mute'
+          : 'auto'
+        : ({ auto: 'live', live: 'mute', mute: 'auto' } as const)[t.mode]
   })
 }
 function height(track: Track): number {
@@ -110,7 +116,8 @@ function reorder(event: PointerEvent, id: string): void {
       ?.closest<HTMLElement>('[data-track-id]')?.dataset.trackId
     if (over && over !== id) {
       const order = [...dragOrder.value!]
-      const from = order.indexOf(id), to = order.indexOf(over)
+      const from = order.indexOf(id),
+        to = order.indexOf(over)
       order.splice(from, 1)
       order.splice(to, 0, id)
       dragOrder.value = order
@@ -181,13 +188,65 @@ function resize(event: PointerEvent, track: Track): void {
   target.addEventListener('pointerup', up)
   target.addEventListener('pointercancel', cancel)
 }
+function selectLoop(event: PointerEvent): void {
+  if (
+    !event.shiftKey ||
+    event.button !== 0 ||
+    !(event.target as HTMLElement).closest('.xm-lane')
+  )
+    return
+  event.preventDefault()
+  const target = root.value!,
+    a = axis.value
+  target.setPointerCapture(event.pointerId)
+  const tick = (e: PointerEvent): number => {
+    const x =
+        e.clientX -
+        target.getBoundingClientRect().left -
+        parseFloat(getComputedStyle(target).getPropertyValue('--xm-w-header')) +
+        frame.value.offset,
+      page = Math.max(0, Math.min(a.pageCount - 1, Math.floor(x / a.pageWidth)))
+    return Math.round(a.tickAt(page, x - page * a.pageWidth))
+  }
+  const start = tick(event)
+  const move = (e: PointerEvent): void => {
+    const end = tick(e)
+    loopPreview.value = {
+      enabled: true,
+      startTick: Math.min(start, end),
+      endTick: Math.max(start, end) + (start === end ? 1 : 0),
+    }
+  }
+  const cleanup = (): void => {
+    loopPreview.value = null
+    target.removeEventListener('pointermove', move)
+    target.removeEventListener('pointerup', up)
+    target.removeEventListener('pointercancel', cancel)
+  }
+  const up = (): void => {
+    if (loopPreview.value) {
+      const loop = { ...loopPreview.value }
+      doc.update((d) => {
+        d.loop = loop
+      })
+    }
+    cleanup()
+  }
+  const cancel = (): void => cleanup()
+  target.addEventListener('pointermove', move)
+  target.addEventListener('pointerup', up)
+  target.addEventListener('pointercancel', cancel)
+}
 function zoom(event: WheelEvent): void {
   if (!event.ctrlKey) return
   event.preventDefault()
   const factor = Math.exp(-event.deltaY * 0.002)
   doc.update((d) => {
     if (event.shiftKey)
-      d.view.staffScale = Math.max(20, Math.min(100, d.view.staffScale * factor))
+      d.view.staffScale = Math.max(
+        20,
+        Math.min(100, d.view.staffScale * factor),
+      )
     else d.view.laneZoom = Math.max(0.5, Math.min(3, d.view.laneZoom * factor))
   })
 }
@@ -218,6 +277,7 @@ onUnmounted(() => {
     ref="root"
     class="xm-main"
     @wheel="zoom"
+    @pointerdown="selectLoop"
   >
     <ConflictBanner @error="emit('error', $event)" />
     <Ruler />
@@ -246,7 +306,12 @@ onUnmounted(() => {
           height: `${height(track)}px`,
         }"
       >
-        <div class="xm-th">
+        <div
+          class="xm-th"
+          @pointerdown="
+            track.kind === 'audio' && (runtime.selectedAudioId = track.id)
+          "
+        >
           <div class="xm-th-top">
             <button
               class="xm-grip xm-grip-button"
@@ -332,7 +397,7 @@ onUnmounted(() => {
             </div>
           </div>
           <AudioTrackControls
-            v-if="track.kind==='audio'"
+            v-if="track.kind === 'audio'"
             :track="track"
           />
           <div
@@ -361,7 +426,7 @@ onUnmounted(() => {
             <i class="bi bi-volume-up xm-faint" /><input
               type="range"
               class="form-range xm-track-volume"
-              :style="{'--v':track.volume}"
+              :style="{ '--v': track.volume }"
               min="0"
               max="1"
               step=".01"
@@ -411,7 +476,7 @@ onUnmounted(() => {
       >
         <button
           class="btn btn-sm btn-ghost"
-          @click="emit('command','import:audio')"
+          @click="emit('command', 'import:audio')"
         >
           <i class="bi bi-plus-lg" /> Audio track
         </button>
@@ -442,7 +507,7 @@ onUnmounted(() => {
     <div
       v-if="tracks.length"
       class="xm-overlay xm-timeline-overlay"
-      :style="{top:`${overlayTop}px`}"
+      :style="{ top: `${overlayTop}px` }"
     >
       <div
         v-for="loop in loops"

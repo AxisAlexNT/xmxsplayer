@@ -15,6 +15,14 @@ export type ProjectMeta = Project
 export interface CommandMap {
   ping: undefined
   'audio:scope': { folder: string }
+  'grid:tapMap': {
+    trackId: Id
+    active: boolean
+    unit: 'beat' | 'bar'
+    discard?: boolean
+  }
+  'grid:apply': { trackId: Id; anchors: Project['beatAnchors'] }
+  'grid:barOne': { trackId: Id }
   'project:meta': ProjectMeta
   'track:notes': { trackId: Id; notes: Note[] }
   'settings:set': Settings
@@ -53,6 +61,7 @@ export interface TransportState {
   rate: number
   followFactor: number
   perfTime: number
+  countInBeat?: number
 }
 export interface RuntimeState {
   activeSceneId: Id | null
@@ -70,6 +79,12 @@ export interface LogEntry {
 }
 export interface EventMap {
   ready: undefined
+  'grid:taps': {
+    active: boolean
+    trackId: Id | null
+    anchors: Project['beatAnchors']
+    unit: 'beat' | 'bar'
+  }
   'audio:peaks': AudioPeaks & { trackId: Id; file: string; key: string }
   'audio:state': { trackId: Id; loading: boolean; error?: string }
   'synth:state': { loading: boolean; readyIds: Id[] }

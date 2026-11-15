@@ -14,6 +14,7 @@ export class AudioTrack {
   private lastStart = -Infinity
   private stopAt: number | null = null
   private stoppedAt: number | null = null
+  private volume = 0
   private constructor(
     readonly route: AudioRoute,
     readonly node: StretchNode,
@@ -62,11 +63,9 @@ export class AudioTrack {
       track.filter.freq,
     )
     this.filter.Q.value = track.filter.q
-    this.gain.gain.setTargetAtTime(
-      enabled ? track.volume : 0,
-      c.currentTime,
-      0.005,
-    )
+    this.volume = enabled ? track.volume : 0
+    this.gain.gain.cancelScheduledValues(c.currentTime)
+    this.gain.gain.setTargetAtTime(this.volume, c.currentTime, 0.005)
     this.pan.pan.setTargetAtTime(track.pan, c.currentTime, 0.005)
   }
   schedule(track: Track, clock: TransportClock, deadline: number | null): void {
@@ -87,8 +86,12 @@ export class AudioTrack {
         : 0,
       active: clock.playing && !clock.holding,
     })
-    if (!clock.playing || clock.holding)
-      this.gain.gain.setTargetAtTime(0, this.route.context.currentTime, 0.005)
+    this.gain.gain.cancelScheduledValues(this.route.context.currentTime)
+    this.gain.gain.setTargetAtTime(
+      clock.playing && !clock.holding ? this.volume : 0,
+      this.route.context.currentTime,
+      0.005,
+    )
     this.lastStart = outputMain
     this.stopAt = deadline
     this.stoppedAt = null
@@ -100,6 +103,14 @@ export class AudioTrack {
       now > this.lastStart + 0.006
     ) {
       this.stoppedAt = this.stopAt
+      this.gain.gain.setTargetAtTime(
+        0,
+        Math.max(
+          this.route.context.currentTime,
+          this.route.timeAt(this.stopAt),
+        ),
+        0.005,
+      )
       void this.node.schedule({
         output: this.route.timeAt(this.stopAt),
         active: false,

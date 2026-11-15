@@ -18,3 +18,22 @@ export function audioPeaks(
     }
   return peaks
 }
+
+export async function audioPeaksAsync(
+  channels: readonly Float32Array[],
+  yieldWork: () => Promise<void> = () =>
+    new Promise((resolve) => setTimeout(resolve, 0)),
+): Promise<number[]> {
+  const length = Math.max(0, ...channels.map((c) => c.length)),
+    result: number[] = [],
+    chunkFrames = 65536
+  for (let offset = 0; offset < length; offset += chunkFrames) {
+    result.push(
+      ...audioPeaks(
+        channels.map((c) => c.subarray(offset, offset + chunkFrames)),
+      ),
+    )
+    if (offset + chunkFrames < length) await yieldWork()
+  }
+  return result
+}

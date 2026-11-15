@@ -42,9 +42,12 @@ export class AudioTracks {
     this.decoder.clear()
   }
   async load(trackId: string, file: string): Promise<DecodedAudio> {
+    const scope = this.scope
     this.bus()?.send('audio:state', { trackId, loading: true })
     try {
       const data = await this.decoder.load(file)
+      if (scope !== this.scope)
+        throw Error('Audio import cancelled because the project changed')
       this.bus()?.send('audio:peaks', {
         trackId,
         file,
@@ -56,11 +59,12 @@ export class AudioTracks {
       this.bus()?.send('audio:state', { trackId, loading: false })
       return data
     } catch (e) {
-      this.bus()?.send('audio:state', {
-        trackId,
-        loading: false,
-        error: String(e),
-      })
+      if (scope === this.scope)
+        this.bus()?.send('audio:state', {
+          trackId,
+          loading: false,
+          error: String(e),
+        })
       throw e
     }
   }

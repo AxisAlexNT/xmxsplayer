@@ -47,6 +47,9 @@ watch(engineBus, (bus) => {
     await window.xm.project.cachePeaks(file, key, data)
     return undefined
   })
+  bus.on('grid:taps', (state) => {
+    runtime.tapMap = state
+  })
   bus.on('audio:peaks', (data) => {
     runtime.audioPeaks[data.trackId] = data
   })

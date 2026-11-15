@@ -1,33 +1,34 @@
 <script setup lang="ts">
-defineOptions({name:'TimelineRuler'})
+defineOptions({ name: 'TimelineRuler' })
 import { computed, inject, ref } from 'vue'
 import { timelineKey } from '../timeline/context'
+import { useRuntimeStore } from '../stores/runtime'
 import { useProjectStore } from '../stores/project'
 import { engineBus } from '../bus'
+import BarGridTools from '../components/BarGridTools.vue'
 import { TimeMap } from '../../shared/time-map'
 const context = inject(timelineKey)!,
   doc = useProjectStore(),
+  runtime = useRuntimeStore(),
   surface = ref<HTMLElement>()
 const measures = computed(() => {
   const axis = context.axis.value
   const map = new TimeMap(doc.project)
   return context.frame.value.pages.flatMap((page) =>
-    map
-      .measures(...axis.pageRange(page))
-      .map((m) => ({
-        ...m,
-        page,
-        x:
+    map.measures(...axis.pageRange(page)).map((m) => ({
+      ...m,
+      page,
+      x:
+        page * axis.pageWidth +
+        axis.xInPage(m.start, page) -
+        context.frame.value.offset,
+      beats: m.beats.map(
+        (t) =>
           page * axis.pageWidth +
-          axis.xInPage(m.start, page) -
+          axis.xInPage(t, page) -
           context.frame.value.offset,
-        beats: m.beats.map(
-          (t) =>
-            page * axis.pageWidth +
-            axis.xInPage(t, page) -
-            context.frame.value.offset,
-        ),
-      })),
+      ),
+    })),
   )
 })
 function at(event: PointerEvent): number {
@@ -78,11 +79,78 @@ function drag(event: PointerEvent): void {
   element.addEventListener('pointerup', up)
   element.addEventListener('pointercancel', cancel)
 }
+function anchorX(tick: number): number {
+  const a = context.axis.value
+  return (
+    a.pageOfTick(tick) * a.pageWidth +
+    a.xInPage(tick) -
+    context.frame.value.offset
+  )
+}
+function referenceId(): string {
+  return (
+    runtime.selectedAudioId ??
+    doc.project.tracks.find((t) => t.kind === 'audio')?.id ??
+    ''
+  )
+}
+function removeAnchor(index: number): void {
+  if (doc.project.mapOwner !== null) return
+  const anchors = doc.project.beatAnchors.filter((_, i) => i !== index)
+  if (anchors.length >= 2)
+    engineBus.value?.send('grid:apply', { trackId: referenceId(), anchors })
+  else
+    doc.update((d) => {
+      d.beatAnchors = []
+    })
+}
+function dragAnchor(event: PointerEvent, index: number): void {
+  if (event.button !== 0 || doc.project.mapOwner !== null) return
+  event.preventDefault()
+  const target = event.currentTarget as HTMLElement
+  target.setPointerCapture(event.pointerId)
+  let end = event
+  const move = (e: PointerEvent): void => {
+    end = e
+    target.style.transform = `translateX(${e.clientX - event.clientX}px)`
+  }
+  const cleanup = (): void => {
+    target.style.transform = ''
+    target.removeEventListener('pointermove', move)
+    target.removeEventListener('pointerup', up)
+    target.removeEventListener('pointercancel', cancel)
+  }
+  const up = (): void => {
+    const anchors = doc.project.beatAnchors.map((a) => ({ ...a })),
+      track = doc.project.tracks.find((t) => t.id === referenceId())
+    if (track?.kind === 'audio') {
+      const axis = context.axis.value,
+        page = axis.pageOfTick(anchors[index].tick),
+        [start, finish] = axis.pageRange(page)
+      const targetTick =
+        anchors[index].tick +
+        ((end.clientX - event.clientX) * (finish - start)) /
+          (axis.pageWidth - 96)
+      const sec =
+        new TimeMap(doc.project).tickToSec(targetTick) - track.offsetSec
+      anchors[index].sec = Math.max(
+        (anchors[index - 1]?.sec ?? -0.001) + 0.001,
+        Math.min((anchors[index + 1]?.sec ?? Infinity) - 0.001, sec),
+      )
+      engineBus.value?.send('grid:apply', { trackId: track.id, anchors })
+    }
+    cleanup()
+  }
+  const cancel = (): void => cleanup()
+  target.addEventListener('pointermove', move)
+  target.addEventListener('pointerup', up)
+  target.addEventListener('pointercancel', cancel)
+}
 </script>
 <template>
   <div class="xm-rowgrid xm-ruler">
     <div class="xm-corner">
-      <i class="bi bi-rulers" /> Bars
+      <BarGridTools />
     </div>
     <div
       ref="surface"
@@ -102,6 +170,19 @@ function drag(event: PointerEvent): void {
           :style="{ left: `${x}px` }"
         ><b v-if="i === 0">{{ m.bar }}</b></span>
       </template>
+      <button
+        v-for="(anchor, index) in doc.project.beatAnchors"
+        :key="`anchor-${index}`"
+        class="xm-beat-anchor"
+        :style="{ left: `${anchorX(anchor.tick)}px` }"
+        :title="`Beat anchor ${index + 1} · ${anchor.sec.toFixed(3)} s · drag to adjust, right-click or Delete to remove`"
+        :aria-label="`Beat anchor ${index + 1}`"
+        @pointerdown.stop="dragAnchor($event, index)"
+        @keydown.delete.prevent="removeAnchor(index)"
+        @contextmenu.prevent="removeAnchor(index)"
+      >
+        ◆
+      </button>
     </div>
   </div>
 </template>

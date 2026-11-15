@@ -1,0 +1,13 @@
+import type { Binding } from './model'
+export const defaultBindings: Binding[] = [
+  {
+    control: 'knob.1',
+    edge: 'change',
+    action: { type: 'param', target: 'rate', min: 0.25, max: 1.5 },
+  },
+  {
+    control: 'encoder.main',
+    edge: 'change',
+    action: { type: 'transport', cmd: 'scrub' },
+  },
+]

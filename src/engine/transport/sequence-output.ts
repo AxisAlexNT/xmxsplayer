@@ -18,6 +18,7 @@ export class SequenceOutput implements SchedulerOutput {
     private now: () => number,
     warn: (message: string) => void,
     readonly beat: (tick: number, when: number) => void,
+    private onReset: () => void = () => undefined,
   ) {
     this.rack = new InstrumentRack(backend, load, warn)
   }
@@ -121,6 +122,7 @@ export class SequenceOutput implements SchedulerOutput {
         if (voice.off === undefined || voice.off > when) voice.off = when
   }
   reset(keepHeld: boolean): void {
+    this.onReset()
     const now = this.now()
     this.collect(now)
     for (const slots of this.tracks.values())

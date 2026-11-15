@@ -194,19 +194,43 @@ function notify(message: string): void {
   }, 4000)
 }
 async function addAudio(file: string): Promise<void> {
-  if (!engineBus.value || !runtime.connected) throw Error('Wait for the audio engine to connect')
-  if (!audioFormats.has(audioExtension(file))) throw Error(`${file}: choose WAV, MP3, OGG, FLAC or M4A audio`)
+  if (!engineBus.value || !runtime.connected)
+    throw Error('Wait for the audio engine to connect')
+  if (!audioFormats.has(audioExtension(file)))
+    throw Error(`${file}: choose WAV, MP3, OGG, FLAC or M4A audio`)
   notify(`Loading ${file.split('/').at(-1)}…`)
-  const draft=importedAudio(doc.project,file,0)
-  const loaded=await engineBus.value.request('audio:load',{trackId:draft.track.id,url:'',file},120000)
-  const imported=importedAudio(doc.project,file,loaded.durationSec)
-  doc.update(d=>{d.tracks.push(imported.track);d.lengthTicks=imported.lengthTicks})
+  clearTimeout(toastTimer)
+  const folder = doc.folder
+  const draft = importedAudio(doc.project, file, 0)
+  const loaded = await engineBus.value
+    .request('audio:load', { trackId: draft.track.id, url: '', file }, 120000)
+    .catch((error) => {
+      if (doc.folder !== folder) return null
+      throw error
+    })
+  if (!loaded || doc.folder !== folder) return
+  const imported = importedAudio(doc.project, file, loaded.durationSec)
+  doc.update((d) => {
+    d.tracks.push(imported.track)
+    d.lengthTicks = imported.lengthTicks
+  })
   notify(`${imported.track.name} imported`)
 }
 async function drop(event: DragEvent): Promise<void> {
   if (!event.dataTransfer?.files.length) return
-  if (!doc.folder) {notify('Create or open a project folder first');return}
-  for (const file of event.dataTransfer.files) {try {await addAudio(await window.xm.project.importDropped(file))} catch(error) {fail(error)}}
+  if (!doc.folder) {
+    notify('Create or open a project folder first')
+    return
+  }
+  const folder = doc.folder
+  for (const file of event.dataTransfer.files) {
+    if (doc.folder !== folder) break
+    try {
+      await addAudio(await window.xm.project.importDropped(file))
+    } catch (error) {
+      fail(error)
+    }
+  }
 }
 function fail(error: unknown): void {
   notify(error instanceof Error ? error.message : String(error))
@@ -215,7 +239,10 @@ function fail(error: unknown): void {
 async function command(cmd: string): Promise<void> {
   try {
     if (cmd === 'import:audio') {
-      if (!doc.folder) { notify('Create or open a project folder first'); return }
+      if (!doc.folder) {
+        notify('Create or open a project folder first')
+        return
+      }
       const file = await window.xm.project.importFile('audio')
       if (file) await addAudio(file)
     } else if (cmd === 'new' || cmd === 'open') {
@@ -406,7 +433,11 @@ onUnmounted(() => {
             'is-rec': button.cmd === 'record',
             'is-active': button.cmd === 'record' && runtime.transport.recording,
           }"
-          :disabled="!runtime.connected"
+          :disabled="
+            !runtime.connected ||
+              (runtime.synthLoading &&
+                (button.cmd === 'toggle' || button.cmd === 'record'))
+          "
           :title="button.title"
           :aria-label="button.title"
           @pointerdown="repeat($event, button.cmd)"
@@ -434,7 +465,12 @@ onUnmounted(() => {
           :key="beat"
           class="xm-beat"
           :class="{
-            'is-on': runtime.transport.playing && beat === position.beat,
+            'is-on':
+              runtime.transport.playing &&
+              beat ===
+              (runtime.transport.countInBeat
+                ? ((runtime.transport.countInBeat - 1) % position.num) + 1
+                : position.beat),
           }"
         />
       </div>
@@ -483,7 +519,13 @@ onUnmounted(() => {
           class="btn btn-sm btn-xm dropdown-toggle"
           disabled
         >
-          {{ runtime.transport.holding ? 'Holding' : 'Written' }}
+          {{
+            runtime.transport.countInBeat
+              ? `Count-in ${runtime.transport.countInBeat}`
+              : runtime.transport.holding
+                ? 'Holding'
+                : 'Written'
+          }}
         </button>
       </div>
       <div class="flex-grow-1" />

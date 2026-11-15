@@ -10,7 +10,7 @@ import {
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { AudioCache } from '../../src/main/audio-cache'
-import { audioPeaks } from '../../src/engine/audio/peaks'
+import { audioPeaks, audioPeaksAsync } from '../../src/engine/audio/peaks'
 import { channelMatrix } from '../../src/engine/audio/channel-mode'
 import { contextTimeAt } from '../../src/engine/audio/graph'
 import { sourceTime, songTime } from '../../src/shared/audio'
@@ -82,4 +82,16 @@ it('persists peak caches, keys them by file and sample rate, and confines cache 
   expect(
     await readFile(join(root, '.xmxs/audio-' + first.key + '.json'), 'utf8'),
   ).toContain('48000')
+})
+
+it('yields during long-file peak reduction without changing the waveform', async () => {
+  const samples = Float32Array.from({ length: 150000 }, (_, i) =>
+    Math.sin(i * 0.1),
+  )
+  let yields = 0
+  const result = await audioPeaksAsync([samples], async () => {
+    yields++
+  })
+  expect(result).toEqual(audioPeaks([samples]))
+  expect(yields).toBe(2)
 })

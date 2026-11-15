@@ -20,6 +20,13 @@ export const useRuntimeStore = defineStore('runtime', () => {
   const audioStates = ref<
     Record<string, import('../../shared/protocol').EventMap['audio:state']>
   >({})
+  const selectedAudioId = ref<string | null>(null)
+  const tapMap = ref<import('../../shared/protocol').EventMap['grid:taps']>({
+    active: false,
+    trackId: null,
+    anchors: [],
+    unit: 'beat',
+  })
   const synthLoading = ref(false)
   const readyInstruments = ref<string[]>([])
   const midi = ref<import('../../shared/protocol').EventMap['midi:ports']>({
@@ -57,6 +64,8 @@ export const useRuntimeStore = defineStore('runtime', () => {
     ]
   }
   return {
+    tapMap,
+    selectedAudioId,
     audioPeaks,
     audioStates,
     synthLoading,

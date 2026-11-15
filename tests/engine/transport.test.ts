@@ -171,3 +171,12 @@ it('warms audio processing before starting the shared clock and sequenced notes'
   f.setNow(0.22)
   expect(f.clock.tick).toBeCloseTo(96)
 })
+it('caps audio at holds and song end while routing actions leave it running', () => {
+  const f = fixture()
+  f.clock.play()
+  f.scheduler.queue('beat', () => undefined)
+  expect(f.scheduler.nextDeadline()).toBe(0.5)
+  expect(f.scheduler.audioDeadline()).toBe(8)
+  f.scheduler.holdAt(480)
+  expect(f.scheduler.audioDeadline()).toBe(0.5)
+})

@@ -1,3 +1,4 @@
+import { defaultBindings } from './default-bindings'
 import type { Project, Settings } from './model'
 
 export function newProject(name = 'Untitled'): Project {
@@ -21,7 +22,7 @@ export function newProject(name = 'Untitled'): Project {
     base: {
       zones: [],
       patch: [],
-      bindings: [],
+      bindings: structuredClone(defaultBindings),
       trackModes: {},
       padColors: {},
       beatChase: 'top',

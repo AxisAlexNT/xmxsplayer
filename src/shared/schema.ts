@@ -420,6 +420,19 @@ export const projectSchema = z
     }),
   })
   .superRefine((p, ctx) => {
+    const anchors = p.beatAnchors
+      .map((anchor, index) => ({ ...anchor, index }))
+      .sort((a, b) => a.tick - b.tick)
+    for (let i = 1; i < anchors.length; i++)
+      if (
+        anchors[i].tick <= anchors[i - 1].tick ||
+        anchors[i].sec <= anchors[i - 1].sec
+      )
+        ctx.addIssue({
+          code: 'custom',
+          path: ['beatAnchors', anchors[i].index, 'sec'],
+          message: 'Beat anchors must advance in ticks and audio seconds',
+        })
     for (const kind of [
       'tracks',
       'sources',

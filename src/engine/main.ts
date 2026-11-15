@@ -1,3 +1,4 @@
+import { TimeMap } from '../shared/time-map'
 import { applyMetadata } from '../shared/project-sync'
 import { Bus } from '../shared/bus'
 import type {
@@ -134,8 +135,10 @@ async function initialize(value: Settings): Promise<void> {
     )
     if (project) {
       router.setProject(project)
-      await rack.synchronize(project)
-      await transport.synchronize(project)
+      await Promise.all([
+        rack.synchronize(project),
+        transport.synchronize(project),
+      ])
     }
     midi = new MidiIO(
       receiveMidi,
@@ -165,8 +168,10 @@ async function synchronize(): Promise<void> {
   const revision = ++syncRevision
   bus?.send('synth:state', { loading: true, readyIds: [] })
   router?.setProject(project)
-  await rack.synchronize(project)
-  await transport?.synchronize(project)
+  await Promise.all([
+    rack.synchronize(project),
+    transport?.synchronize(project),
+  ])
   if (revision !== syncRevision) return
   bus?.send('synth:state', {
     loading: false,
@@ -260,7 +265,10 @@ window.addEventListener('message', (event) => {
       (error) => log('error', 'audio', String(error)),
     )
   })
-  bus.on('audio:scope', ({ folder }) => transport?.audio.setScope(folder))
+  bus.on('audio:scope', ({ folder }) => {
+    transport?.audio.setScope(folder)
+    transport?.grid.reset()
+  })
   bus.on('project:meta', (value) => {
     const old = project
     project = applyMetadata(value, old)
@@ -325,6 +333,35 @@ window.addEventListener('message', (event) => {
       value,
     ),
   )
+  bus.on('grid:tapMap', (value) => {
+    try {
+      transport?.grid.setSession(value)
+    } catch (error) {
+      log('error', 'grid', String(error))
+    }
+  })
+  bus.on('grid:apply', ({ trackId, anchors }) => {
+    try {
+      transport?.grid.applyAnchors(trackId, anchors)
+    } catch (error) {
+      log('error', 'grid', String(error))
+    }
+  })
+  bus.on('grid:barOne', ({ trackId }) => {
+    if (!project || project.mapOwner !== null || !transport) return
+    const sec = new TimeMap(project).tickToSec(transport.clock.tick)
+    transport.applyPatch(
+      {
+        tracks: project.tracks.map((t) =>
+          t.id === trackId && t.kind === 'audio'
+            ? { ...t, offsetSec: t.offsetSec - sec }
+            : t,
+        ),
+        beatAnchors: [],
+      },
+      0,
+    )
+  })
   bus.on('action:run', ({ action, value, at }) => {
     try {
       transport?.scheduler.queue(at ?? 'now', () =>

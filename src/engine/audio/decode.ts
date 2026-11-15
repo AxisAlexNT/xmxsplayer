@@ -1,6 +1,6 @@
 import type { AudioPeaks, AudioSource } from '../../shared/audio'
 import { audioExtension } from '../../shared/audio'
-import { audioPeaks } from './peaks'
+import { audioPeaksAsync } from './peaks'
 export interface DecodedAudio extends AudioPeaks {
   key: string
   buffer: AudioBuffer
@@ -38,7 +38,7 @@ export class AudioDecoder {
       const data = source.cached ?? {
         sampleRate: buffer.sampleRate,
         durationSec: buffer.duration,
-        peaks: audioPeaks(
+        peaks: await audioPeaksAsync(
           Array.from({ length: buffer.numberOfChannels }, (_, i) =>
             buffer.getChannelData(i),
           ),

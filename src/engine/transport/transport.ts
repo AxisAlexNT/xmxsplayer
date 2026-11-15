@@ -1,3 +1,5 @@
+import { BeatGrid } from './beat-grid'
+import { Metronome } from './metronome'
 import { AudioGraph } from '../audio/graph'
 import { AudioTracks } from '../audio/tracks'
 import type { Project, SoundFontRef } from '../../shared/model'
@@ -15,6 +17,12 @@ export class Transport {
   readonly scheduler: Scheduler
   readonly actions: Actions
   readonly audio: AudioTracks
+  readonly grid: BeatGrid
+  private metronome: Metronome
+  private gridSeek: number | undefined
+  private countUntil = 0
+  private countStart = 0
+  private countStep = 0
   private context: AudioContext
   private output: SequenceOutput
   private worker = new TimerWorker()
@@ -39,18 +47,36 @@ export class Transport {
       new TimeMap(newProject()),
       () => context.currentTime,
     )
+    this.metronome = new Metronome(graph)
+    this.grid = new BeatGrid(
+      this.clock,
+      () => this.project,
+      (rate) => this.rate(rate),
+      (patch, tick) => this.applyPatch(patch, tick),
+      (state) => this.bus()?.send('grid:taps', state),
+      warn,
+    )
     this.output = new SequenceOutput(
       backend,
       load,
       () => context.currentTime,
       warn,
-      () => undefined,
+      (tick, when) => {
+        const m = this.project?.metronome
+        if (m?.audible)
+          this.metronome.click(
+            when,
+            this.clock.map.tickToBarBeat(tick).beat === 1,
+            m.toCue,
+          )
+      },
+      () => this.metronome.cancel(),
     )
     this.scheduler = new Scheduler(this.clock, this.output)
     this.audio = new AudioTracks(
       graph,
       this.clock,
-      () => this.scheduler.nextDeadline(),
+      () => this.scheduler.audioDeadline(),
       this.bus,
       warn,
     )
@@ -61,6 +87,9 @@ export class Transport {
       scheduler: this.scheduler,
       project: () => this.project,
       play: () => this.play(),
+      rate: (rate) => this.rate(rate),
+      tap: () => this.grid.tap(),
+      tapBeat: () => this.grid.tapBeat(),
       cancelPlay: () => {
         this.playRevision++
         this.starting = false
@@ -74,11 +103,17 @@ export class Transport {
       if (this.syncing) return
       this.scheduler.tick()
       this.audio.tick()
+      this.metronome.tick(this.context.currentTime)
       this.report()
       this.armDeadline()
     }
   }
   synchronize(project: Project): Promise<void> {
+    if (
+      this.project?.metronome.audible !== project.metronome.audible ||
+      this.project.metronome.toCue !== project.metronome.toCue
+    )
+      this.metronome.cancel()
     this.project = project
     const signature = JSON.stringify({
       tempos: project.tempos,
@@ -108,7 +143,14 @@ export class Transport {
             : { id: t.id, mode: t.mode, solo: t.solo },
         ),
     })
-    if (signature === this.signature) return this.audio.synchronize(project)
+    if (signature === this.signature) {
+      if (this.gridSeek !== undefined) {
+        this.clock.seek(this.gridSeek)
+        this.gridSeek = undefined
+        this.scheduler.invalidate(false)
+      }
+      return this.audio.synchronize(project).then(() => this.changed())
+    }
     this.signature = signature
     const epoch = ++this.epoch
     this.scheduler.invalidate(false)
@@ -119,6 +161,10 @@ export class Transport {
       if (epoch !== this.epoch) return
       this.clock.setMap(new TimeMap(project))
       this.clock.setLoop(project.loop)
+      if (this.gridSeek !== undefined) {
+        this.clock.seek(this.gridSeek)
+        this.gridSeek = undefined
+      }
       await this.output.synchronize(project)
       if (epoch !== this.epoch) return
       this.scheduler.setProject(project)
@@ -135,6 +181,10 @@ export class Transport {
     })
     return work
   }
+  applyPatch(patch: Partial<Project>, tick?: number): void {
+    this.gridSeek = tick
+    this.bus()?.send('doc:patch', patch)
+  }
   async play(): Promise<void> {
     if (this.starting) return
     this.starting = true
@@ -147,8 +197,26 @@ export class Transport {
         this.clock.seek(
           this.project.loop.enabled ? this.project.loop.startTick : 0,
         )
-      this.clock.play(this.audio.latency)
+      const p = this.project!,
+        sig = this.clock.map.signatureAt(this.clock.tick),
+        beatSec =
+          ((60 / this.clock.map.tempoAt(this.clock.tick)) * 4) /
+          sig.den /
+          this.clock.speed,
+        beats = p.metronome.countInBars * sig.num
+      this.countStart = this.context.currentTime + this.audio.latency
+      this.countStep = beatSec
+      this.countUntil = beats ? this.countStart + beats * beatSec : 0
+      this.clock.play(this.audio.latency + beats * beatSec)
       this.scheduler.invalidate(false)
+      if (beats)
+        this.metronome.countIn(
+          this.countStart,
+          sig.num,
+          beats,
+          beatSec,
+          p.metronome.toCue,
+        )
       this.changed()
     } catch (e) {
       this.warn(String(e))
@@ -172,6 +240,14 @@ export class Transport {
     this.changed()
   }
   changed(): void {
+    if (
+      !this.clock.playing ||
+      (this.countUntil > this.context.currentTime &&
+        this.clock.contextAt(this.clock.raw) <= this.context.currentTime)
+    ) {
+      this.metronome.cancel(true)
+      this.countUntil = 0
+    }
     this.worker.postMessage(
       this.clock.playing && !this.syncing ? 'start' : 'stop',
     )
@@ -184,6 +260,15 @@ export class Transport {
   private report(): void {
     const c = this.clock
     this.bus()?.send('transport', {
+      countInBeat:
+        c.playing && this.context.currentTime < this.countUntil
+          ? Math.max(
+              1,
+              Math.floor(
+                (this.context.currentTime - this.countStart) / this.countStep,
+              ) + 1,
+            )
+          : 0,
       playing: c.playing,
       holding: c.holding,
       recording: c.recording,
