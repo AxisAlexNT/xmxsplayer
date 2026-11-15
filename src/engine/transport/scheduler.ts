@@ -54,6 +54,7 @@ export class Scheduler {
   private actionSerial = 0
   private holdRaw: number | null = null
   private ticking = false
+  following = false
   timeline?: SchedulerTimeline
   onBoundary: () => void = () => undefined
   onEnd: () => void = () => undefined
@@ -238,7 +239,9 @@ export class Scheduler {
       boundary = this.timeline?.next() ?? null
     }
     const horizon =
-      this.timeline?.next(true) || this.project?.follow.mode !== 'written'
+      this.following ||
+      this.timeline?.next(true) ||
+      this.project?.follow.mode !== 'written'
         ? Math.min(lookahead, 0.04)
         : lookahead
     let until = rawNow + horizon * this.clock.speed

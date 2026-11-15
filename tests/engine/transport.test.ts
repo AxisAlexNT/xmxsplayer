@@ -198,3 +198,15 @@ it('preserves a sounding note through an auto-to-live switch and still sends its
     when: 0.5,
   })
 })
+it('keeps a 40 ms horizon during the return from tempo tracking to written mode', () => {
+  const f = fixture()
+  f.track.notes = [[96, 120, 60, 100]]
+  f.scheduler.setProject(f.project)
+  f.scheduler.following = true
+  f.clock.play()
+  f.scheduler.tick()
+  expect(f.events.some((e) => e.type === 'on')).toBe(false)
+  f.setNow(0.07)
+  f.scheduler.tick()
+  expect(f.events.some((e) => e.type === 'on')).toBe(true)
+})

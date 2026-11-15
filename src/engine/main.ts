@@ -120,7 +120,8 @@ function publishRuntime(): void {
   )
   runtimeState.followMode = performanceProject()?.follow.mode
   runtimeState.followHolding = transport?.waitNotes.holding ?? false
-  runtimeState.expectedNext = transport?.waitNotes.expected ?? null
+  runtimeState.expectedNext =
+    transport?.waitNotes.expected ?? transport?.tempoTrack.expected ?? null
   runtimeState.armedCueId = cues?.armedId ?? null
   runtimeState.queuedCueIds = cues?.queuedIds ?? []
   runtimeState.pendingActions = cues?.pendingActions ?? []
@@ -628,11 +629,13 @@ async function initialize(value: Settings): Promise<void> {
     )
     transport.onSeek = () => {
       transport!.waitNotes.reset()
+      transport!.tempoTrack.reset()
       cues!.seek()
       scriptTimeline?.reset()
     }
     transport.onStop = () => {
       transport!.waitNotes.reset()
+      transport!.tempoTrack.reset(false)
       cues!.stop()
       scriptTimeline?.reset()
       releaseScriptNotes()

@@ -10,7 +10,7 @@ M7b software provides audio clips with waveform fragment editing, audition, four
 
 The transcription workspace imports MIDI and audio, shares a transport and timeline, loops sections, changes playback speed without changing pitch, and provides beat-grid anchors, time/key maps, a metronome and count-in. Armed MIDI tracks record post-zone notes and expression with latency compensation and loop overdub. Each take is one undo step. The piano roll supports snapped drawing, selection, moving, resizing, velocity edits, duplication, deletion and quantization, with mouse, touch and pen input. Two-finger gestures pan and zoom; double-click a MIDI track header to expand its lane.
 
-Verified on Ubuntu 24.04, including live input from an Arturia KeyLab Essential 61 mk3. Automated desktop checks cover recording at 60% speed over looping audio, take undo/redo, native pointer editing, simulated pen pressure and touch zoom. Physical Windows pen/eraser behavior, Windows audio codecs and alternate hardware outputs remain unverified. Some KeyLab pad, knob, fader and encoder messages still require physical capture; Windows port names remain unverified. M8 wait-for-notes is implemented locally, including any/all chord matching, early notes, lead controls and expected-note highlights. Tempo tracking, score linking and staff rendering remain in development. This is not a release-ready application.
+Verified on Ubuntu 24.04, including live input from an Arturia KeyLab Essential 61 mk3. Automated desktop checks cover recording at 60% speed over looping audio, take undo/redo, native pointer editing, simulated pen pressure and touch zoom. Physical Windows pen/eraser behavior, Windows audio codecs and alternate hardware outputs remain unverified. Some KeyLab pad, knob, fader and encoder messages still require physical capture; Windows port names remain unverified. M8 software provides wait-for-notes and tempo tracking, including any/all chord matching, early notes, lead controls, expected-note highlights, tempo/phase settings and live factor readouts. Synthetic performance and isolated desktop checks pass; physical performance tuning remains pending. Score linking and staff rendering remain in development. This is not a release-ready application.
 
 ## Development
 
@@ -64,7 +64,7 @@ Expand Signal flow to inspect Inputs → Zones → Tracks → Instruments → Ou
 
 Edit TypeScript in Script, then Apply or press Ctrl+Enter. A new version needs approval before it runs; external edits reload through the same trust check. Disable stops hooks and script-created notes. Scripts can transform live notes, react to controls and musical boundaries, change runtime routing and registers, and update pad/display feedback. See [Scripting](docs/scripting.md) for the API, limits and three examples.
 
-See [Follow modes](docs/follow-modes.md) for lead tracks, chord matching, early timing and skip controls.
+See [Follow modes](docs/follow-modes.md) for lead tracks, chord matching, tempo tracking, timing settings and skip controls.
 
 ## Project files
 

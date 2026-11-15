@@ -54,12 +54,14 @@ function toggle(event: MouseEvent): void {
 function apply(patch: Partial<Project['follow']>): void {
   try {
     doc.update((project) => {
+      if (patch.range && patch.range[0] > patch.range[1])
+        throw Error('Tempo limits must be ordered')
       Object.assign(project.follow, patch)
     })
     error.value = ''
   } catch {
     error.value =
-      'Use finite, nonnegative timing values and positive tempo limits.'
+      'Use nonnegative timing, positive ordered tempo limits, smoothing from 0 to 1 and nonnegative phase gain.'
   }
 }
 function select(value: Project['follow']['mode']): void {
@@ -68,8 +70,16 @@ function select(value: Project['follow']['mode']): void {
     action: { type: 'follow', mode: value },
   })
 }
-function numeric(key: 'chordWindowMs' | 'earlyMs', event: Event): void {
+function numeric(
+  key: 'chordWindowMs' | 'earlyMs' | 'smoothing' | 'phaseGain',
+  event: Event,
+): void {
   apply({ [key]: Number((event.target as HTMLInputElement).value) })
+}
+function range(index: 0 | 1, event: Event): void {
+  const range: [number, number] = [...doc.project.follow.range]
+  range[index] = Number((event.target as HTMLInputElement).value) / 100
+  apply({ range })
 }
 function lead(id: string): void {
   doc.update((project) => {
@@ -134,7 +144,6 @@ function lead(id: string): void {
             class="form-check-input"
             :checked="mode === choice.mode"
             :value="choice.mode"
-            :disabled="choice.mode === 'tempoTrack'"
             @change="select(choice.mode)"
           >
           <span><b>{{ choice.title }}</b><small class="xm-faint">{{ choice.description }}</small></span>
@@ -195,6 +204,72 @@ function lead(id: string): void {
             </div>
           </div>
         </div>
+      </template>
+      <template v-if="mode === 'tempoTrack'">
+        <label class="form-label">Tempo range</label>
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <div class="input-group">
+              <input
+                type="number"
+                class="form-control xm-mono"
+                min="1"
+                step="5"
+                :value="doc.project.follow.range[0] * 100"
+                aria-label="Follow minimum tempo percent"
+                @change="range(0, $event)"
+              ><span class="input-group-text">%</span>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="input-group">
+              <input
+                type="number"
+                class="form-control xm-mono"
+                min="1"
+                step="5"
+                :value="doc.project.follow.range[1] * 100"
+                aria-label="Follow maximum tempo percent"
+                @change="range(1, $event)"
+              ><span class="input-group-text">%</span>
+            </div>
+          </div>
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label
+              for="follow-smoothing"
+              class="form-label"
+            >Smoothing</label><input
+              id="follow-smoothing"
+              type="number"
+              class="form-control xm-mono"
+              min="0"
+              max="1"
+              step=".05"
+              :value="doc.project.follow.smoothing"
+              aria-label="Follow smoothing"
+              @change="numeric('smoothing', $event)"
+            >
+          </div>
+          <div class="col-6">
+            <label
+              for="follow-phase"
+              class="form-label"
+            >Phase gain</label><input
+              id="follow-phase"
+              type="number"
+              class="form-control xm-mono"
+              min="0"
+              step=".05"
+              :value="doc.project.follow.phaseGain"
+              aria-label="Follow phase gain"
+              @change="numeric('phaseGain', $event)"
+            >
+          </div>
+        </div>
+        <small class="xm-faint d-block mb-3">Lower smoothing changes tempo more gently. Phase gain controls how
+          quickly accompaniment catches up.</small>
       </template>
       <template v-if="mode !== 'written'">
         <label class="form-label">Lead tracks</label>

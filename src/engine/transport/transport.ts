@@ -1,3 +1,4 @@
+import { TempoTrack } from '../follow/tempo-track'
 import { WaitNotes } from '../follow/wait-notes'
 import type { RoutedNote } from '../../shared/recording'
 import type { ClipHost } from '../clips/clip-player'
@@ -23,6 +24,7 @@ import { Scheduler } from './scheduler'
 import { SequenceOutput } from './sequence-output'
 import TimerWorker from './timer.worker.ts?worker'
 export class Transport {
+  readonly tempoTrack: TempoTrack
   readonly waitNotes: WaitNotes
   readonly clock: TransportClock
   readonly scheduler: Scheduler
@@ -124,6 +126,14 @@ export class Transport {
       invalidate: () => this.scheduler.invalidate(true),
       changed: () => this.changed(),
     })
+    this.tempoTrack = new TempoTrack({
+      clock: this.clock,
+      apply: (factor) => {
+        this.clock.setFollowFactor(factor)
+        this.scheduler.invalidate(true)
+        this.changed()
+      },
+    })
     this.audio = new AudioTracks(
       graph,
       this.clock,
@@ -198,6 +208,8 @@ export class Transport {
     this.worker.onmessage = () => {
       this.recorder.tick()
       if (this.syncing) return
+      this.tempoTrack.tick()
+      this.scheduler.following = this.tempoTrack.active
       this.onPosition()
       this.scheduler.tick()
       this.audio.tick()
@@ -231,7 +243,8 @@ export class Transport {
         }
         await this.output.synchronize(project, true, available, this.clock.tick)
         await this.audio.synchronize(project)
-        if (seek !== undefined || followChanged) this.changed()
+        const tempoChanged = this.tempoTrack.configure(project)
+        if (seek !== undefined || followChanged || tempoChanged) this.changed()
         else {
           this.report()
           this.armDeadline()
@@ -269,6 +282,7 @@ export class Transport {
       this.scheduler.setProject(project, keepHeld)
       await this.audio.synchronize(project)
       this.syncing = false
+      this.tempoTrack.configure(project)
       this.changed()
     })
     this.serial = work.catch((e) => {
@@ -291,6 +305,7 @@ export class Transport {
     void this.audio
       .synchronize(project)
       .catch((error) => this.warn(String(error)))
+    this.tempoTrack.configure(project)
     this.changed()
   }
   applyPatch(patch: Partial<Project>, tick?: number): void {
@@ -367,6 +382,8 @@ export class Transport {
     this.changed()
   }
   changed(): void {
+    this.tempoTrack.tick()
+    this.scheduler.following = this.tempoTrack.active
     this.waitNotes.pause()
     this.recorder.clockChanged()
     if (
@@ -429,11 +446,14 @@ export class Transport {
   }
   liveNote(note: RoutedNote): void {
     this.recorder.note(note)
-    this.waitNotes.note({
+    const compensated = {
       ...note,
       when: (note.when ?? this.clock.now()) - this.inputLatencyMs / 1000,
-    })
+    }
+    this.waitNotes.note(compensated)
+    this.tempoTrack.note(compensated)
   }
+
   activity(): ActivityRoute[] {
     return [
       ...this.output.activity(this.context.currentTime),

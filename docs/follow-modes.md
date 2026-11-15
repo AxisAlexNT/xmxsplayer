@@ -27,3 +27,17 @@ Wait cues keep their own controls. A melody note cannot release a cue that expli
 Changing to Written tempo or removing the active lead releases a note wait. Project edits and scene changes rebuild the expected list from the effective live tracks. Lead selection, chord window and early timing are undoable project edits; runtime matches are not saved.
 
 The default timing values have automated coverage with synthetic MIDI. Physical keyboard tuning, wrong-note tolerance in a real performance, Windows input latency and touch/pen handling still need user verification.
+
+## Track my tempo
+
+This mode keeps the accompaniment moving and adjusts it to your live notes. Use the same live lead tracks as Wait for my notes. It looks for a matching pitch and track among the next eight and previous two expected onsets. Notes that do not match that window are ignored. Repeated pitches and mistakes that resemble a nearby expected note can be ambiguous; use a cue or seek to establish a new position after a large jump.
+
+Each successive forward match estimates tempo from the written interval, its tempo-map duration, your elapsed playing time and the current Speed setting. The estimate is smoothed and constrained to **Tempo range**, by default 50–150% of Speed. For example, Speed 75% with that range permits estimates of 37.5–112.5% of written tempo. **Smoothing** defaults to 0.35: lower values react more gently, 1 uses the latest interval directly, and 0 retains the estimate.
+
+A separate phase correction helps accompaniment catch up or fall back toward the played note. **Phase gain** defaults to 0.5. The correction lasts one beat and is limited to ±25% of the estimated rate; this temporary correction can extend beyond Tempo range. A forward jump is caught gradually rather than changing the playhead abruptly. The Tempo field shows effective BPM, including Speed and the live factor; the small multiplier shows the factor including phase correction.
+
+After two beats without a match at an expected onset, the next-note pointer catches up with the running position. The tempo estimate stays in place and playback continues through missing notes or a silent bar. A cue hold freezes position, reference audio and synced clips. Notes played during that hold do not update the estimate; the first match after release starts a fresh interval. Changing Speed also starts a fresh interval while retaining the learned estimate.
+
+Leaving Track my tempo eases the live factor back to 1 over two bars of musical time. Holds pause that return. Stop clears the estimate; seeking in tracking mode retains the estimate but clears the interval and phase history. A new matching note establishes the next interval. Reference audio and synced clips share this effective transport speed and retain pitch; unsynced clips keep their own speed.
+
+Tempo range, smoothing and phase gain save in `project.yaml` alongside the other follow settings. Automated synthetic performances cover steady faster/slower playing, accelerando, exactly 20% wrong-note replacements, a silent bar, a forward bar jump, loops, tempo-map changes, user Speed changes and cue holds. The sub-beat error checks apply to the continuous performances; the forward-jump check allows time for the bounded phase correction to recover. These checks do not replace physical performance tuning.

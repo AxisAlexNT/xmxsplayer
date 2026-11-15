@@ -641,7 +641,23 @@ onUnmounted(() => {
       </div>
       <div class="xm-tsep" />
       <div class="xm-field">
-        <span>Tempo</span><b>{{ timeMap.tempoAt(runtime.transport.tick).toFixed(1) }}</b>
+        <span>Tempo</span><b>{{
+          (
+            timeMap.tempoAt(runtime.transport.tick) *
+            (runtime.state.followMode === 'tempoTrack' ||
+              Math.abs(runtime.transport.followFactor - 1) > 0.005
+              ? runtime.transport.rate * runtime.transport.followFactor
+              : 1)
+          ).toFixed(1)
+        }}</b>
+        <small
+          v-if="
+            runtime.state.followMode === 'tempoTrack' ||
+              Math.abs(runtime.transport.followFactor - 1) > 0.005
+          "
+          class="xm-tempo-factor xm-mono"
+          aria-label="Live tempo factor"
+        >×{{ runtime.transport.followFactor.toFixed(2) }}</small>
       </div>
       <div class="xm-field xm-time-key">
         <span>Time · Key</span><b>{{ position.num }}/{{ position.den }} · {{ keyName }}</b>
