@@ -75,7 +75,10 @@ describe('project files', () => {
     p.tracks.push(track)
     const files = toFiles(p)
     expect(files['tracks/piano-lh.mid']).toBeUndefined()
-    expect(fromFiles(files, p).tracks[0]).toEqual(track)
+    const reloaded = fromFiles(files, p).tracks[0] as MidiTrack
+    expect(reloaded).toEqual(track)
+    expect(reloaded.notes).toBe(track.notes)
+    expect(reloaded.events).toBe(track.events)
     expect(keySchema.parse('Db4')).toBe(61)
     expect(keySchema.parse('C4')).toBe(60)
     expect(keySchema.safeParse('C10').success).toBe(false)

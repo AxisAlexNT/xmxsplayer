@@ -59,8 +59,19 @@ export class SequenceOutput implements SchedulerOutput {
   }
   noteOff(note: ScheduledNote, when: number): void {
     for (const voice of this.voices.get(note.id) ?? []) {
-      voice.slot.backend.noteOff(voice.slot.slot, voice.key, when)
       voice.off = when
+      const overlapping = [...this.voices.values()].some((voices) =>
+        voices.some(
+          (other) =>
+            other !== voice &&
+            other.slot === voice.slot &&
+            other.key === voice.key &&
+            other.on <= when &&
+            (other.off === undefined || other.off > when),
+        ),
+      )
+      if (!overlapping)
+        voice.slot.backend.noteOff(voice.slot.slot, voice.key, when)
     }
   }
   event(

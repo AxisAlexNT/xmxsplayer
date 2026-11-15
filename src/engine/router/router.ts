@@ -107,11 +107,16 @@ export class Router {
         if (key < zone.lo || key > zone.hi) continue
         for (const trackId of new Set(zone.trackIds)) {
           const track = this.project?.tracks.find((t) => t.id === trackId)
-          if (track?.kind !== 'midi' || track.mode === 'mute') continue
+          if (
+            track?.kind !== 'midi' ||
+            track.mode === 'mute' ||
+            (this.project!.tracks.some((t) => t.solo) && !track.solo)
+          )
+            continue
           for (const patch of this.project!.base.patch.filter(
             (p) => p.trackId === trackId && !p.when,
           )) {
-            const slot = this.rack.acquire(patch.instrumentId)
+            const slot = this.rack.acquire(patch.instrumentId, trackId)
             if (!slot) continue
             const sentKey =
               key +
@@ -165,10 +170,11 @@ export class Router {
         !trackIds.has(patch.trackId) ||
         track?.kind !== 'midi' ||
         track.mode === 'mute' ||
+        (this.project!.tracks.some((t) => t.solo) && !track.solo) ||
         patch.when
       )
         continue
-      const slot = this.rack.get(patch.instrumentId)
+      const slot = this.rack.get(patch.instrumentId, patch.trackId)
       if (slot) slots.add(slot)
     }
     for (const voices of this.held.values())

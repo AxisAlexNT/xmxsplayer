@@ -117,8 +117,11 @@ async function initialize(value: Settings): Promise<void> {
     )
     await graph.apply(value.audio)
     backend = await WebSynthBackend.create(graph.context, graph.main)
-    rack = new InstrumentRack(backend, load, (message) =>
-      log('warn', 'synth', message),
+    rack = new InstrumentRack(
+      backend,
+      load,
+      (message) => log('warn', 'synth', message),
+      true,
     )
     router = new Router(rack, reportKeys)
     transport = new Transport(

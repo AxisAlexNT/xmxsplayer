@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useProjectStore } from './stores/project'
 import { useRuntimeStore } from './stores/runtime'
 import { useSettingsStore } from './stores/settings'
@@ -9,7 +9,9 @@ import KeyboardStrip from './components/KeyboardStrip.vue'
 import SoundfontsPanel from './components/SoundfontsPanel.vue'
 import InstrumentPicker from './components/InstrumentPicker.vue'
 import AudioSettings from './components/AudioSettings.vue'
-import ConflictBanner from './components/ConflictBanner.vue'
+import Timeline from './timeline/Timeline.vue'
+import { TimeMap } from '../shared/time-map'
+import type { Action } from '../shared/model'
 
 const doc = useProjectStore()
 const runtime = useRuntimeStore()
@@ -32,6 +34,156 @@ const sections = [
   'Log',
 ]
 const p = computed(() => doc.project)
+const timeMap = computed(() => new TimeMap(p.value))
+const position = computed(() =>
+  timeMap.value.tickToBarBeat(runtime.transport.tick),
+)
+const elapsed = computed(() => {
+  const seconds = timeMap.value.tickToSec(runtime.transport.tick)
+  return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${(seconds % 60).toFixed(3).padStart(6, '0')}`
+})
+const keyName = computed(() => {
+  const key = timeMap.value.keyAt(runtime.transport.tick)
+  const major = [
+    'C♭',
+    'G♭',
+    'D♭',
+    'A♭',
+    'E♭',
+    'B♭',
+    'F',
+    'C',
+    'G',
+    'D',
+    'A',
+    'E',
+    'B',
+    'F♯',
+    'C♯',
+  ]
+  const minor = [
+    'A♭',
+    'E♭',
+    'B♭',
+    'F',
+    'C',
+    'G',
+    'D',
+    'A',
+    'E',
+    'B',
+    'F♯',
+    'C♯',
+    'G♯',
+    'D♯',
+    'A♯',
+  ]
+  return (key.minor ? minor : major)[key.fifths + 7] + (key.minor ? 'm' : '')
+})
+const transportButtons = computed(
+  () =>
+    [
+      { icon: 'skip-start-fill', title: 'To start', cmd: 'toStart' },
+      { icon: 'rewind-fill', title: 'Back one bar', cmd: 'rewind' },
+      {
+        icon: runtime.transport.playing ? 'pause-fill' : 'play-fill',
+        title: 'Play / pause',
+        cmd: 'toggle',
+      },
+      { icon: 'stop-fill', title: 'Stop · press twice to return', cmd: 'stop' },
+      { icon: 'record-fill', title: 'Record', cmd: 'record' },
+      { icon: 'fast-forward-fill', title: 'Forward one bar', cmd: 'forward' },
+      { icon: 'arrow-repeat', title: 'Loop', cmd: 'loopToggle' },
+      { icon: 'bell', title: 'Metronome', cmd: 'metronome' },
+    ] as const,
+)
+function transport(
+  cmd: Extract<Action, { type: 'transport' }>['cmd'],
+  value?: number,
+): void {
+  engineBus.value?.send('action:run', {
+    action: { type: 'transport', cmd },
+    value,
+  })
+}
+function laneZoom(factor: number): void {
+  doc.update((d) => {
+    d.view.laneZoom = Math.max(0.5, Math.min(3, d.view.laneZoom * factor))
+  })
+}
+let repeatTimer: ReturnType<typeof setTimeout> | undefined
+function repeat(event: PointerEvent, cmd: string): void {
+  if (event.button !== 0 || (cmd !== 'rewind' && cmd !== 'forward')) return
+  const button = event.currentTarget as HTMLElement
+  button.setPointerCapture(event.pointerId)
+  let count = 0
+  transport(cmd)
+  const again = (): void => {
+    transport(cmd, Math.min(8, 1 + Math.floor(count++ / 5)))
+    repeatTimer = setTimeout(again, Math.max(60, 200 - count * 8))
+  }
+  repeatTimer = setTimeout(again, 400)
+  const stop = (): void => {
+    clearTimeout(repeatTimer)
+    button.removeEventListener('pointerup', stop)
+    button.removeEventListener('pointercancel', stop)
+    button.removeEventListener('lostpointercapture', stop)
+  }
+  button.addEventListener('pointerup', stop)
+  button.addEventListener('pointercancel', stop)
+  button.addEventListener('lostpointercapture', stop)
+}
+function shortcut(event: KeyboardEvent): void {
+  if (
+    event.defaultPrevented ||
+    event.repeat ||
+    document.querySelector('[role="dialog"]') ||
+    (event.target as HTMLElement).closest(
+      'input,textarea,select,[contenteditable="true"],button',
+    )
+  )
+    return
+  const key = event.key.toLowerCase()
+  let cmd: Extract<Action, { type: 'transport' }>['cmd'] | undefined
+  if (event.ctrlKey || event.metaKey) {
+    if (key === '+' || key === '=') {
+      event.preventDefault()
+      laneZoom(1.1)
+    } else if (key === '-') {
+      event.preventDefault()
+      laneZoom(1 / 1.1)
+    }
+    return
+  }
+  if (key === ' ') cmd = 'toggle'
+  else if (key === 'enter') cmd = 'stop'
+  else if (key === 'r') cmd = 'record'
+  else if (key === 'l') cmd = 'loopToggle'
+  else if (key === '[') cmd = 'loopStartHere'
+  else if (key === ']') cmd = 'loopEndHere'
+  if (cmd) {
+    event.preventDefault()
+    transport(cmd)
+  } else if (key === 'f') {
+    event.preventDefault()
+    void command('toggleFollowView')
+  } else if (key === 'tab') {
+    event.preventDefault()
+    void command('toggleLanes')
+  }
+}
+const stopActions = watch(
+  engineBus,
+  (bus, _old, onCleanup) => {
+    if (bus)
+      onCleanup(
+        bus.on('app', ({ cmd }) => {
+          void command(cmd)
+        }),
+      )
+  },
+  { immediate: true },
+)
 function notify(message: string): void {
   toast.value = message
   clearTimeout(toastTimer)
@@ -61,13 +213,23 @@ async function command(cmd: string): Promise<void> {
         })
       }
     } else if (cmd === 'import:midi') {
-      if (!doc.folder) { notify('Create or open a project folder first'); return }
+      if (!doc.folder) {
+        notify('Create or open a project folder first')
+        return
+      }
       const file = await window.xm.project.importFile('midi')
       if (!file) return
       const response = await fetch(await window.xm.project.urlFor(file))
-      if (!response.ok) throw new Error(`${file}: import failed (${response.status})`)
-      const next = importMidi(doc.project,new Uint8Array(await response.arrayBuffer()),file.split('/').at(-1)!)
-      doc.update(draft => { Object.assign(draft,next) })
+      if (!response.ok)
+        throw new Error(`${file}: import failed (${response.status})`)
+      const next = importMidi(
+        doc.project,
+        new Uint8Array(await response.arrayBuffer()),
+        file.split('/').at(-1)!,
+      )
+      doc.update((draft) => {
+        Object.assign(draft, next)
+      })
       notify(`${file.split('/').at(-1)} imported`)
     } else if (cmd === 'save') {
       if (!doc.folder) {
@@ -78,16 +240,34 @@ async function command(cmd: string): Promise<void> {
       notify('Project saved')
     } else if (cmd === 'undo') doc.undo()
     else if (cmd === 'redo') doc.redo()
+    else if (cmd === 'toggleFollowView')
+      doc.update((d) => {
+        d.view.follow = d.view.follow === 'page' ? 'center' : 'page'
+      })
+    else if (cmd === 'toggleLanes')
+      doc.update((d) => {
+        d.view.lanes = d.view.lanes === 'roll' ? 'staff' : 'roll'
+      })
+    else if (cmd === 'zoomIn') laneZoom(1.1)
+    else if (cmd === 'zoomOut') laneZoom(1 / 1.1)
+    else if (cmd === 'quantize')
+      notify('Select notes in the piano-roll editor to quantize')
     else if (cmd === 'view:collapse') settings.collapse()
-    else if (cmd.startsWith('view:lanes:')) { const mode = cmd.slice(11); if (mode === 'staff' || mode === 'roll' || mode === 'per-track') doc.update(draft => { draft.view.lanes = mode }) }
-    else if (cmd === 'engine:restarting') {
+    else if (cmd.startsWith('view:lanes:')) {
+      const mode = cmd.slice(11)
+      if (mode === 'staff' || mode === 'roll' || mode === 'per-track')
+        doc.update((draft) => {
+          draft.view.lanes = mode
+        })
+    } else if (cmd === 'engine:restarting') {
       runtime.connected = false
       runtime.log({
         level: 'warn',
         source: 'engine',
         message: 'Engine restarting…',
       })
-    } else if (cmd === 'about') notify('xmxsplayer 0.1.0 · Application shell')
+    } else if (cmd === 'settings:audio') showAudio.value = true
+    else if (cmd === 'about') notify('xmxsplayer 0.1.0 · Application shell')
   } catch (error) {
     fail(error)
   }
@@ -138,11 +318,16 @@ function beforeUnload(event: BeforeUnloadEvent): void {
   }
 }
 onMounted(() => {
-  if (window.innerWidth < 1400 && localStorage.getItem('collapsed') === null) settings.collapsed = true
+  if (window.innerWidth < 1400 && localStorage.getItem('collapsed') === null)
+    settings.collapsed = true
   window.xm.app.mounted()
   window.addEventListener('beforeunload', beforeUnload)
+  window.addEventListener('keydown', shortcut)
 })
 onUnmounted(() => {
+  stopActions()
+  clearTimeout(repeatTimer)
+  window.removeEventListener('keydown', shortcut)
   stopMenu()
   stopFiles()
   clearTimeout(toastTimer)
@@ -184,45 +369,57 @@ onUnmounted(() => {
       <div class="xm-tsep" />
       <div class="xm-tgroup">
         <button
-          v-for="[icon, title] in [
-            ['skip-start-fill', 'To start'],
-            ['rewind-fill', 'Back one bar'],
-            ['play-fill', 'Play / pause'],
-            ['stop-fill', 'Stop'],
-            ['record-fill', 'Record'],
-            ['fast-forward-fill', 'Forward one bar'],
-            ['arrow-repeat', 'Loop'],
-            ['bell', 'Metronome'],
-          ]"
-          :key="icon"
+          v-for="button in transportButtons"
+          :key="button.cmd"
           class="xm-tbtn"
-          :class="{ 'is-rec': icon === 'record-fill' }"
-          :disabled="icon !== 'stop-fill'"
-          :title="icon === 'stop-fill' ? 'Stop all notes' : `${title} · Available in a later milestone`"
-          @click="icon === 'stop-fill' && engineBus?.send('panic', undefined)"
+          :class="{
+            'is-play': button.cmd === 'toggle' && runtime.transport.playing,
+            'is-on':
+              (button.cmd === 'toggle' && runtime.transport.playing) ||
+              (button.cmd === 'record' && runtime.transport.recording) ||
+              (button.cmd === 'loopToggle' && p.loop.enabled) ||
+              (button.cmd === 'metronome' && p.metronome.audible),
+            'is-rec': button.cmd === 'record',
+            'is-active': button.cmd === 'record' && runtime.transport.recording,
+          }"
+          :disabled="!runtime.connected"
+          :title="button.title"
+          :aria-label="button.title"
+          @pointerdown="repeat($event, button.cmd)"
+          @click="
+            ($event.detail === 0 ||
+              (button.cmd !== 'rewind' && button.cmd !== 'forward')) &&
+              transport(button.cmd)
+          "
         >
-          <i :class="`bi bi-${icon}`" />
+          <i :class="`bi bi-${button.icon}`" />
         </button>
       </div>
       <div class="xm-pos">
-        <b>001.1.1</b><small>00:00.000</small>
+        <b>{{ String(position.bar).padStart(3, '0') }}.{{ position.beat }}.{{
+          position.sixteenth
+        }}</b><small>{{ elapsed }}</small>
       </div>
       <div
+        v-if="p.metronome.visualScreen"
         class="xm-beats"
         title="Beat"
       >
         <span
-          v-for="beat in 4"
+          v-for="beat in position.num"
           :key="beat"
           class="xm-beat"
+          :class="{
+            'is-on': runtime.transport.playing && beat === position.beat,
+          }"
         />
       </div>
       <div class="xm-tsep" />
       <div class="xm-field">
-        <span>Tempo</span><b>{{ p.tempos[0]?.bpm.toFixed(1) }}</b>
+        <span>Tempo</span><b>{{ timeMap.tempoAt(runtime.transport.tick).toFixed(1) }}</b>
       </div>
       <div class="xm-field xm-time-key">
-        <span>Time · Key</span><b>4/4 · C</b>
+        <span>Time · Key</span><b>{{ position.num }}/{{ position.den }} · {{ keyName }}</b>
       </div>
       <div class="xm-field">
         <span>Speed</span>
@@ -232,14 +429,29 @@ onUnmounted(() => {
             class="form-range"
             min="25"
             max="150"
-            value="100"
+            :value="Math.round(runtime.transport.rate * 100)"
             aria-label="Speed"
-            disabled
-          ><b class="xm-mono">100%</b>
+            @input="
+              engineBus?.send('transport:setRate', {
+                rate: Number(($event.target as HTMLInputElement).value) / 100,
+              })
+            "
+            @dblclick="engineBus?.send('transport:setRate', { rate: 1 })"
+          ><button
+            class="xm-speed-reset xm-mono"
+            title="Reset speed"
+            @click="engineBus?.send('transport:setRate', { rate: 1 })"
+          >
+            {{ Math.round(runtime.transport.rate * 100) }}%
+          </button>
         </div>
       </div>
       <div class="xm-field xm-loop-field">
-        <span>Loop</span><b>—</b>
+        <span>Loop</span><b>{{
+          p.loop.enabled
+            ? `${timeMap.tickToBarBeat(p.loop.startTick).bar} – ${timeMap.tickToBarBeat(p.loop.endTick).bar}`
+            : '—'
+        }}</b>
       </div>
       <div class="xm-tsep" />
       <div class="xm-field">
@@ -247,7 +459,7 @@ onUnmounted(() => {
           class="btn btn-sm btn-xm dropdown-toggle"
           disabled
         >
-          Written
+          {{ runtime.transport.holding ? 'Holding' : 'Written' }}
         </button>
       </div>
       <div class="flex-grow-1" />
@@ -272,7 +484,10 @@ onUnmounted(() => {
         <button
           v-for="mode in ['staff', 'roll', 'per-track'] as const"
           :key="mode"
-          :class="{ 'is-on': p.view.lanes === mode, 'xm-per-track': mode === 'per-track' }"
+          :class="{
+            'is-on': p.view.lanes === mode,
+            'xm-per-track': mode === 'per-track',
+          }"
           @click="
             doc.update((d) => {
               d.view.lanes = mode
@@ -286,42 +501,54 @@ onUnmounted(() => {
         <button
           class="xm-tbtn"
           title="Smaller lanes"
-          disabled
+          @click="laneZoom(1 / 1.1)"
         >
           <i class="bi bi-zoom-out" />
         </button><button
           class="xm-tbtn"
           title="Larger lanes"
-          disabled
+          @click="laneZoom(1.1)"
         >
           <i class="bi bi-zoom-in" />
         </button>
       </div>
       <span class="xm-status"><span
         class="xm-dot"
-        :class="{ 'is-off': !runtime.connected, 'is-warn': runtime.synthLoading || (p.instruments.length > 0 && !runtime.readyInstruments.length) }"
-      /><span
-        class="xm-engine-label"
-      >{{ runtime.connected ? (runtime.synthLoading ? 'Loading sounds…' : runtime.latency ? `Built-in · ${(runtime.latency.baseMs + runtime.latency.outputMs).toFixed(1)} ms` : 'Engine ready') : 'Engine restarting…' }}</span></span>
+        :class="{
+          'is-off': !runtime.connected,
+          'is-warn':
+            runtime.synthLoading ||
+            (p.instruments.length > 0 && !runtime.readyInstruments.length),
+        }"
+      /><span class="xm-engine-label">{{
+        runtime.connected
+          ? runtime.synthLoading
+            ? 'Loading sounds…'
+            : runtime.latency
+              ? `Built-in · ${(runtime.latency.baseMs + runtime.latency.outputMs).toFixed(1)} ms`
+              : 'Engine ready'
+          : 'Engine restarting…'
+      }}</span></span>
       <span class="xm-status"><span
         class="xm-dot"
-        :class="{'is-off':!runtime.midi.inputs.some(i=>!/through/i.test(i.name))}"
-      /><i class="bi bi-usb-symbol" /><span
-        class="xm-engine-label"
-      >{{ runtime.midi.inputs.some(i=>!/through/i.test(i.name)) ? (runtime.midi.inputs.some(i=>/Essential|KeyLab/i.test(i.name)) ? 'KeyLab' : 'MIDI connected') : 'No controller' }}</span></span>
+        :class="{
+          'is-off': !runtime.midi.inputs.some(
+            (i) => !/through/i.test(i.name),
+          ),
+        }"
+      /><i class="bi bi-usb-symbol" /><span class="xm-engine-label">{{
+        runtime.midi.inputs.some((i) => !/through/i.test(i.name))
+          ? runtime.midi.inputs.some((i) => /Essential|KeyLab/i.test(i.name))
+            ? 'KeyLab'
+            : 'MIDI connected'
+          : 'No controller'
+      }}</span></span>
       <button
         class="xm-tbtn"
         title="Audio settings"
         @click="showAudio = true"
       >
         <i class="bi bi-gear" />
-      </button>
-      <button
-        class="xm-tbtn"
-        title="Save project"
-        @click="command('save')"
-      >
-        <i class="bi bi-floppy" />
       </button>
     </header>
 
@@ -432,13 +659,20 @@ onUnmounted(() => {
               :key="connection.id"
               class="xm-row mb-2"
             >
-              <span class="xm-chip is-sm">{{ p.tracks.find(t=>t.id===connection.trackId)?.name ?? connection.trackId }}</span><i class="bi bi-arrow-right xm-faint" /><button
+              <span class="xm-chip is-sm">{{
+                p.tracks.find((t) => t.id === connection.trackId)?.name ??
+                  connection.trackId
+              }}</span><i class="bi bi-arrow-right xm-faint" /><button
                 class="xm-chip is-sm"
-                @click="pickerId=connection.instrumentId"
+                @click="pickerId = connection.instrumentId"
               >
-                <i class="bi bi-music-note" />{{ p.instruments.find(i=>i.id===connection.instrumentId)?.name ?? connection.instrumentId }}
+                <i class="bi bi-music-note" />{{
+                  p.instruments.find((i) => i.id === connection.instrumentId)
+                    ?.name ?? connection.instrumentId
+                }}
               </button>
-            </div><span
+            </div>
+            <span
               v-if="!p.base.patch.length"
               class="xm-faint"
             >No track → instrument connections</span>
@@ -450,7 +684,8 @@ onUnmounted(() => {
               class="xm-status mb-2"
             >
               <span class="xm-dot" />{{ input.name }}
-            </div><span
+            </div>
+            <span
               v-if="!runtime.midi.inputs.length"
               class="xm-status"
             ><span class="xm-dot is-off" />No controller</span>
@@ -475,82 +710,20 @@ onUnmounted(() => {
       @pointerdown="resize"
     />
 
-    <main class="xm-main">
-      <ConflictBanner @error="fail" />
-      <div class="xm-rowgrid xm-ruler">
-        <div class="xm-corner">
-          <i class="bi bi-rulers" /> Bars
-        </div>
-        <div class="xm-ruler-bars">
-          <span /><span
-            v-for="bar in 4"
-            :key="bar"
-          >{{ bar }}</span>
-        </div>
-      </div>
-      <div class="xm-rowgrid xm-cues">
-        <div class="xm-corner">
-          Cues
-        </div>
-        <div />
-      </div>
-      <div class="xm-tracks">
-        <div
-          v-for="track in p.tracks"
-          :key="track.id"
-          class="xm-rowgrid xm-track xm-shell-track"
-          :style="{ '--h': `${track.height}px`, '--c': track.color }"
-        >
-          <div class="xm-th">
-            <div class="xm-th-top">
-              <i class="bi bi-grip-vertical xm-grip" /><span
-                class="xm-th-name"
-              >{{ track.name }}</span>
-            </div>
-            <span
-              class="xm-mode"
-              :class="`is-${track.mode}`"
-            >{{
-              track.mode.toUpperCase()
-            }}</span>
-          </div>
-          <div class="xm-lane" />
-        </div>
-        <div
-          v-if="!p.tracks.length"
-          class="xm-empty"
-        >
-          <h1 class="h5 mb-0">
-            Start a project
-          </h1>
-          <span>Open a project folder or create one to begin.</span>
-          <div class="xm-row">
-            <button
-              class="btn btn-primary"
-              @click="command('new')"
-            >
-              New project
-            </button><button
-              class="btn btn-xm"
-              @click="command('open')"
-            >
-              Open project
-            </button>
-          </div>
-          <small>Tracks, sound and performance controls follow in later
-            milestones.</small>
-        </div>
-      </div>
-    </main>
+    <Timeline
+      @instrument="pickerId = $event"
+      @command="command"
+      @error="fail"
+    />
     <KeyboardStrip />
     <InstrumentPicker
       v-if="pickerId"
       :instrument-id="pickerId"
-      @close="pickerId=null"
+      @close="pickerId = null"
     />
     <AudioSettings
       v-if="showAudio"
-      @close="showAudio=false"
+      @close="showAudio = false"
     />
     <div
       v-if="toast"

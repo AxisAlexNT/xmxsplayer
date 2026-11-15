@@ -220,3 +220,46 @@ it('auditions an instrument directly without cutting the same pitch held by a ro
   router.close()
   rack.close()
 })
+it('isolates mixer levels for two live tracks sharing an instrument', async () => {
+  const { project, backend, router, rack } = await rig()
+  router.close()
+  rack.close()
+  project.base.patch[1].instrumentId = 'piano'
+  project.tracks[0].volume = 0.5
+  project.tracks[1].volume = 0.25
+  project.tracks[1].pan = 0.75
+  const isolated = new InstrumentRack(
+    backend,
+    async () => undefined,
+    () => undefined,
+    true,
+  )
+  await isolated.synchronize(project)
+  const lower = isolated.get('piano', 'piano')!,
+    upper = isolated.get('piano', 'strings')!
+  expect(lower.slot).not.toBe(upper.slot)
+  expect(lower.instrument.volume).toBeCloseTo(0.4)
+  expect(upper.instrument.volume).toBeCloseTo(0.2)
+  expect(upper.instrument.pan).toBe(0.75)
+  const live = new Router(isolated, () => undefined)
+  live.setProject(project)
+  project.base.zones.push({
+    ...project.base.zones[0],
+    id: 'upper',
+    trackIds: ['strings'],
+  })
+  live.note('keys', 0, 60, 100, true)
+  expect(
+    backend.events
+      .filter((e) => e.type === 'on')
+      .slice(-2)
+      .map((e) => e.slot),
+  ).toEqual([lower.slot, upper.slot])
+  project.tracks[1].solo = true
+  live.note('keys', 0, 62, 100, true)
+  expect(backend.events.filter((e) => e.type === 'on').slice(-1)[0].slot).toBe(
+    upper.slot,
+  )
+  live.close()
+  isolated.close()
+})

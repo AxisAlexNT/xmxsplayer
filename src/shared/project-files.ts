@@ -254,6 +254,14 @@ export function fromFiles(files: FileMap, previous?: Project): Project {
         .join('; '),
     )
   }
+  for (const track of result.data.tracks) {
+    const old = previous?.tracks.find((t) => t.id === track.id)
+    if (track.kind !== 'midi' || old?.kind !== 'midi') continue
+    if (JSON.stringify(track.notes) === JSON.stringify(old.notes))
+      track.notes = old.notes
+    if (JSON.stringify(track.events) === JSON.stringify(old.events))
+      track.events = old.events
+  }
   return result.data
 }
 export function sameContent(

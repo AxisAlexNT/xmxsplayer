@@ -77,20 +77,22 @@ export class Transport {
       soundfonts: project.soundfonts,
       instruments: project.instruments,
       patch: project.base.patch,
-      tracks: project.tracks.map((t) =>
-        t.kind === 'midi'
-          ? {
-              id: t.id,
-              kind: t.kind,
-              notes: t.notes,
-              events: t.events,
-              mode: t.mode,
-              solo: t.solo,
-              volume: t.volume,
-              pan: t.pan,
-            }
-          : { id: t.id, mode: t.mode, solo: t.solo },
-      ),
+      tracks: [...project.tracks]
+        .sort((a, b) => a.id.localeCompare(b.id))
+        .map((t) =>
+          t.kind === 'midi'
+            ? {
+                id: t.id,
+                kind: t.kind,
+                notes: t.notes,
+                events: t.events,
+                mode: t.mode,
+                solo: t.solo,
+                volume: t.volume,
+                pan: t.pan,
+              }
+            : { id: t.id, mode: t.mode, solo: t.solo },
+        ),
     })
     if (signature === this.signature) return this.serial
     this.signature = signature

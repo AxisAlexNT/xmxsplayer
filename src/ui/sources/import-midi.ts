@@ -57,7 +57,7 @@ export function importMidi(
       solo: false,
       volume: 1,
       pan: 0,
-      height: 196,
+      height: 132,
       notes: source.notes.map<Note>((n) => [
         Math.round(n.ticks * factor),
         Math.max(1, Math.round(n.durationTicks * factor)),

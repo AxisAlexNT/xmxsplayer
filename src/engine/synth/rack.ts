@@ -14,12 +14,46 @@ export class InstrumentRack {
   private retired = new Set<RackSlot>()
   private serial = Promise.resolve()
   private revision = 0
+  private aliases = new Map<string, string>()
   constructor(
     private backend: SynthBackend,
     private load: (font: SoundFontRef) => Promise<void>,
     private warn: (message: string) => void,
+    private perTrack = false,
   ) {}
   synchronize(project: Project): Promise<void> {
+    if (this.perTrack) {
+      const aliases = new Map<string, string>()
+      const instruments = project.instruments.flatMap((instrument) => {
+        const trackIds = [
+          ...new Set(
+            project.base.patch
+              .filter((p) => p.instrumentId === instrument.id)
+              .map((p) => p.trackId),
+          ),
+        ]
+        if (!trackIds.length) return [instrument]
+        return trackIds.flatMap((trackId, index) => {
+          const track = project.tracks.find((t) => t.id === trackId)
+          if (!track) return []
+          const id =
+            index === 0
+              ? instrument.id
+              : JSON.stringify([instrument.id, trackId])
+          aliases.set(JSON.stringify([instrument.id, trackId]), id)
+          return [
+            {
+              ...instrument,
+              id,
+              volume: instrument.volume * track.volume,
+              pan: Math.max(-1, Math.min(1, instrument.pan + track.pan)),
+            },
+          ]
+        })
+      })
+      this.aliases = aliases
+      project = { ...project, instruments }
+    }
     const revision = ++this.revision
     const work = this.serial.then(async () => {
       if (revision !== this.revision) return
@@ -94,11 +128,15 @@ export class InstrumentRack {
     this.serial = work.catch(() => undefined)
     return work
   }
-  get(id: string): RackSlot | undefined {
-    return this.active.get(id)
+  get(id: string, trackId?: string): RackSlot | undefined {
+    return this.active.get(
+      trackId === undefined
+        ? id
+        : (this.aliases.get(JSON.stringify([id, trackId])) ?? id),
+    )
   }
-  acquire(id: string): RackSlot | undefined {
-    const slot = this.get(id)
+  acquire(id: string, trackId?: string): RackSlot | undefined {
+    const slot = this.get(id, trackId)
     if (slot) slot.refs++
     return slot
   }
