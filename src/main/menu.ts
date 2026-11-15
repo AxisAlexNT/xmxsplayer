@@ -28,7 +28,7 @@ export function installMenu(ui: BrowserWindow): void {
           { label: 'Link Score', enabled: false },
           { label: 'Export MIDI for MuseScore', enabled: false },
           { type: 'separator' },
-          { label: 'Quit', click: () => app.quit() },
+          action('Settings', 'settings:audio', 'CmdOrCtrl+,'), { label: 'Quit', click: () => app.quit() },
         ],
       },
       {

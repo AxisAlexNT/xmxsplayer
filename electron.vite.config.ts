@@ -17,6 +17,7 @@ export default defineConfig({
   },
   renderer: {
     root: '.',
+    publicDir: resolve('src/engine/public'),
     plugins: [vue()],
     html: { cspNonce: '__XM_CSP_NONCE__' },
     server: {

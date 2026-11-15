@@ -37,8 +37,8 @@ export class FileTokens {
   }
   async issue(file: string, roots: string[]): Promise<string> {
     const canonical = await realpath(file)
-    const allowed = await Promise.all(roots.map((root) => realpath(root)))
-    if (!allowed.some((root) => inside(root, canonical)))
+    const allowed = await Promise.all(roots.map(async root => { try { return await realpath(root) } catch { return null } }))
+    if (!allowed.some((root) => root !== null && inside(root, canonical)))
       throw new Error('File is outside approved folders')
     const token = randomUUID()
     this.paths.set(token, canonical)

@@ -168,3 +168,21 @@ button:disabled {
 @media (max-width: 1399px) {
   .xm-lane-view, .xm-zoom { display: none; }
 }
+.xm-dialog { color: var(--xm-text); border: 1px solid var(--xm-border-strong); padding: 0; max-height: calc(100vh - 48px); }
+.xm-dialog::backdrop { background: rgba(0, 0, 0, .6); }
+.xm-instrument-dialog { width: min(760px, 90vw); }
+.xm-settings-dialog { width: min(820px, 90vw); }
+.xm-dialog-b { overflow-y: auto; }
+.xm-picker-columns { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(260px, 1.5fr); gap: var(--xm-s3); }
+.xm-picker-controls { display: grid; grid-template-columns: repeat(4,1fr); gap: var(--xm-s3); }
+.xm-list-button { width: 100%; min-height: var(--xm-hit); display: block; text-align: left; color: var(--xm-text); background: transparent; border: 0; border-bottom: 1px solid var(--xm-border); padding: var(--xm-s2); }
+.xm-list-button.is-selected { background: var(--xm-accent-soft); box-shadow: inset 3px 0 var(--xm-accent); }
+.xm-presets { height: 280px; overflow-y: auto; }
+.xm-sf-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.xm-settings-body { display: grid; grid-template-columns: 150px minmax(0,1fr); }
+.xm-settings-nav { border-right: 1px solid var(--xm-border); padding: var(--xm-s2); display: flex; flex-direction: column; }
+.xm-settings-nav span { padding: var(--xm-s2); min-height: var(--xm-hit); }
+.xm-settings-nav .is-selected { color: var(--xm-accent); background: var(--xm-accent-soft); }
+.xm-settings-fields { display: grid; grid-template-columns: 1fr 1fr; gap: var(--xm-s3); margin-top: var(--xm-s3); }
+
+.xm-dialog-f { align-items: center; }

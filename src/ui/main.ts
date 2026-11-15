@@ -30,10 +30,11 @@ function sync(force = false): void {
 watch(engineBus, (bus) => {
   runtime.connected = false
   if (!bus) return
+  bus.respond('soundfont:resolve', async font => (await window.xm.soundfonts.resolve(font.file))?.url ?? null)
+  bus.on('latency', value => { runtime.latency = value })
   bus.on('ready', () => {
     runtime.connected = true
     sync(true)
-    bus.send('settings:set', settings.value)
     runtime.log({ level: 'ok', source: 'engine', message: 'Engine connected' })
     window.xm.app.engineReady()
   })
@@ -53,7 +54,7 @@ watch(engineBus, (bus) => {
   bus.on('runtime', (value) => {
     runtime.state = value
   })
-  bus.send('ping', undefined)
+  void settingsReady.then(() => { bus.send('settings:set', settings.value); bus.send('ping', undefined) })
 })
 watch(
   () => doc.project,
@@ -65,9 +66,5 @@ watch(
     if (runtime.connected) engineBus.value?.send('settings:set', value)
   },
 )
-void settings
-  .load()
-  .catch((error) =>
-    runtime.log({ level: 'error', source: 'settings', message: String(error) }),
-  )
+const settingsReady = settings.load().catch(error => runtime.log({ level: 'error', source: 'settings', message: String(error) }))
 app.mount('#app')

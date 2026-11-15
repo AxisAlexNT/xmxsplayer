@@ -3,12 +3,17 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useProjectStore } from './stores/project'
 import { useRuntimeStore } from './stores/runtime'
 import { useSettingsStore } from './stores/settings'
+import SoundfontsPanel from './components/SoundfontsPanel.vue'
+import InstrumentPicker from './components/InstrumentPicker.vue'
+import AudioSettings from './components/AudioSettings.vue'
 import ConflictBanner from './components/ConflictBanner.vue'
 
 const doc = useProjectStore()
 const runtime = useRuntimeStore()
 const settings = useSettingsStore()
 const toast = ref('')
+const pickerId = ref<string | null>(null)
+const showAudio = ref(false)
 let toastTimer: ReturnType<typeof setTimeout>
 const sections = [
   'Scenes',
@@ -293,10 +298,17 @@ onUnmounted(() => {
         :class="{ 'is-off': !runtime.connected }"
       /><span
         class="xm-engine-label"
-      >{{ runtime.connected ? 'Engine ready' : 'Engine restarting…' }}</span></span>
+      >{{ runtime.connected ? (runtime.latency ? `Built-in · ${(runtime.latency.baseMs + runtime.latency.outputMs).toFixed(1)} ms` : 'Engine ready') : 'Engine restarting…' }}</span></span>
       <span class="xm-status"><span class="xm-dot is-off" /><i class="bi bi-usb-symbol" /><span
         class="xm-engine-label"
       >No controller</span></span>
+      <button
+        class="xm-tbtn"
+        title="Audio settings"
+        @click="showAudio = true"
+      >
+        <i class="bi bi-gear" />
+      </button>
       <button
         class="xm-tbtn"
         title="Save project"
@@ -406,8 +418,23 @@ onUnmounted(() => {
               Script execution is not available yet.
             </p>
           </template>
+          <SoundfontsPanel v-else-if="section === 'Soundfonts'" />
           <template v-else-if="section === 'Patch'">
-            <span class="xm-faint">No track → instrument connections</span>
+            <div
+              v-for="connection in p.base.patch"
+              :key="connection.id"
+              class="xm-row mb-2"
+            >
+              <span class="xm-chip is-sm">{{ p.tracks.find(t=>t.id===connection.trackId)?.name ?? connection.trackId }}</span><i class="bi bi-arrow-right xm-faint" /><button
+                class="xm-chip is-sm"
+                @click="pickerId=connection.instrumentId"
+              >
+                <i class="bi bi-music-note" />{{ p.instruments.find(i=>i.id===connection.instrumentId)?.name ?? connection.instrumentId }}
+              </button>
+            </div><span
+              v-if="!p.base.patch.length"
+              class="xm-faint"
+            >No track → instrument connections</span>
           </template>
           <template v-else-if="section === 'Devices'">
             <span class="xm-status"><span class="xm-dot is-off" />No controller</span>
@@ -522,6 +549,15 @@ onUnmounted(() => {
         />
       </div>
     </footer>
+    <InstrumentPicker
+      v-if="pickerId"
+      :instrument-id="pickerId"
+      @close="pickerId=null"
+    />
+    <AudioSettings
+      v-if="showAudio"
+      @close="showAudio=false"
+    />
     <div
       v-if="toast"
       class="xm-toast-stack"

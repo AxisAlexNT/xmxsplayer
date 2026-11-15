@@ -32,12 +32,14 @@ export function installBridge(ui: boolean): void {
       urlFor: (path) => ipcRenderer.invoke('project:url', path),
       onFilesChanged: (handler) => subscribe('project:changed', handler),
     },
+    soundfonts: { scan: () => ipcRenderer.invoke('soundfonts:scan'), resolve: (file, locate) => ipcRenderer.invoke('soundfonts:resolve', file, locate), pick: () => ipcRenderer.invoke('soundfonts:pick') },
     settings: {
       get: () => ipcRenderer.invoke('settings:get'),
       set: (value) => ipcRenderer.invoke('settings:set', value),
     },
     app: {
       onMenu: (handler) => subscribe('app:menu', handler),
+      relaunch: () => ipcRenderer.invoke('app:relaunch'),
       mounted: () => ipcRenderer.send('ui:mounted'),
       engineReady: () => ipcRenderer.send('engine:ready'),
     },

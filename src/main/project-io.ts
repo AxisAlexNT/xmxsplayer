@@ -13,6 +13,7 @@ import {
 import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
 import type { FileMap, ProjectSnapshot } from '../shared/api'
 import { scriptDeclarations } from '../shared/script-declarations'
+import type { Project } from '../shared/model'
 import { newProject } from '../shared/defaults'
 import { fromFiles, toFiles } from '../shared/project-files'
 
@@ -121,12 +122,12 @@ export class ProjectIO {
       throw error
     }
   }
-  async create(folder: string): Promise<ProjectSnapshot> {
+  async create(folder: string, project?: Project): Promise<ProjectSnapshot> {
     await mkdir(folder, { recursive: true })
     if ((await readdir(folder)).length)
       throw new Error('Choose an empty folder for the new project')
     this.folder = await realpath(folder)
-    await this.save(toFiles(newProject(basename(folder))), {})
+    await this.save(toFiles(project ?? newProject(basename(folder))), {})
     return this.open(folder)
   }
   async save(

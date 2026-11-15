@@ -7,6 +7,7 @@ import type {
   Settings,
   Setup,
   Timing,
+  SoundFontRef,
 } from './model'
 
 export type ProjectMeta = Project
@@ -26,6 +27,8 @@ export interface CommandMap {
   'learn:start': { controlId?: string }
   'learn:stop': undefined
   'device:assign': { portName: string; profileId: string }
+  'audition:select': { soundfontId: Id; bank: number; program: number; isDrum: boolean } | null
+  'audition:preset': { soundfontId: Id; bank: number; program: number; isDrum: boolean; key: number; on: boolean }
   panic: undefined
 }
 export interface TransportState {
@@ -76,11 +79,14 @@ export interface EventMap {
     outputMs: number
     backend: string
     fluidMs: number
+    sampleRate?: number
+    bufferSize?: Settings['audio']['bufferSize']
   }
   log: LogEntry
   app: { cmd: string }
 }
 export interface RequestMap {
+  'soundfont:resolve': { input: SoundFontRef; output: string | null }
   'soundfont:presets': {
     input: { soundfontId: Id }
     output: { bank: number; program: number; name: string; isDrum: boolean }[]

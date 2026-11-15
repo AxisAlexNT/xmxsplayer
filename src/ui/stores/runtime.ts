@@ -6,6 +6,7 @@ import type {
   TransportState,
 } from '../../shared/protocol'
 export const useRuntimeStore = defineStore('runtime', () => {
+  const latency = ref<{ baseMs: number; outputMs: number; backend: string; fluidMs: number; sampleRate?: number; bufferSize?: import('../../shared/model').Settings['audio']['bufferSize'] } | null>(null)
   const connected = ref(false)
   const logs = ref<(LogEntry & { time: string })[]>([])
   const transport = ref<TransportState>({
@@ -32,5 +33,5 @@ export const useRuntimeStore = defineStore('runtime', () => {
       { ...entry, time: new Date().toLocaleTimeString() },
     ]
   }
-  return { connected, logs, transport, state, log }
+  return { latency, connected, logs, transport, state, log }
 })
