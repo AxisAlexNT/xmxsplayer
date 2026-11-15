@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>xmxsplayer — states and tokens</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="xm.css">
+<style>
+  .demo { position: relative; height: 150px; border-radius: var(--xm-r); overflow: hidden; border: 1px solid var(--xm-border); }
+  .demo .xm-lane { height: 100%; }
+  .demo .xm-overlay { left: 0; }
+  .bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--xm-bg-1); border: 1px solid var(--xm-border); border-radius: var(--xm-r); min-height: 60px; flex-wrap: wrap; }
+  .th { width: 252px; }
+  .edge { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--xm-warn); opacity: .8; }
+  .ghost { position: absolute; top: 0; bottom: 0; right: 0; width: 18%; background: linear-gradient(to right, transparent, rgba(76,194,255,.12)); border-left: 1px dashed rgba(76,194,255,.5); }
+  .type b { display: inline-block; width: 210px; color: var(--xm-text-faint); font: 400 11px var(--xm-font-mono); }
+</style>
+</head>
+<body>
+<div class="mk-page">
+  <h1>States and tokens</h1>
+  <p class="mk-lead">How each element looks in every state it can be in, and the colour, type and size tokens behind them (defined in <span class="xm-mono">tokens.css</span>).</p>
+  <div class="mk-nav"><a class="btn btn-sm btn-xm" href="index.html">← Overview</a><a class="btn btn-sm btn-xm" href="main-window.html">Main window</a><a class="btn btn-sm btn-xm" href="panels.html">Panels</a><a class="btn btn-sm btn-xm" href="dialogs.html">Dialogs</a></div>
+
+  <h2>Follow views — where the playhead is</h2>
+  <div class="mk-grid" style="--mk-min:560px">
+    <div>
+      <div class="demo"><div class="xm-lane" data-draw="staff" data-clef="treble" data-color="#4cc2ff" data-now="13" data-sp="12"
+        data-notes="0:3:0.5,0.5:5:0.5,1:7:1,2:6:0.5,2.5:5:0.5,3:3:1, 4:5:0.5,4.5:7:0.5,5:8:1,6:7:2, 8:6:0.5,8.5:5:0.5,9:3:1,10:5:1,11:4:1, 12:3:1,13:5:1,14:7:2"></div>
+        <div class="xm-overlay"><div class="xm-playhead" data-at="13.4"></div><div class="ghost"></div></div></div>
+      <p class="mk-cap"><b>Page view.</b> One system fills the lane; the playhead travels left to right. Over the last 18 % of the page the right edge tints to announce the flip; at the end the next system slides in (150 ms) and the playhead restarts after the clef.</p>
+    </div>
+    <div>
+      <div class="demo"><div class="xm-lane" data-draw="staff" data-clef="treble" data-color="#4cc2ff" data-now="6" data-sp="12" data-time="no"
+        data-notes="0:5:0.5,0.5:7:0.5,1:8:1,2:7:2, 4:6:0.5,4.5:5:0.5,5:3:1,6:5:1,7:4:1, 8:3:1,9:5:1,10:7:2, 12:6:0.5,12.5:5:0.5,13:3:1,14:5:2"></div>
+        <div class="xm-overlay"><div class="xm-playhead" style="left:50%"></div></div></div>
+      <p class="mk-cap"><b>Center view.</b> The playhead is fixed at 50 % of the lane width and the systems scroll under it, joined end to end (each system still starts with its clef and key). Past music is on the left, upcoming on the right.</p>
+    </div>
+  </div>
+
+  <h2>Lane views and themes</h2>
+  <div class="mk-grid" style="--mk-min:400px">
+    <div>
+      <div class="demo"><div class="xm-lane" data-draw="staff" data-clef="treble" data-color="#4cc2ff" data-now="5" data-sp="12" data-dyn="0:f"
+        data-notes="0:3:0.5,0.5:5:0.5,1:7:1,2:6:0.5,2.5:5:0.5,3:3:1, 4:5:0.5,4.5:7:0.5,5:8:1,6:7:2, 8:6:0.5:x,8.5:5:0.5,9:3:1,10:5:2, 12:3:4"></div><div class="xm-overlay"><div class="xm-playhead" data-at="5.4"></div></div></div>
+      <p class="mk-cap"><b>Staff, dark (default).</b> Ink <span class="xm-mono">--xm-staff-ink</span> on the lane background. Sounding notes take the track colour with a glow; the next expected note in a follow mode gets a dashed amber ring.</p>
+    </div>
+    <div>
+      <div class="demo"><div class="xm-lane is-paper" data-draw="staff" data-clef="treble" data-color="#0b7fbf" data-now="5" data-sp="12" data-dyn="0:f"
+        data-notes="0:3:0.5,0.5:5:0.5,1:7:1,2:6:0.5,2.5:5:0.5,3:3:1, 4:5:0.5,4.5:7:0.5,5:8:1,6:7:2, 8:6:0.5,8.5:5:0.5,9:3:1,10:5:2, 12:3:4"></div><div class="xm-overlay"><div class="xm-playhead" data-at="5.4" style="background:#0b7fbf;box-shadow:none"></div></div></div>
+      <p class="mk-cap"><b>Staff, paper.</b> Ink <span class="xm-mono">--xm-paper-ink</span> on <span class="xm-mono">--xm-paper</span>; the track colour is darkened 35 % for contrast and the playhead loses its glow.</p>
+    </div>
+    <div>
+      <div class="demo"><div class="xm-lane" data-draw="roll" data-color="#4cc2ff" data-lo="60" data-hi="80" data-now="5" data-mode="live"
+        data-notes="0:68:0.5,0.5:72:0.5,1:75:1,2:73:0.5,2.5:72:0.5,3:68:1, 4:72:0.5,4.5:75:0.5,5:77:1,6:75:2, 8:73:0.5,8.5:72:0.5,9:68:1,10:72:2, 12:68:4"></div><div class="xm-overlay"><div class="xm-playhead" data-at="5"></div></div></div>
+      <p class="mk-cap"><b>Piano roll, LIVE track.</b> Same melody. Notes of a track you play are outlined (a guide), notes the computer plays are filled. The lead-in gutter shows the key legend where a staff shows clef and key.</p>
+    </div>
+  </div>
+
+  <h2>Transport states</h2>
+  <div class="mk-grid" style="--mk-min:520px">
+    <div><div class="bar"><div class="xm-tgroup"><button class="xm-tbtn"><i class="bi bi-play-fill"></i></button><button class="xm-tbtn"><i class="bi bi-stop-fill"></i></button><button class="xm-tbtn is-rec"><i class="bi bi-record-fill"></i></button></div><div class="xm-pos"><b>001.1.1</b><small>00:00.000</small></div><div class="xm-beats"><span class="xm-beat"></span><span class="xm-beat"></span><span class="xm-beat"></span><span class="xm-beat"></span></div></div><p class="mk-cap"><b>Stopped.</b></p></div>
+    <div><div class="bar"><div class="xm-tgroup"><button class="xm-tbtn is-play is-on"><i class="bi bi-pause-fill"></i></button><button class="xm-tbtn"><i class="bi bi-stop-fill"></i></button><button class="xm-tbtn is-rec"><i class="bi bi-record-fill"></i></button></div><div class="xm-pos"><b>018.1.1</b><small>00:39.840</small></div><div class="xm-beats"><span class="xm-beat is-on is-one"></span><span class="xm-beat"></span><span class="xm-beat"></span><span class="xm-beat"></span></div></div><p class="mk-cap"><b>Playing, beat 1.</b> Play shows a pause icon and turns green; the downbeat lamp is amber, other beats accent blue.</p></div>
+    <div><div class="bar"><div class="xm-tgroup"><button class="xm-tbtn is-play is-on"><i class="bi bi-pause-fill"></i></button><button class="xm-tbtn"><i class="bi bi-stop-fill"></i></button><button class="xm-tbtn is-rec is-on"><i class="bi bi-record-fill"></i></button></div><div class="xm-pos"><b style="color:var(--xm-rec)">018.3.1</b><small>00:41.250 · take 3</small></div><div class="xm-beats"><span class="xm-beat"></span><span class="xm-beat"></span><span class="xm-beat is-on"></span><span class="xm-beat"></span></div></div><p class="mk-cap"><b>Recording.</b> Record is solid red with a halo; the position turns red and shows the take number.</p></div>
+    <div><div class="bar"><div class="xm-tgroup"><button class="xm-tbtn is-play is-on" style="color:var(--xm-warn);border-color:var(--xm-warn);background:rgba(255,176,32,.14)"><i class="bi bi-hourglass-split"></i></button></div><div class="xm-pos"><b>033.1.1</b><small>01:12.000</small></div><span class="xm-hold">HOLDING</span><div class="xm-field"><span>Follow</span><button class="btn btn-sm btn-xm dropdown-toggle" style="margin-top:2px">Wait for notes · any</button></div><span class="xm-muted">waiting for E♭5</span></div><p class="mk-cap"><b>Holding</b> (wait-for-notes or a wait cue). Amber Play with an hourglass, a HOLDING tag, and what it is waiting for. Fast-forward skips the hold.</p></div>
+    <div><div class="bar"><div class="xm-tgroup"><button class="xm-tbtn is-play is-on"><i class="bi bi-pause-fill"></i></button></div><div class="xm-field"><span>Tempo</span><b>138.2 <small class="xm-muted" style="font-size:11px">×1.08</small></b></div><div class="xm-field"><span>Follow</span><button class="btn btn-sm btn-xm dropdown-toggle" style="margin-top:2px">Track my tempo</button></div></div><p class="mk-cap"><b>Tempo tracking.</b> The tempo field shows the effective tempo and the live factor.</p></div>
+    <div><div class="bar"><span class="xm-status"><span class="xm-dot"></span>Built-in · <span class="xm-mono">9.3 ms</span></span><span class="xm-status"><span class="xm-dot"></span>FluidSynth · <span class="xm-mono">5.3 ms</span> configured</span><span class="xm-status"><span class="xm-dot is-warn"></span>Built-in · <span class="xm-mono">42 ms</span></span><span class="xm-status"><span class="xm-dot is-err"></span>Engine restarting…</span><span class="xm-status"><span class="xm-dot is-off"></span><i class="bi bi-usb-symbol"></i>No controller</span></div><p class="mk-cap"><b>Status chips.</b> Green ok; amber when measured latency exceeds 25 ms; red on engine failure; grey when nothing is connected.</p></div>
+  </div>
+
+  <h2>Track header states</h2>
+  <div class="mk-grid" style="--mk-min:270px">
+    <div><div class="xm-th th" style="--c:var(--xm-c9)"><div class="xm-th-top"><i class="bi bi-grip-vertical xm-grip"></i><span class="xm-th-name">Bass</span></div><div class="xm-th-top"><button class="xm-mode is-auto"><i class="bi bi-cpu"></i>AUTO</button><button class="xm-sq">S</button><button class="xm-sq"><i class="bi bi-record-fill"></i></button></div></div><p class="mk-cap"><b>AUTO</b> — the computer plays it.</p></div>
+    <div><div class="xm-th th" style="--c:var(--xm-c1)"><div class="xm-th-top"><i class="bi bi-grip-vertical xm-grip"></i><span class="xm-th-name">Lead</span></div><div class="xm-th-top"><button class="xm-mode is-live"><i class="bi bi-person-fill"></i>LIVE</button><button class="xm-sq">S</button><button class="xm-sq is-arm"><i class="bi bi-record-fill"></i></button><button class="xm-sq is-on"><i class="bi bi-magnet"></i></button></div></div><p class="mk-cap"><b>LIVE</b>, record-armed, and leading the follow mode (magnet).</p></div>
+    <div><div class="xm-th th" style="--c:var(--xm-c6);opacity:.6"><div class="xm-th-top"><i class="bi bi-grip-vertical xm-grip"></i><span class="xm-th-name">Drums</span></div><div class="xm-th-top"><button class="xm-mode is-mute"><i class="bi bi-volume-mute"></i>MUTE</button><button class="xm-sq">S</button><button class="xm-sq"><i class="bi bi-record-fill"></i></button></div></div><p class="mk-cap"><b>MUTE</b> — header and lane dim to 60 %.</p></div>
+    <div><div class="xm-th th" style="--c:var(--xm-c3)"><div class="xm-th-top"><i class="bi bi-grip-vertical xm-grip"></i><span class="xm-th-name">Strings</span></div><div class="xm-th-top"><button class="xm-mode is-auto"><i class="bi bi-cpu"></i>AUTO</button><button class="xm-sq is-solo">S</button></div></div><p class="mk-cap"><b>Solo</b> — amber S; non-solo tracks dim like muted ones.</p></div>
+    <div><div class="xm-th th" style="--c:var(--xm-c2)"><div class="xm-wrap"><span class="xm-badge is-synced"><i class="bi bi-link-45deg"></i>synced</span><span class="xm-badge is-ahead"><i class="bi bi-pencil-fill"></i>modified here</span><span class="xm-badge is-orphan"><i class="bi bi-question-circle"></i>not in score</span></div></div><p class="mk-cap"><b>Link badges.</b> Green: mirrors the score. Amber: edited in the app, protected from re-sync. Red: its staff vanished from the score.</p></div>
+  </div>
+
+  <h2>Pad LED and clip states (same colours on screen and on the KeyLab)</h2>
+  <div class="xm-wrap" style="gap:18px;align-items:flex-start">
+    <div style="width:84px"><div class="xm-pad is-empty"><i>8</i>Bind…</div><p class="mk-cap">Unbound — LED off</p></div>
+    <div style="width:84px"><div class="xm-pad" style="--c:var(--xm-c6)"><i>5</i>Break A</div><p class="mk-cap">Bound, idle — colour at 20 %</p></div>
+    <div style="width:84px"><div class="xm-pad is-lit" style="--c:var(--xm-c6)"><i>5</i>Break A</div><p class="mk-cap">On / playing — full colour</p></div>
+    <div style="width:84px"><div class="xm-pad is-blink" style="--c:var(--xm-c6)"><i>5</i>Break A</div><p class="mk-cap">Queued / armed — blinks amber at beat rate</p></div>
+    <div style="width:84px"><div class="xm-pad is-lit" style="--c:var(--xm-accent)"><i>3</i>beat</div><p class="mk-cap">Beat chase — current beat, accent</p></div>
+    <div style="width:84px"><div class="xm-pad is-lit" style="--c:var(--xm-warn)"><i>1</i>beat 1</div><p class="mk-cap">Beat chase — downbeat, amber</p></div>
+    <div style="width:84px"><div class="xm-pad is-lit" style="--c:#ffffff"><i>4</i>hit</div><p class="mk-cap">Pad hit — white flash 80 ms</p></div>
+  </div>
+
+  <h2>Colour tokens</h2>
+  <div class="mk-grid" style="--mk-min:230px;gap:10px">
+    <div class="mk-swatch"><i style="background:var(--xm-bg-0)"></i><span><b>--xm-bg-0</b><br><span class="xm-faint">app background</span></span></div>
+    <div class="mk-swatch"><i style="background:var(--xm-bg-1)"></i><span><b>--xm-bg-1</b><br><span class="xm-faint">panels, bars</span></span></div>
+    <div class="mk-swatch"><i style="background:var(--xm-bg-2)"></i><span><b>--xm-bg-2</b><br><span class="xm-faint">controls, inputs</span></span></div>
+    <div class="mk-swatch"><i style="background:var(--xm-bg-3)"></i><span><b>--xm-bg-3</b><br><span class="xm-faint">hover, selected</span></span></div>
+    <div class="mk-swatch"><i style="background:var(--xm-bg-lane)"></i><span><b>--xm-bg-lane</b><br><span class="xm-faint">lanes</span></span></div>
+    <div class="mk-swatch"><i style="background:var(--xm-border-strong)"></i><span><b>--xm-border-strong</b><br><span class="xm-faint">control outlines</span></span></div>
+    <div class="mk-swatch"><i style="background:var(--xm-text)"></i><span><b>--xm-text</b><br><span class="xm-faint">primary text, staff ink</span></span></div>
+    <div class="mk-swatch"><i style="background:var(--xm-text-muted)"></i><span><b>--xm-text-muted</b><br><span class="xm-faint">secondary text</span></span></div>
+    <div class="mk-swatch"><i style="background:var(--xm-accent)"></i><span><b>--xm-accent</b><br><span class="xm-faint">focus, playhead, primary</span></span></div>
+    <div class="mk-swatch"><i style="background:var(--xm-ok)"></i><span><b>--xm-ok / --xm-auto</b><br><span class="xm-faint">playing, synced, AUTO</span></span></div>
+    <div class="mk-swatch"><i style="background:var(--xm-live)"></i><span><b>--xm-live</b><br><span class="xm-faint">LIVE mode</span></span></div>
+    <div class="mk-swatch"><i style="background:var(--xm-warn)"></i><span><b>--xm-warn</b><br><span class="xm-faint">holding, queued, modified</span></span></div>
+    <div class="mk-swatch"><i style="background:var(--xm-rec)"></i><span><b>--xm-rec</b><br><span class="xm-faint">record, errors, delete</span></span></div>
+    <div class="mk-swatch"><i style="background:var(--xm-paper)"></i><span><b>--xm-paper</b><br><span class="xm-faint">paper staff background</span></span></div>
+  </div>
+  <div class="xm-wrap" style="margin-top:16px;gap:8px">
+    <span class="xm-chip" style="--c:var(--xm-c1)"><i class="xm-sw"></i>c1</span><span class="xm-chip" style="--c:var(--xm-c2)"><i class="xm-sw"></i>c2</span><span class="xm-chip" style="--c:var(--xm-c3)"><i class="xm-sw"></i>c3</span><span class="xm-chip" style="--c:var(--xm-c4)"><i class="xm-sw"></i>c4</span>
+    <span class="xm-chip" style="--c:var(--xm-c5)"><i class="xm-sw"></i>c5</span><span class="xm-chip" style="--c:var(--xm-c6)"><i class="xm-sw"></i>c6</span><span class="xm-chip" style="--c:var(--xm-c7)"><i class="xm-sw"></i>c7</span><span class="xm-chip" style="--c:var(--xm-c8)"><i class="xm-sw"></i>c8</span>
+    <span class="xm-chip" style="--c:var(--xm-c9)"><i class="xm-sw"></i>c9</span><span class="xm-chip" style="--c:var(--xm-c10)"><i class="xm-sw"></i>c10</span><span class="xm-chip" style="--c:var(--xm-c11)"><i class="xm-sw"></i>c11</span><span class="xm-chip" style="--c:var(--xm-c12)"><i class="xm-sw"></i>c12</span>
+  </div>
+  <p class="mk-cap"><b>Track / instrument / zone palette</b> — assigned in order to new tracks, wrapping after 12.</p>
+
+  <h2>Type and buttons</h2>
+  <div class="mk-grid" style="--mk-min:520px">
+    <div class="type" style="line-height:2.1">
+      <div><b>--xm-fs-pos 24 mono 600</b><span class="xm-mono" style="font-size:24px;font-weight:600">018.3.1</span></div>
+      <div><b>--xm-fs-lg 15 / 600</b><span style="font-size:15px;font-weight:600">Track name, dialog title</span></div>
+      <div><b>--xm-fs 13 / 400</b><span>Base UI text, inputs, menu items</span></div>
+      <div><b>--xm-fs-sm 12 / 500</b><span style="font-size:12px;font-weight:500">Chips, secondary text, small buttons</span></div>
+      <div><b>--xm-fs-xs 11 / 600 caps</b><span style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--xm-text-muted)">Section label</span></div>
+      <div><b>--xm-font-mono</b><span class="xm-mono">128.0 BPM · C2–B3 · 000:048 · 9.3 ms</span></div>
+    </div>
+    <div>
+      <div class="xm-wrap" style="gap:10px;align-items:center">
+        <button class="btn btn-primary">Primary</button><button class="btn btn-xm">Default</button><button class="btn btn-xm active">Active</button><button class="btn btn-ghost">Ghost</button><button class="btn btn-ghost text-danger">Destructive</button><button class="btn btn-xm" disabled>Disabled</button>
+      </div>
+      <div class="xm-wrap" style="gap:10px;align-items:center;margin-top:12px">
+        <button class="btn btn-sm btn-primary">Small primary</button><button class="btn btn-sm btn-xm">Small</button><div class="xm-seg"><button class="is-on">Segment</button><button>Two</button><button>Three</button></div><span class="xm-kbd">Ctrl S</span>
+      </div>
+      <p class="mk-cap">One primary button per dialog at most. Destructive actions are ghost + red text and sit on the left. Segmented controls replace radio groups of up to four short options.</p>
+    </div>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

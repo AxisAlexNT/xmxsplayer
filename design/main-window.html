@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>xmxsplayer — main window</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="xm.css">
+</head>
+<body>
+<div class="xm-app">
+
+  <!-- ================= TRANSPORT BAR ================= -->
+  <header class="xm-transport">
+    <div class="xm-tgroup">
+      <button class="xm-tbtn" title="Menu"><i class="bi bi-list"></i></button>
+      <b style="font-size:13px;font-weight:600;padding:0 6px 0 2px">Acid Wolfpack <span class="xm-dot is-warn" title="Unsaved changes" style="margin-left:4px"></span></b>
+    </div>
+    <div class="xm-tsep"></div>
+
+    <div class="xm-tgroup">
+      <button class="xm-tbtn" title="To start"><i class="bi bi-skip-start-fill"></i></button>
+      <button class="xm-tbtn" title="Back one bar"><i class="bi bi-rewind-fill"></i></button>
+      <button class="xm-tbtn is-play is-on" title="Play / pause (Space)"><i class="bi bi-play-fill"></i></button>
+      <button class="xm-tbtn" title="Stop"><i class="bi bi-stop-fill"></i></button>
+      <button class="xm-tbtn is-rec" title="Record (R)"><i class="bi bi-record-fill"></i></button>
+      <button class="xm-tbtn" title="Forward one bar / skip hold"><i class="bi bi-fast-forward-fill"></i></button>
+      <button class="xm-tbtn is-on" title="Loop (L)"><i class="bi bi-arrow-repeat"></i></button>
+      <button class="xm-tbtn" title="Metronome"><i class="bi bi-bell"></i></button>
+    </div>
+
+    <div class="xm-pos"><b>018.3.1</b><small>00:41.250</small></div>
+
+    <div class="xm-beats" title="Beat">
+      <span class="xm-beat"></span><span class="xm-beat"></span><span class="xm-beat is-on"></span><span class="xm-beat"></span>
+    </div>
+    <div class="xm-tsep"></div>
+
+    <div class="xm-field"><span>Tempo</span><b>128.0</b></div>
+    <div class="xm-field"><span>Time · Key</span><b>4/4 · A♭</b></div>
+    <div class="xm-field">
+      <span>Speed</span>
+      <div class="xm-row"><input type="range" class="form-range" min="25" max="150" value="65" style="width:84px;height:18px"><b class="xm-mono" style="color:var(--xm-accent);font-size:15px">65%</b></div>
+    </div>
+    <div class="xm-field"><span>Loop</span><b>17 – 21</b></div>
+    <div class="xm-tsep"></div>
+
+    <div class="xm-field">
+      <span>Follow</span>
+      <button class="btn btn-sm btn-xm dropdown-toggle" style="margin-top:2px">Written</button>
+    </div>
+
+    <div style="flex:1"></div>
+
+    <div class="xm-seg" title="Follow view (F)"><button class="is-on">Page</button><button>Center</button></div>
+    <div class="xm-seg" title="Lane view (Tab)"><button class="is-on">Staff</button><button>Roll</button><button>Per track</button></div>
+    <div class="xm-tgroup">
+      <button class="xm-tbtn" title="Smaller lanes"><i class="bi bi-zoom-out"></i></button>
+      <button class="xm-tbtn" title="Larger lanes"><i class="bi bi-zoom-in"></i></button>
+    </div>
+    <span class="xm-status" title="Synth engine and measured output latency"><span class="xm-dot"></span>Built-in · <span class="xm-mono">9.3 ms</span></span>
+    <span class="xm-status" title="Controller: KeyLab Essential 61 mk3"><span class="xm-dot"></span><i class="bi bi-usb-symbol"></i>KeyLab</span>
+    <button class="xm-tbtn" title="Settings"><i class="bi bi-gear"></i></button>
+  </header>
+
+  <!-- ================= LEFT PANEL ================= -->
+  <aside class="xm-left">
+
+    <section class="xm-sec">
+      <div class="xm-sec-h"><i class="bi bi-chevron-down"></i><h6>Scenes</h6>
+        <div class="xm-seg"><button>Base</button><button class="is-on">Verse</button></div>
+      </div>
+      <div class="xm-sec-b">
+        <div class="xm-wrap">
+          <span class="xm-chip" style="--c:var(--xm-c2)"><i class="xm-sw"></i>Intro</span>
+          <span class="xm-chip is-active" style="--c:var(--xm-c1)"><i class="xm-sw"></i>Verse</span>
+          <span class="xm-chip" style="--c:var(--xm-c6)"><i class="xm-sw"></i>Reprise</span>
+          <span class="xm-chip" style="--c:var(--xm-c9)"><i class="xm-sw"></i>Outro</span>
+          <span class="xm-chip is-add"><i class="bi bi-camera"></i>Capture</span>
+        </div>
+        <div class="xm-faint" style="font-size:11px;margin-top:8px">Edits to zones, patch and bindings are stored in <b style="color:var(--xm-text-muted)">Verse</b>.</div>
+      </div>
+    </section>
+
+    <section class="xm-sec">
+      <div class="xm-sec-h"><i class="bi bi-chevron-down"></i><h6>Registers</h6><span class="xm-count">2 on</span></div>
+      <div class="xm-sec-b">
+        <div class="xm-regs">
+          <div class="xm-reg"><button>1</button><span>Brass</span></div>
+          <div class="xm-reg is-on" style="--c:var(--xm-c3)"><button>2</button><span>Strings</span></div>
+          <div class="xm-reg"><button>3</button><span>Choir</span></div>
+          <div class="xm-reg"><button>4</button><span>Bells</span></div>
+          <div class="xm-reg is-on" style="--c:var(--xm-c9)"><button>5</button><span>Drums A</span></div>
+          <div class="xm-reg"><button>6</button><span>Drums B</span></div>
+          <div class="xm-reg"><button>7</button><span>Fill</span></div>
+          <div class="xm-reg"><button>8</button><span>—</span></div>
+          <div class="xm-reg-group" style="--span:4" data-label="toggles"></div>
+          <div class="xm-reg-group" style="--span:3" data-label="exclusive · drums"></div>
+        </div>
+        <div style="height:14px"></div>
+      </div>
+    </section>
+
+    <section class="xm-sec">
+      <div class="xm-sec-h"><i class="bi bi-chevron-down"></i><h6>Patch</h6><span class="xm-count">track → instrument</span></div>
+      <div class="xm-sec-b">
+        <div class="xm-patch">
+          <span class="xm-chip is-sm" style="--c:var(--xm-c1)"><i class="xm-sw"></i>Lead</span><span class="xm-arrow">→</span>
+          <div class="xm-wrap"><span class="xm-chip is-sm"><i class="bi bi-music-note"></i>Saw Lead</span><span class="xm-chip is-sm is-add"><i class="bi bi-plus-lg"></i></span></div>
+
+          <span class="xm-chip is-sm" style="--c:var(--xm-c3)"><i class="xm-sw"></i>Piano LH</span><span class="xm-arrow">→</span>
+          <div class="xm-wrap"><span class="xm-chip is-sm"><i class="bi bi-music-note"></i>Grand Piano</span><span class="xm-chip is-sm"><i class="bi bi-music-note"></i>Strings <span class="xm-tag">R2 on</span></span><span class="xm-chip is-sm is-add"><i class="bi bi-plus-lg"></i></span></div>
+
+          <span class="xm-chip is-sm" style="--c:var(--xm-c9)"><i class="xm-sw"></i>Bass</span><span class="xm-arrow">→</span>
+          <div class="xm-wrap"><span class="xm-chip is-sm"><i class="bi bi-music-note"></i>Acid Bass</span><span class="xm-chip is-sm is-add"><i class="bi bi-plus-lg"></i></span></div>
+
+          <span class="xm-chip is-sm" style="--c:var(--xm-c6)"><i class="xm-sw"></i>Drums</span><span class="xm-arrow">→</span>
+          <div class="xm-wrap"><span class="xm-chip is-sm"><i class="bi bi-music-note"></i>TR-909 Kit <span class="xm-tag">R5 on</span></span><span class="xm-chip is-sm is-add"><i class="bi bi-plus-lg"></i></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="xm-sec">
+      <div class="xm-sec-h"><i class="bi bi-chevron-down"></i><h6>Clips</h6><button class="btn btn-sm btn-ghost"><i class="bi bi-plus-lg"></i></button></div>
+      <div class="xm-sec-b">
+        <div class="xm-clips">
+          <div class="xm-clip is-playing" style="--c:var(--xm-c6);--p:62%"><b>Break A</b><small><span>4 bars · sync</span><span>Pad 5</span></small><i class="xm-prog"></i></div>
+          <div class="xm-clip is-queued" style="--c:var(--xm-c4)"><b>Vox chop</b><small><span>1 bar · bar</span><span>Pad 6</span></small></div>
+          <div class="xm-clip" style="--c:var(--xm-c7)"><b>Riser</b><small><span>sweep ±12</span><span>Fader 8</span></small></div>
+          <div class="xm-clip" style="--c:var(--xm-c10)"><b>Impact</b><small><span>one-shot</span><span>Pad 7</span></small></div>
+          <div class="xm-clip" style="--c:var(--xm-c12)"><b>Drone</b><small><span>position</span><span>Knob 9</span></small></div>
+          <div class="xm-clip" style="--c:var(--xm-c11)"><b>Noise</b><small><span>hold</span><span>—</span></small></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="xm-sec">
+      <div class="xm-sec-h"><i class="bi bi-chevron-down"></i><h6>Controls</h6><span class="xm-count">KeyLab · bank A</span></div>
+      <div class="xm-sec-b">
+        <div class="xm-ctl">
+          <div class="xm-pads">
+            <div class="xm-pad" style="--c:var(--xm-c1)"><i>1</i>Scene ▸</div>
+            <div class="xm-pad is-blink" style="--c:var(--xm-warn)"><i>2</i>Cue: Reprise</div>
+            <div class="xm-pad is-lit" style="--c:var(--xm-accent)"><i>3</i>Kick</div>
+            <div class="xm-pad" style="--c:var(--xm-c1)"><i>4</i>Snare</div>
+            <div class="xm-pad is-lit" style="--c:var(--xm-c6)"><i>5</i>Break A</div>
+            <div class="xm-pad is-blink" style="--c:var(--xm-c4)"><i>6</i>Vox chop</div>
+            <div class="xm-pad" style="--c:var(--xm-c10)"><i>7</i>Impact</div>
+            <div class="xm-pad is-empty"><i>8</i>Bind…</div>
+          </div>
+          <div class="xm-ctl-row" style="justify-content:space-between">
+            <div class="xm-knob" style="--v:.33"><i></i>Speed</div>
+            <div class="xm-knob" style="--v:.7"><i></i>Ref vol</div>
+            <div class="xm-knob" style="--v:.5"><i></i>Filter</div>
+            <div class="xm-knob" style="--v:.5"><i></i>Pitch</div>
+            <div class="xm-knob" style="--v:.2"><i></i>Reverb</div>
+            <div class="xm-knob" style="--v:0"><i></i>—</div>
+            <div class="xm-knob" style="--v:.4"><i></i>Drone</div>
+          </div>
+        </div>
+        <div class="xm-faint" style="font-size:11px;margin-top:8px">Click a control to bind it. Top row shows the beat.</div>
+      </div>
+    </section>
+
+    <section class="xm-sec"><div class="xm-sec-h"><i class="bi bi-chevron-right"></i><h6>Signal flow</h6></div></section>
+    <section class="xm-sec"><div class="xm-sec-h"><i class="bi bi-chevron-right"></i><h6>Devices</h6><span class="xm-count"><span class="xm-dot"></span> 1 connected</span></div></section>
+    <section class="xm-sec"><div class="xm-sec-h"><i class="bi bi-chevron-right"></i><h6>Soundfonts</h6><span class="xm-count">2</span></div></section>
+    <section class="xm-sec"><div class="xm-sec-h"><i class="bi bi-chevron-right"></i><h6>Sources</h6><span class="xm-count">1 linked</span></div></section>
+    <section class="xm-sec"><div class="xm-sec-h"><i class="bi bi-chevron-right"></i><h6>Script</h6></div></section>
+    <section class="xm-sec"><div class="xm-sec-h"><i class="bi bi-chevron-right"></i><h6>Log</h6><span class="xm-count">0 errors</span></div></section>
+  </aside>
+
+  <!-- ================= TRACKS ================= -->
+  <main class="xm-main">
+
+    <div class="xm-rowgrid xm-ruler">
+      <div class="xm-corner"><i class="bi bi-rulers"></i> Bars</div>
+      <div class="xm-lane" style="background:transparent" data-draw="ruler" data-first="17" data-loop="0-16"></div>
+    </div>
+
+    <div class="xm-rowgrid xm-cues">
+      <div class="xm-corner" style="justify-content:space-between">Cues <i class="bi bi-plus-lg"></i></div>
+      <div class="xm-lanearea">
+        <span class="xm-cue" style="--c:var(--xm-c1)" data-at="0"><i class="bi bi-flag-fill"></i>Verse</span>
+        <span class="xm-cue is-armed" data-at="8"><i class="bi bi-hand-index-thumb"></i>Reprise · waits for Pad 2 · on bar</span>
+      </div>
+    </div>
+
+    <div class="xm-tracks">
+
+      <!-- Track 1: live, staff, treble -->
+      <div class="xm-rowgrid xm-track" style="--h:196px;--c:var(--xm-c1)">
+        <div class="xm-th">
+          <div class="xm-th-top"><i class="bi bi-grip-vertical xm-grip"></i><span class="xm-th-name">Lead</span><span class="xm-badge is-synced"><i class="bi bi-link-45deg"></i>synced</span></div>
+          <div class="xm-th-top">
+            <button class="xm-mode is-live"><i class="bi bi-person-fill"></i>LIVE</button>
+            <button class="xm-sq" title="Solo">S</button>
+            <button class="xm-sq" title="Record arm"><i class="bi bi-record-fill"></i></button>
+            <button class="xm-sq is-on" title="Leads follow modes"><i class="bi bi-magnet"></i></button>
+            <div style="flex:1"></div>
+            <div class="xm-seg"><button class="is-on" title="Staff"><i class="bi bi-music-note-beamed"></i></button><button title="Piano roll"><i class="bi bi-bar-chart-steps"></i></button></div>
+          </div>
+          <div class="xm-wrap"><span class="xm-chip is-sm"><i class="bi bi-music-note"></i>Saw Lead</span><span class="xm-chip is-sm"><i class="bi bi-sliders"></i>FX</span></div>
+          <div class="xm-th-top" style="margin-top:auto"><i class="bi bi-volume-up xm-faint"></i><div class="xm-vol" style="--v:.72"></div></div>
+        </div>
+        <div class="xm-lane" data-draw="staff" data-clef="treble" data-color="#4cc2ff" data-now="6" data-dyn="0:f"
+             data-notes="0:3:0.5,0.5:5:0.5,1:7:1,2:6:0.5,2.5:5:0.5,3:3:1, 4:5:0.5,4.5:7:0.5,5:8:1,6:7:2, 8:6:0.5:x,8.5:5:0.5,9:3:1,10:5:1,11:4:1, 12:3:4"></div>
+      </div>
+
+      <!-- Track 2: live, staff, bass -->
+      <div class="xm-rowgrid xm-track" style="--h:196px;--c:var(--xm-c3)">
+        <div class="xm-th">
+          <div class="xm-th-top"><i class="bi bi-grip-vertical xm-grip"></i><span class="xm-th-name">Piano LH</span><span class="xm-badge is-synced"><i class="bi bi-link-45deg"></i>synced</span></div>
+          <div class="xm-th-top">
+            <button class="xm-mode is-live"><i class="bi bi-person-fill"></i>LIVE</button>
+            <button class="xm-sq">S</button>
+            <button class="xm-sq is-arm"><i class="bi bi-record-fill"></i></button>
+            <button class="xm-sq" title="Leads follow modes"><i class="bi bi-magnet"></i></button>
+            <div style="flex:1"></div>
+            <div class="xm-seg"><button class="is-on"><i class="bi bi-music-note-beamed"></i></button><button><i class="bi bi-bar-chart-steps"></i></button></div>
+          </div>
+          <div class="xm-wrap"><span class="xm-chip is-sm"><i class="bi bi-music-note"></i>Grand Piano</span><span class="xm-chip is-sm"><i class="bi bi-music-note"></i>Strings <span class="xm-tag">R2</span></span></div>
+          <div class="xm-th-top" style="margin-top:auto"><i class="bi bi-volume-up xm-faint"></i><div class="xm-vol" style="--v:.6"></div></div>
+        </div>
+        <div class="xm-lane" data-draw="staff" data-clef="bass" data-color="#b07cff" data-now="6" data-dyn="0:mp"
+             data-notes="0:1:2,0:3:2,0:5:2, 2:1:2,2:3:2,2:5:2, 4:0:2,4:2:2,4:4:2, 6:0:2,6:2:2,6:5:2, 8:-1:2,8:1:2,8:3:2, 10:1:2,10:3:2,10:5:2, 12:1:4,12:5:4"></div>
+      </div>
+
+      <!-- Track 3: auto, piano roll, modified after linking -->
+      <div class="xm-rowgrid xm-track" style="--h:132px;--c:var(--xm-c9)">
+        <div class="xm-th">
+          <div class="xm-th-top"><i class="bi bi-grip-vertical xm-grip"></i><span class="xm-th-name">Bass</span><span class="xm-badge is-ahead"><i class="bi bi-pencil-fill"></i>modified here</span></div>
+          <div class="xm-th-top">
+            <button class="xm-mode is-auto"><i class="bi bi-cpu"></i>AUTO</button>
+            <button class="xm-sq">S</button>
+            <button class="xm-sq"><i class="bi bi-record-fill"></i></button>
+            <div style="flex:1"></div>
+            <div class="xm-seg"><button><i class="bi bi-music-note-beamed"></i></button><button class="is-on"><i class="bi bi-bar-chart-steps"></i></button></div>
+          </div>
+          <div class="xm-wrap"><span class="xm-chip is-sm"><i class="bi bi-music-note"></i>Acid Bass</span></div>
+          <div class="xm-th-top" style="margin-top:auto"><i class="bi bi-volume-up xm-faint"></i><div class="xm-vol" style="--v:.8"></div></div>
+        </div>
+        <div class="xm-lane" id="bass" data-draw="roll" data-color="#3ddc97" data-lo="36" data-hi="51" data-now="6">
+          <div class="xm-lane-tools"><button class="is-on" title="Select"><i class="bi bi-cursor"></i></button><button title="Draw"><i class="bi bi-pencil"></i></button><button title="Erase"><i class="bi bi-eraser"></i></button><button title="Snap 1/16">⅟₁₆</button></div>
+        </div>
+      </div>
+
+      <!-- Track 4: auto, drum grid -->
+      <div class="xm-rowgrid xm-track" style="--h:112px;--c:var(--xm-c6)">
+        <div class="xm-th">
+          <div class="xm-th-top"><i class="bi bi-grip-vertical xm-grip"></i><span class="xm-th-name">Drums</span></div>
+          <div class="xm-th-top">
+            <button class="xm-mode is-auto"><i class="bi bi-cpu"></i>AUTO</button>
+            <button class="xm-sq is-solo">S</button>
+            <button class="xm-sq"><i class="bi bi-record-fill"></i></button>
+            <div style="flex:1"></div>
+            <span class="xm-chip is-sm"><i class="bi bi-music-note"></i>TR-909 Kit</span>
+          </div>
+          <div class="xm-th-top" style="margin-top:auto"><i class="bi bi-volume-up xm-faint"></i><div class="xm-vol" style="--v:.66"></div></div>
+        </div>
+        <div class="xm-lane" id="drums" data-draw="roll" data-color="#ff9f43" data-lo="0" data-hi="3" data-rows="Kick|Snare|Hat|Clap" data-now="6"></div>
+      </div>
+
+      <!-- Track 5: reference audio -->
+      <div class="xm-rowgrid xm-track" style="--h:108px;--c:var(--xm-c11)">
+        <div class="xm-th">
+          <div class="xm-th-top"><i class="bi bi-grip-vertical xm-grip"></i><span class="xm-th-name">Reference.flac</span></div>
+          <div class="xm-th-top">
+            <button class="xm-mode is-mute"><i class="bi bi-volume-mute"></i>MUTE</button>
+            <button class="xm-sq">S</button>
+            <button class="xm-sq" title="Send to cue output"><i class="bi bi-headphones"></i></button>
+            <div style="flex:1"></div>
+            <span class="xm-chip is-sm xm-mono">0 st</span><span class="xm-chip is-sm">L+R</span><span class="xm-chip is-sm"><i class="bi bi-funnel"></i></span>
+          </div>
+          <div class="xm-th-top" style="margin-top:auto"><i class="bi bi-volume-up xm-faint"></i><div class="xm-vol" style="--v:.5"></div></div>
+        </div>
+        <div class="xm-lane" data-draw="wave" data-color="#94a3b8" data-seed="11"></div>
+      </div>
+
+      <div class="xm-addrow">
+        <button class="btn btn-sm btn-ghost"><i class="bi bi-plus-lg"></i> MIDI track</button>
+        <button class="btn btn-sm btn-ghost"><i class="bi bi-plus-lg"></i> Audio track</button>
+        <button class="btn btn-sm btn-ghost"><i class="bi bi-link-45deg"></i> Link score…</button>
+      </div>
+
+      <div class="xm-overlay">
+        <div class="xm-loop" data-at="0" data-to="16"></div>
+        <div class="xm-playhead" data-at="6"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= KEYBOARD STRIP ================= -->
+  <footer class="xm-keys">
+    <div class="xm-zones">
+      <div class="xm-zone" style="--c:var(--xm-c3)" data-lo="36" data-hi="59"><span>LH → Piano LH</span><span class="xm-faint xm-mono">C2–B3</span><span class="xm-tag">+Strings R2</span></div>
+      <div class="xm-zone" style="--c:var(--xm-c1)" data-lo="60" data-hi="96"><span>RH → Lead</span><span class="xm-faint xm-mono">C4–C7</span></div>
+    </div>
+    <div class="xm-keybed" data-draw="keys" data-lo="36" data-hi="96" data-held="44:3,48:3,51:3,75:1" data-next="74"></div>
+  </footer>
+</div>
+
+<script>
+  // Demo note data for the piano-roll lanes.
+  const bass = [], pat = [44, 44, 56 - 12, 47, 44, 39, 44, 51];
+  for (let b = 0; b < 16; b += 0.5) bass.push(`${b}:${pat[(b * 2) % 8]}:${b % 2 === 1.5 ? 0.5 : 0.4}`);
+  document.getElementById('bass').dataset.notes = bass.join(',') + ',6:49:0.5:e';
+  const dr = [];
+  for (let b = 0; b < 16; b++) { dr.push(`${b}:0:0.25`, `${b + 0.5}:2:0.2`); if (b % 2 === 1) dr.push(`${b}:1:0.25`, `${b}:3:0.25`); }
+  document.getElementById('drums').dataset.notes = dr.join(',');
+</script>
+<script src="mockup.js"></script>
+</body>
+</html>

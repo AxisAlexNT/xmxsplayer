@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>xmxsplayer — dialogs and popovers</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="xm.css">
+<style>
+  .clipwave { --xm-lane-gutter: 0px; position: relative; height: 120px; border-radius: var(--xm-r); overflow: hidden; border: 1px solid var(--xm-border); }
+  .clipwave .xm-lane { height: 100%; }
+  .clipwave .xm-loop { background: rgba(255, 159, 67, 0.16); border-color: var(--xm-c6); border-width: 2px; }
+  .clipwave .xm-loop::before, .clipwave .xm-loop::after { content: ''; position: absolute; top: 0; width: 14px; height: 22px; background: var(--xm-c6); }
+  .clipwave .xm-loop::before { left: -2px; border-radius: 0 0 6px 0; } .clipwave .xm-loop::after { right: -2px; border-radius: 0 0 0 6px; }
+  .acts > div { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: center; }
+</style>
+</head>
+<body>
+<div class="mk-page">
+  <h1>Dialogs and popovers</h1>
+  <p class="mk-lead">Modal dialogs use <span class="xm-mono">.xm-dialog</span> (header, body, footer; primary action bottom right; Esc cancels). Popovers use <span class="xm-mono">.xm-pop</span>, open next to what was clicked, and apply changes immediately (no OK button).</p>
+  <div class="mk-nav"><a class="btn btn-sm btn-xm" href="index.html">← Overview</a><a class="btn btn-sm btn-xm" href="main-window.html">Main window</a><a class="btn btn-sm btn-xm" href="panels.html">Panels</a><a class="btn btn-sm btn-xm" href="states.html">States</a></div>
+
+  <h2>Binding editor · Zone popover · Follow settings</h2>
+  <div class="mk-grid" style="--mk-min:400px">
+    <div>
+      <div class="xm-pop" style="max-width:400px">
+        <div class="xm-row" style="margin-bottom:10px"><span class="xm-pad is-blink" style="--c:var(--xm-warn);width:40px;flex:none"><i>2</i></span><div style="flex:1;line-height:1.3"><b>Pad 2</b><br><span class="xm-faint" style="font-size:11px">KeyLab · note 41 ch 10 · last value 0.84</span></div><button class="btn btn-sm btn-ghost"><i class="bi bi-x-lg"></i></button></div>
+        <div class="row g-2">
+          <div class="col-12"><label class="form-label">On</label><div class="xm-seg"><button class="is-on">Press</button><button>Release</button><button>Change</button></div></div>
+          <div class="col-6"><label class="form-label">Action</label><select class="form-select"><option>Cue</option><option>Transport</option><option>Scene</option><option>Register</option><option>Play note</option><option>Parameter</option><option>Track mode</option><option>Follow mode</option><option>Clip</option><option>App</option><option>Script function</option></select></div>
+          <div class="col-6"><label class="form-label">Command</label><select class="form-select"><option>Fire cue “Reprise”</option><option>Fire next cue</option></select></div>
+          <div class="col-6"><label class="form-label">Only when</label><select class="form-select"><option>Always</option><option>Register … is on</option><option>Register … is off</option><option>Scene is …</option><option>Bars … to …</option><option>Playing / stopped</option></select></div>
+          <div class="col-6"><label class="form-label">Timing</label><div class="xm-seg"><button>Now</button><button>Beat</button><button class="is-on">Bar</button></div></div>
+          <div class="col-12"><label class="form-label">Store in</label><div class="xm-seg"><button>Shared</button><button>This controller</button><button class="is-on">Scene: Verse</button></div></div>
+          <div class="col-12"><label class="form-label">Pad colour</label><div class="xm-wrap"><i class="xm-sq" style="background:var(--xm-c1)"></i><i class="xm-sq" style="background:var(--xm-c3)"></i><i class="xm-sq" style="background:var(--xm-c5)"></i><i class="xm-sq" style="background:var(--xm-c6);outline:2px solid #fff"></i><i class="xm-sq" style="background:var(--xm-c7)"></i><i class="xm-sq" style="background:var(--xm-c9)"></i><i class="xm-sq" style="background:var(--xm-c10)"></i><i class="xm-sq"><i class="bi bi-slash-circle"></i></i></div></div>
+        </div>
+        <div class="xm-row" style="justify-content:space-between;margin-top:12px"><button class="btn btn-sm btn-ghost text-danger"><i class="bi bi-trash"></i> Unbind</button><button class="btn btn-sm btn-xm"><i class="bi bi-record-circle"></i> Re-learn control</button></div>
+      </div>
+      <p class="mk-cap"><b>Binding editor</b> (opens on clicking a control in the Controls panel). Header shows the control, its raw MIDI message and last value. Fields: edge, action + command, condition, timing, where the binding is stored, pad colour. Changes apply immediately.</p>
+    </div>
+
+    <div>
+      <div class="xm-pop" style="max-width:340px">
+        <div class="xm-row" style="margin-bottom:10px"><i class="xm-sq" style="background:var(--xm-c3);border-color:var(--xm-c3)"></i><input class="form-control" value="LH" style="flex:1"><button class="btn btn-sm btn-ghost"><i class="bi bi-x-lg"></i></button></div>
+        <div class="row g-2">
+          <div class="col-6"><label class="form-label">From</label><input class="form-control xm-mono" value="C2"></div>
+          <div class="col-6"><label class="form-label">To</label><input class="form-control xm-mono" value="B3"></div>
+          <div class="col-12"><label class="form-label">Plays tracks</label>
+            <div class="xm-list">
+              <div><input class="form-check-input" type="checkbox" checked><span class="xm-chip is-sm" style="--c:var(--xm-c3)"><i class="xm-sw"></i>Piano LH</span></div>
+              <div><input class="form-check-input" type="checkbox"><span class="xm-chip is-sm" style="--c:var(--xm-c1)"><i class="xm-sw"></i>Lead</span></div>
+              <div><input class="form-check-input" type="checkbox"><span class="xm-chip is-sm" style="--c:var(--xm-c9)"><i class="xm-sw"></i>Bass</span></div>
+            </div>
+          </div>
+          <div class="col-5"><label class="form-label">Transpose</label><input class="form-control xm-mono" value="0"></div>
+          <div class="col-7"><label class="form-label">Velocity</label><select class="form-select"><option>Linear</option><option>Soft</option><option>Hard</option><option>Fixed…</option></select></div>
+        </div>
+        <div class="xm-row" style="justify-content:space-between;margin-top:12px"><button class="btn btn-sm btn-ghost text-danger"><i class="bi bi-trash"></i> Delete zone</button><button class="btn btn-sm btn-xm">Learn range from keys</button></div>
+      </div>
+      <p class="mk-cap"><b>Zone popover</b> (click a zone on the keyboard strip). Range as note names, target tracks as checkboxes, transpose, velocity curve. "Learn range" = press the lowest and highest key.</p>
+    </div>
+
+    <div>
+      <div class="xm-pop" style="max-width:340px">
+        <label class="form-label">Follow mode</label>
+        <div class="xm-list" style="margin-bottom:10px">
+          <div><input class="form-check-input" type="radio" name="f"><div style="line-height:1.3;padding:5px 0"><b>Written tempo</b><br><span class="xm-faint" style="font-size:11px">Computer leads; nudge with speed or tap</span></div></div>
+          <div class="is-sel"><input class="form-check-input" type="radio" name="f" checked><div style="line-height:1.3;padding:5px 0"><b>Wait for my notes</b><br><span class="xm-faint" style="font-size:11px">Holds at each expected note</span></div></div>
+          <div><input class="form-check-input" type="radio" name="f"><div style="line-height:1.3;padding:5px 0"><b>Track my tempo</b><br><span class="xm-faint" style="font-size:11px">Follows your speed, ignores wrong notes</span></div></div>
+        </div>
+        <div class="row g-2">
+          <div class="col-12"><label class="form-label">Advance when I play</label><div class="xm-seg"><button class="is-on">Any expected note</button><button>All notes of the chord</button></div></div>
+          <div class="col-6"><label class="form-label">Chord window</label><div class="input-group"><input class="form-control xm-mono" value="150"><span class="input-group-text" style="font-size:12px">ms</span></div></div>
+          <div class="col-6"><label class="form-label">Early notes count</label><div class="input-group"><input class="form-control xm-mono" value="200"><span class="input-group-text" style="font-size:12px">ms</span></div></div>
+          <div class="col-12"><label class="form-label">Lead tracks</label><div class="xm-wrap"><span class="xm-chip is-sm is-active" style="--c:var(--xm-c1)"><i class="xm-sw"></i>Lead</span><span class="xm-chip is-sm" style="--c:var(--xm-c3)"><i class="xm-sw"></i>Piano LH</span></div></div>
+        </div>
+      </div>
+      <p class="mk-cap"><b>Follow popover</b> (click "Follow" in the transport bar). Three modes as a radio list; the settings underneath change with the mode (tempo tracking shows range, smoothing and phase gain instead).</p>
+    </div>
+  </div>
+
+  <h2>Clip editor</h2>
+  <div class="xm-dialog" style="max-width:860px">
+    <div class="xm-dialog-h"><i class="xm-sq" style="background:var(--xm-c6);border-color:var(--xm-c6)"></i><h5>Clip — Break A</h5><button class="btn btn-sm btn-xm"><i class="bi bi-play-fill"></i> Audition</button><button class="btn btn-sm btn-ghost"><i class="bi bi-x-lg"></i></button></div>
+    <div class="xm-dialog-b">
+      <div class="xm-row" style="margin-bottom:8px"><span class="xm-muted" style="flex:1">audio/amen_full.m4a · 44.1 kHz stereo · 0:12.4</span><span class="xm-mono xm-muted">start 0:01.872 · end 0:09.372 · length 7.500 s</span></div>
+      <div class="clipwave"><div class="xm-lane" data-draw="wave" data-color="#ff9f43" data-seed="5"></div><div class="xm-overlay" style="left:0"><div class="xm-loop" data-at="2.4" data-to="12.1"></div></div></div>
+      <div class="row g-3" style="margin-top:4px">
+        <div class="col-3"><label class="form-label">Name</label><input class="form-control" value="Break A"></div>
+        <div class="col-3"><label class="form-label">Launch (pads)</label><select class="form-select"><option>Toggle</option><option>Hold</option><option>One-shot</option><option>Retrigger</option></select></div>
+        <div class="col-3"><label class="form-label">Start / stop on</label><div class="xm-seg"><button>Now</button><button>Beat</button><button class="is-on">Bar</button></div></div>
+        <div class="col-3"><label class="form-label">Exclusive group</label><input class="form-control" value="breaks"></div>
+
+        <div class="col-3"><label class="form-label">Tempo sync</label><div class="xm-row"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" checked></div><input class="form-control xm-mono" value="16" style="width:64px"><span class="xm-muted">beats</span></div></div>
+        <div class="col-5"><label class="form-label">Pitch</label><div class="xm-row"><input class="form-control xm-mono" value="0" style="width:64px"><span class="xm-muted">st</span><div class="xm-seg"><button class="is-on">Keep tempo</button><button>Tape (pitch + speed)</button></div></div></div>
+        <div class="col-4"><label class="form-label">Gain · Pan</label><div class="xm-row"><input type="range" class="form-range" value="70"><input type="range" class="form-range" value="50" style="width:90px"></div></div>
+        <div class="col-12"><label class="form-label">Options</label><div class="xm-wrap"><span class="xm-chip is-sm is-active">Loop</span><span class="xm-chip is-sm">Pad pressure → gain</span><span class="xm-chip is-sm">To cue out</span></div></div>
+
+        <div class="col-12"><hr style="margin:4px 0;border-color:var(--xm-border)"><label class="form-label">On a fader or knob</label>
+          <div class="xm-row" style="flex-wrap:wrap;gap:12px">
+            <div class="xm-seg"><button class="is-on">While moving</button><button>Position, bottom = off</button><button>Pitch only</button></div>
+            <span class="xm-muted">Range</span><input class="form-control xm-mono" value="−12" style="width:64px"><span class="xm-muted">to</span><input class="form-control xm-mono" value="+12" style="width:64px"><span class="xm-muted">st</span>
+            <span class="xm-muted">Release</span><input class="form-control xm-mono" value="300" style="width:72px"><span class="xm-muted">ms</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="xm-dialog-f"><button class="btn btn-ghost text-danger me-auto"><i class="bi bi-trash"></i> Delete clip</button><span class="xm-faint" style="align-self:center">Bound to: Pad 5 (launch)</span><button class="btn btn-xm">Cancel</button><button class="btn btn-primary">Done</button></div>
+  </div>
+  <p class="mk-cap"><b>Clip editor.</b> Waveform of the whole file with two drag handles for the fragment; pinch/scroll zooms. Rows: identity and launch behaviour; sync, pitch, level; fader/knob behaviour. "Tape" is disabled while tempo sync is on.</p>
+
+  <h2>Instrument picker · Cue editor</h2>
+  <div class="mk-grid" style="--mk-min:520px">
+    <div>
+      <div class="xm-dialog">
+        <div class="xm-dialog-h"><h5>Instrument — Strings</h5><button class="btn btn-sm btn-ghost"><i class="bi bi-x-lg"></i></button></div>
+        <div class="xm-dialog-b">
+          <div class="row g-2">
+            <div class="col-5"><label class="form-label">Soundfont</label>
+              <div class="xm-list"><div class="is-sel">FluidR3_GM.sf2</div><div>MuseScore_General.sf3</div><div class="xm-muted"><i class="bi bi-exclamation-triangle-fill" style="color:var(--xm-warn)"></i>Acid_Kit_909.sf2</div><div class="xm-muted"><i class="bi bi-box-arrow-up-right"></i>External MIDI port…</div></div>
+            </div>
+            <div class="col-7"><label class="form-label">Preset</label>
+              <div class="input-group" style="margin-bottom:6px"><span class="input-group-text"><i class="bi bi-search"></i></span><input class="form-control" value="str"></div>
+              <div class="xm-list xm-mono" style="font-size:12px">
+                <div><span class="xm-faint">000:044</span> Tremolo Strings</div>
+                <div><span class="xm-faint">000:045</span> Pizzicato Strings</div>
+                <div class="is-sel"><span class="xm-faint">000:048</span> Strings <i class="bi bi-volume-up ms-auto" style="color:var(--xm-accent)"></i></div>
+                <div><span class="xm-faint">000:049</span> Slow Strings</div>
+                <div><span class="xm-faint">000:050</span> Synth Strings 1</div>
+                <div><span class="xm-faint">000:051</span> Synth Strings 2</div>
+              </div>
+            </div>
+            <div class="col-12"><label class="form-label">Engine</label><div class="xm-seg"><button class="is-on">Default (Built-in)</button><button>Built-in</button><button>FluidSynth</button></div></div>
+            <div class="col-3"><label class="form-label">Volume</label><input type="range" class="form-range" value="80"></div>
+            <div class="col-3"><label class="form-label">Pan</label><input type="range" class="form-range" value="50"></div>
+            <div class="col-3"><label class="form-label">Reverb</label><input type="range" class="form-range" value="35"></div>
+            <div class="col-3"><label class="form-label">Chorus</label><input type="range" class="form-range" value="10"></div>
+          </div>
+        </div>
+        <div class="xm-dialog-f"><span class="xm-faint me-auto" style="align-self:center">Play your keyboard to audition</span><button class="btn btn-xm">Cancel</button><button class="btn btn-primary">Use preset</button></div>
+      </div>
+      <p class="mk-cap"><b>Instrument picker.</b> Left: soundfonts (missing ones flagged) and engine override. Right: searchable presets as bank:program name; tapping a preset auditions it, and the controller keyboard plays the highlighted preset while the dialog is open.</p>
+    </div>
+
+    <div>
+      <div class="xm-dialog">
+        <div class="xm-dialog-h"><i class="bi bi-flag-fill" style="color:var(--xm-c6)"></i><h5>Cue — Reprise</h5><button class="btn btn-sm btn-ghost"><i class="bi bi-x-lg"></i></button></div>
+        <div class="xm-dialog-b">
+          <div class="row g-2">
+            <div class="col-6"><label class="form-label">Name</label><input class="form-control" value="Reprise"></div>
+            <div class="col-3"><label class="form-label">Bar</label><input class="form-control xm-mono" value="33"></div>
+            <div class="col-3"><label class="form-label">Beat</label><input class="form-control xm-mono" value="1"></div>
+            <div class="col-12"><label class="form-label">Trigger</label>
+              <div class="xm-seg"><button>Automatic</button><button class="is-on">Armed: wait for control</button><button>Wait: hold playback</button></div></div>
+            <div class="col-6"><label class="form-label">Control</label><div class="xm-row"><span class="xm-chip" style="flex:1"><i class="bi bi-grid-3x3-gap"></i>Pad 2</span><button class="btn btn-sm btn-xm">Learn</button></div></div>
+            <div class="col-6"><label class="form-label">Then fire</label><div class="xm-seg"><button>Now</button><button>Beat</button><button class="is-on">Bar</button></div></div>
+            <div class="col-12"><label class="form-label">Actions</label>
+              <div class="xm-list acts">
+                <div><i class="bi bi-grip-vertical xm-faint"></i><span>Activate scene <b>Reprise</b></span><button class="btn btn-sm btn-ghost"><i class="bi bi-x-lg"></i></button></div>
+                <div><i class="bi bi-grip-vertical xm-faint"></i><span>Set register <b>5 · Drums A</b> off, <b>6 · Drums B</b> on</span><button class="btn btn-sm btn-ghost"><i class="bi bi-x-lg"></i></button></div>
+                <div><i class="bi bi-grip-vertical xm-faint"></i><span>Launch clip <b>Impact</b></span><button class="btn btn-sm btn-ghost"><i class="bi bi-x-lg"></i></button></div>
+              </div>
+              <button class="btn btn-sm btn-ghost" style="margin-top:6px"><i class="bi bi-plus-lg"></i> Add action</button>
+            </div>
+          </div>
+        </div>
+        <div class="xm-dialog-f"><button class="btn btn-ghost text-danger me-auto"><i class="bi bi-trash"></i> Delete cue</button><button class="btn btn-xm">Cancel</button><button class="btn btn-primary">Done</button></div>
+      </div>
+      <p class="mk-cap"><b>Cue editor.</b> Position, trigger type (automatic / armed / wait), the control and timing for armed and wait cues, and an ordered action list built with the same action picker as bindings.</p>
+    </div>
+  </div>
+
+  <h2>Settings › Audio · Learn wizard</h2>
+  <div class="mk-grid" style="--mk-min:660px">
+    <div>
+      <div class="xm-dialog">
+        <div class="xm-dialog-h"><h5>Settings</h5><button class="btn btn-sm btn-ghost"><i class="bi bi-x-lg"></i></button></div>
+        <div style="display:grid;grid-template-columns:150px 1fr">
+          <div style="border-right:1px solid var(--xm-border);padding:8px">
+            <div class="xm-list" style="border:0;background:transparent"><div class="is-sel"><i class="bi bi-soundwave"></i>Audio</div><div><i class="bi bi-usb-symbol"></i>Devices</div><div><i class="bi bi-folder"></i>Files</div><div><i class="bi bi-eye"></i>View</div></div>
+          </div>
+          <div class="xm-dialog-b">
+            <div class="row g-3">
+              <div class="col-12"><label class="form-label">Synth engine</label><div class="xm-seg"><button class="is-on">Built-in</button><button>FluidSynth (native)</button></div>
+                <div class="xm-row" style="margin-top:8px"><span class="xm-status"><span class="xm-dot"></span>measured <b class="xm-mono">9.3 ms</b></span><span class="xm-faint" style="font-size:11px">buffer 5.3 ms + output 4.0 ms</span><a href="#" style="margin-left:auto;font-size:12px">Latency guide</a></div></div>
+              <div class="col-6"><label class="form-label">Main output</label><select class="form-select"><option>Default (PipeWire)</option></select></div>
+              <div class="col-6"><label class="form-label">Cue output (click, count-in)</label><select class="form-select"><option>Off — mix into main</option><option>Outputs 3–4 of main device</option><option>Separate device…</option></select></div>
+              <div class="col-4"><label class="form-label">Buffer size</label><select class="form-select xm-mono"><option>256</option><option>Auto</option><option>128</option><option>512</option><option>1024</option></select></div>
+              <div class="col-4"><label class="form-label">Sample rate</label><select class="form-select xm-mono"><option>48000</option><option>44100</option></select></div>
+              <div class="col-4"><label class="form-label">Input latency</label><div class="input-group"><input class="form-control xm-mono" value="6"><span class="input-group-text" style="font-size:12px">ms</span></div></div>
+              <div class="col-12"><div class="xm-banner"><i class="bi bi-arrow-clockwise"></i><span style="flex:1">Buffer size changes take effect after a restart.</span><button class="btn btn-sm btn-primary">Restart now</button></div></div>
+              <div class="col-12"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" checked><label class="form-check-label">Limiter on the main output</label></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="mk-cap"><b>Settings › Audio.</b> Engine switch with the measured latency right under it, outputs, buffer and sample rate, restart banner when needed. Selecting FluidSynth reveals its path, driver, period size and gain.</p>
+    </div>
+
+    <div>
+      <div class="xm-dialog">
+        <div class="xm-dialog-h"><h5>Learn controls — Axiom 61 mk2</h5><span class="xm-muted xm-mono">15 / 40</span><button class="btn btn-sm btn-ghost"><i class="bi bi-x-lg"></i></button></div>
+        <div class="xm-dialog-b" style="text-align:center;padding:28px 16px">
+          <div class="xm-faint" style="font-size:11px;letter-spacing:1px;text-transform:uppercase">Now press or move</div>
+          <div style="font-size:30px;font-weight:700;margin:6px 0 14px">Fader 3</div>
+          <div class="xm-ctl-row" style="justify-content:center;gap:14px;margin-bottom:16px">
+            <div class="xm-fader" style="--v:.7"><i></i>1 ✓</div><div class="xm-fader" style="--v:.4"><i></i>2 ✓</div><div class="xm-fader is-sel" style="--v:.1"><i></i>3</div><div class="xm-fader" style="--v:0;opacity:.4"><i></i>4</div><div class="xm-fader" style="--v:0;opacity:.4"><i></i>5</div>
+          </div>
+          <div class="xm-status" style="font-size:13px"><span class="xm-dot is-warn"></span>Waiting for a MIDI message…</div>
+          <div class="xm-faint" style="font-size:12px;margin-top:10px">Last captured: Fader 2 = CC 75 on channel 1 (absolute)</div>
+        </div>
+        <div class="xm-dialog-f"><button class="btn btn-xm me-auto">Back</button><button class="btn btn-xm">Skip</button><button class="btn btn-primary">Finish</button></div>
+      </div>
+      <p class="mk-cap"><b>Learn wizard.</b> One control at a time, large prompt, live capture status, the previous result shown for confirmation, Back / Skip / Finish. Progress counter in the header.</p>
+    </div>
+  </div>
+
+  <h2>Banners, toasts and prompts</h2>
+  <div class="mk-grid" style="--mk-min:520px">
+    <div>
+      <div class="xm-banner"><i class="bi bi-file-earmark-diff" style="color:var(--xm-warn)"></i><span style="flex:1"><b>setup.yaml</b> changed on disk, and you have unsaved changes in it.</span><button class="btn btn-sm btn-xm">Keep mine</button><button class="btn btn-sm btn-primary">Take file</button></div>
+      <p class="mk-cap"><b>File conflict banner</b> — sits above the tracks area, one per file, non-blocking; playback continues.</p>
+      <div class="xm-banner" style="margin-top:16px;background:rgba(255,77,94,.1);border-color:rgba(255,77,94,.5)"><i class="bi bi-exclamation-octagon" style="color:var(--xm-rec)"></i><span style="flex:1">Repeat or jump structure not understood — staves may be misaligned. Use “Unroll repeats” in MuseScore.</span><button class="btn btn-sm btn-ghost"><i class="bi bi-x-lg"></i></button></div>
+      <p class="mk-cap"><b>Error banner</b> — same shape in the record colour for problems that need the user's attention.</p>
+    </div>
+    <div>
+      <div class="xm-wrap" style="flex-direction:column;align-items:flex-start;gap:10px">
+        <div class="xm-toast"><i class="bi bi-check-circle-fill" style="color:var(--xm-ok)"></i>Score updated: 2 tracks changed, 1 kept (modified here)</div>
+        <div class="xm-toast" style="border-left-color:var(--xm-accent)"><i class="bi bi-arrow-repeat" style="color:var(--xm-accent)"></i>setup.yaml reloaded <button class="btn btn-sm btn-ghost">Undo</button></div>
+        <div class="xm-toast" style="border-left-color:var(--xm-warn)"><i class="bi bi-lock" style="color:var(--xm-warn)"></i>“Bass” is now modified here and will not auto-sync <button class="btn btn-sm btn-ghost">Discard &amp; re-sync</button></div>
+      </div>
+      <p class="mk-cap"><b>Toasts</b> — bottom right, stack upwards, auto-dismiss after 4 s (8 s when they carry an action). Left edge colour = severity.</p>
+      <div class="xm-dialog" style="max-width:440px;margin-top:16px">
+        <div class="xm-dialog-b"><b style="font-size:15px">Enable this project's script?</b><p class="xm-muted" style="margin:8px 0 0">“Acid Wolfpack” contains a script that has not run on this computer before. Scripts can change routing and playback, but cannot read your files.</p></div>
+        <div class="xm-dialog-f"><button class="btn btn-ghost me-auto">View script</button><button class="btn btn-xm">Keep disabled</button><button class="btn btn-primary">Enable</button></div>
+      </div>
+      <p class="mk-cap"><b>Confirmation prompt</b> — small dialog, question as the title, consequence in one sentence, safe choice next to the primary.</p>
+    </div>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

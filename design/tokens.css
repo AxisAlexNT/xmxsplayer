@@ -1,0 +1,113 @@
+/* xmxsplayer design tokens.
+   Source of truth for colours, type, spacing and sizes.
+   Copy into src/ui/styles/tokens.css and import before Bootstrap overrides. */
+
+:root,
+[data-bs-theme='dark'] {
+  /* Surfaces, darkest to lightest */
+  --xm-bg-0: #0c0e12; /* app background, behind everything */
+  --xm-bg-1: #13161c; /* panels, transport bar, keyboard strip */
+  --xm-bg-2: #1a1e26; /* controls, inputs, track headers */
+  --xm-bg-3: #232935; /* hover, pressed, selected rows */
+  --xm-bg-lane: #0f1217; /* lane background (dark staff theme, piano roll, audio) */
+  --xm-bg-lane-alt: #131720; /* black-key rows in the piano roll, alternate bars */
+
+  /* Lines */
+  --xm-border: #272d38;
+  --xm-border-strong: #3a4352;
+  --xm-grid-bar: rgba(255, 255, 255, 0.16);
+  --xm-grid-beat: rgba(255, 255, 255, 0.06);
+
+  /* Text */
+  --xm-text: #e7eaf0;
+  --xm-text-muted: #9ba4b4;
+  --xm-text-faint: #667085;
+
+  /* Semantic colours */
+  --xm-accent: #4cc2ff; /* focus, selection, playhead, primary buttons */
+  --xm-accent-ink: #04202e; /* text on accent */
+  --xm-accent-soft: rgba(76, 194, 255, 0.15);
+  --xm-rec: #ff4d5e; /* record, destructive, errors */
+  --xm-ok: #3ddc97; /* playing, connected, synced */
+  --xm-warn: #ffb020; /* holding, queued, modified, armed cue */
+  --xm-live: #ff9f43; /* track mode LIVE (user plays) */
+  --xm-auto: #3ddc97; /* track mode AUTO (computer plays) */
+
+  /* Staff notation */
+  --xm-staff-ink: #e7eaf0; /* dark theme: notes, clefs, barlines */
+  --xm-staff-line: rgba(231, 234, 240, 0.5);
+  --xm-paper: #f3efe6; /* paper theme lane background */
+  --xm-paper-ink: #16181d;
+  --xm-paper-line: rgba(22, 24, 29, 0.65);
+
+  /* Track / instrument / zone palette (assign in this order, wrap after 12) */
+  --xm-c1: #4cc2ff;
+  --xm-c2: #7c8cff;
+  --xm-c3: #b07cff;
+  --xm-c4: #ff7ac8;
+  --xm-c5: #ff6b6b;
+  --xm-c6: #ff9f43;
+  --xm-c7: #ffd43b;
+  --xm-c8: #a3e635;
+  --xm-c9: #3ddc97;
+  --xm-c10: #2dd4bf;
+  --xm-c11: #94a3b8;
+  --xm-c12: #e879f9;
+
+  /* Type */
+  --xm-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --xm-font-mono: 'Fira Code', 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace;
+  --xm-fs-xs: 11px; /* section labels, badges */
+  --xm-fs-sm: 12px; /* secondary text, chips */
+  --xm-fs: 13px; /* base UI text */
+  --xm-fs-lg: 15px; /* dialog titles, track names */
+  --xm-fs-pos: 24px; /* transport position */
+
+  /* Spacing (4 px grid) and radii */
+  --xm-s1: 4px;
+  --xm-s2: 8px;
+  --xm-s3: 12px;
+  --xm-s4: 16px;
+  --xm-s5: 24px;
+  --xm-r-sm: 4px;
+  --xm-r: 6px;
+  --xm-r-lg: 10px;
+
+  /* Sizes */
+  --xm-hit: 40px; /* minimum touch / pen target */
+  --xm-h-transport: 60px;
+  --xm-h-ruler: 28px;
+  --xm-h-cues: 28px;
+  --xm-h-keys: 138px; /* keyboard strip: 30 px zones + 108 px keys */
+  --xm-w-left: 372px; /* left panel default width (resizable 300–560) */
+  --xm-w-header: 252px; /* track header width */
+  --xm-lane-gutter: 96px; /* lead-in at each page start: clef/key on staves, key legend on piano rolls */
+
+  /* Motion */
+  --xm-t-fast: 80ms;
+  --xm-t: 150ms; /* page flip slide, panel collapse */
+
+  /* Elevation */
+  --xm-shadow: 0 12px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--xm-border-strong);
+}
+
+/* Bootstrap 5.3 dark theme mapped onto the tokens */
+[data-bs-theme='dark'] {
+  --bs-body-bg: var(--xm-bg-0);
+  --bs-body-color: var(--xm-text);
+  --bs-secondary-color: var(--xm-text-muted);
+  --bs-tertiary-color: var(--xm-text-faint);
+  --bs-secondary-bg: var(--xm-bg-2);
+  --bs-tertiary-bg: var(--xm-bg-1);
+  --bs-border-color: var(--xm-border);
+  --bs-body-font-family: var(--xm-font);
+  --bs-body-font-size: var(--xm-fs);
+  --bs-body-line-height: 1.4;
+  --bs-primary: var(--xm-accent);
+  --bs-primary-rgb: 76, 194, 255;
+  --bs-link-color: var(--xm-accent);
+  --bs-border-radius: var(--xm-r);
+  --bs-border-radius-sm: var(--xm-r-sm);
+  --bs-border-radius-lg: var(--xm-r-lg);
+  --bs-focus-ring-color: rgba(76, 194, 255, 0.4);
+}
