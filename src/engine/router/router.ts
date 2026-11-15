@@ -19,6 +19,7 @@ interface Voice {
   source: string
   channel: number
   key: number
+  inputKey: number
   targets: Target[]
   routed: RoutedNote[]
   activityPaths: ActivityRoute[]
@@ -115,14 +116,16 @@ export class Router {
     trackOnly?: string,
     when?: number,
     recordDirect = false,
+    inputKey = key,
   ): void {
-    const id = this.noteOwner(source, channel, key)
+    const id = this.noteOwner(source, channel, inputKey)
     const owner = this.owner(source, channel)
     if (on && velocity > 0) {
       const voice: Voice = {
         source,
         channel,
         key,
+        inputKey,
         targets: [],
         routed: [],
         activityPaths: [{ sourceId: activitySource(source) }],
@@ -371,7 +374,18 @@ export class Router {
     for (const voices of [...this.held.values()])
       for (const voice of [...voices])
         if (voice.source === source)
-          this.note(source, voice.channel, voice.key, 0, false)
+          this.note(
+            source,
+            voice.channel,
+            voice.key,
+            0,
+            false,
+            undefined,
+            undefined,
+            undefined,
+            false,
+            voice.inputKey,
+          )
     for (let channel = 0; channel < 16; channel++) {
       this.cc(source, channel, 64, 0)
       this.controllers.delete(this.owner(source, channel))

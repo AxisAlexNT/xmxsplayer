@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import ScriptPanel from './components/ScriptPanel.vue'
+import ScriptTrust from './components/ScriptTrust.vue'
+import { useScriptStore } from './stores/script'
 import SignalFlowPanel from './components/SignalFlowPanel.vue'
 import type { FlowSelection } from './flow/model'
 import { usePerformanceStore } from './stores/performance'
@@ -28,6 +31,8 @@ const patchPanels = ref<InstanceType<typeof PatchPanel>[]>([])
 const controlPanels = ref<InstanceType<typeof ControlsPanel>[]>([])
 const keyboardStrip = ref<InstanceType<typeof KeyboardStrip>>()
 const rig = usePerformanceStore()
+const scripts = useScriptStore()
+const scriptPanels = ref<InstanceType<typeof ScriptPanel>[]>([])
 async function flowSelect(
   selection: FlowSelection,
   anchor: { right: number; top: number },
@@ -91,6 +96,7 @@ async function flowSelect(
       selection.controlId,
       anchor,
     )
+  else if (selection.kind === 'script') scriptPanels.value[0]?.focus()
   else if (selection.kind === 'device') {
     const device = runtime.midi.devices.find((d) => d.id === selection.id)
     pane?.querySelectorAll<HTMLSelectElement>('select').forEach((el) => {
@@ -376,7 +382,7 @@ async function command(cmd: string): Promise<void> {
       if (runtime.transport.recording)
         await engineBus.value?.request('recording:flush', undefined)
       if (
-        doc.dirtyFiles.length &&
+        (doc.dirtyFiles.length || scripts.dirty) &&
         !window.confirm('Discard unsaved changes and open another project?')
       )
         return
@@ -414,6 +420,7 @@ async function command(cmd: string): Promise<void> {
         notify('Create or open a project folder first')
         return
       }
+      await scripts.commit()
       await doc.save()
       notify('Project saved')
     } else if (cmd === 'undo') doc.undo()
@@ -494,7 +501,7 @@ async function prepareClose(): Promise<void> {
   try {
     if (runtime.connected)
       await engineBus.value?.request('recording:close', undefined)
-    if (doc.dirtyFiles.length && !(await window.xm.app.confirmClose())) return
+    if ((doc.dirtyFiles.length || scripts.dirty) && !(await window.xm.app.confirmClose())) return
     closeAllowed = true
     window.close()
   } catch (error) {
@@ -528,6 +535,7 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <ScriptTrust />
   <div
     class="xm-app"
     :class="{ 'is-collapsed': settings.collapsed }"
@@ -555,7 +563,7 @@ onUnmounted(() => {
           "
         >
         <span
-          v-if="doc.dirtyFiles.length"
+          v-if="doc.dirtyFiles.length || scripts.dirty"
           class="xm-dot is-warn"
           title="Unsaved changes"
         />
@@ -820,11 +828,10 @@ onUnmounted(() => {
               >No messages</span>
             </div>
           </template>
-          <template v-else-if="section === 'Script'">
-            <p class="xm-faint mb-0">
-              Script execution is not available yet.
-            </p>
-          </template>
+          <ScriptPanel
+            v-else-if="section === 'Script'"
+            ref="scriptPanels"
+          />
           <SoundfontsPanel v-else-if="section === 'Soundfonts'" />
           <PatchPanel
             v-else-if="section === 'Patch'"
@@ -857,7 +864,10 @@ onUnmounted(() => {
       @command="command"
       @error="fail"
     />
-    <KeyboardStrip ref="keyboardStrip" />
+    <KeyboardStrip
+      ref="keyboardStrip"
+      @script="flowSelect({ kind: 'script' }, { right: 0, top: 0 })"
+    />
     <InstrumentPicker
       v-if="pickerId"
       :instrument-id="pickerId"

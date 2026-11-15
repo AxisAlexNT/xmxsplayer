@@ -263,7 +263,7 @@ export class LedManager {
       }
       const lines = screenLines(current),
         screen = JSON.stringify([
-          lines[0],
+          lines,
           map.tickToBarBeat(position).bar,
           Math.round(state.rate * 100),
           state.project.follow.mode,

@@ -37,6 +37,7 @@ function sync(force = false): void {
 }
 watch(engineBus, (bus) => {
   runtime.connected = false
+  runtime.scriptStatus = { hash: '', state: 'empty' }
   runtime.activity = { trackIds: [], instrumentIds: [], routes: [] }
   runtime.controls = {}
   runtime.feedback = {}
@@ -68,6 +69,9 @@ watch(engineBus, (bus) => {
   bus.on('synth:state', (value) => {
     runtime.synthLoading = value.loading
     runtime.readyInstruments = value.readyIds
+  })
+  bus.on('script:status', (value) => {
+    runtime.scriptStatus = value
   })
   bus.on('activity', (value) => {
     runtime.activity = value

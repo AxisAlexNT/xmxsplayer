@@ -191,3 +191,15 @@ it('sends disconnect on graceful shutdown and stops future updates', async () =>
   await vi.advanceTimersByTimeAsync(100)
   expect(f.output.send).toHaveBeenCalledTimes(count)
 })
+it('refreshes a script display when only its second line changes', () => {
+  const f = fixture()
+  f.state.scriptDisplay = ['Accompaniment', 'Brass']
+  f.leds.tick()
+  const displays = () =>
+    f.output.send.mock.calls.filter(([bytes]) => bytes[8] === 0x60)
+  expect(displays()).toHaveLength(1)
+  f.state.scriptDisplay = ['Accompaniment', 'Strings']
+  f.setNow(100)
+  f.leds.tick()
+  expect(displays()).toHaveLength(2)
+})

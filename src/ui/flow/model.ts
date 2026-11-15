@@ -224,7 +224,7 @@ export function flowGraph(
       `${zone.id} · ${noteName(zone.lo)}–${noteName(zone.hi)}`,
       zone.color,
       active,
-      { kind: 'zone', id: zone.id },
+      runtime.scriptZones ? { kind: 'script' } : { kind: 'zone', id: zone.id },
     )
     for (const source of keySources)
       edge(

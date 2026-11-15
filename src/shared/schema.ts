@@ -172,7 +172,7 @@ export const bindingSchema = z.strictObject({
   at: timing.optional(),
   action: actionSchema,
 })
-const zoneSchema = z
+export const zoneSchema = z
   .strictObject({
     id,
     lo: keySchema,

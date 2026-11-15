@@ -131,3 +131,30 @@ it('uses runtime patch overrides without restoring a saved register gate', () =>
     condition: undefined,
   })
 })
+it('opens Script for a runtime zone owned by the script', () => {
+  const project = liveProject('Script zones')
+  const graph = flowGraph(
+    project,
+    {
+      activeSceneId: null,
+      registers: [],
+      armedCueId: null,
+      pendingActions: [],
+      expectedNext: null,
+      clips: {},
+      scriptEnabled: true,
+      scriptZones: true,
+      effective: {
+        zones: [{ ...project.base.zones[0], id: 'script-zone' }],
+        patch: project.base.patch,
+      },
+    },
+    { trackIds: [], instrumentIds: [], routes: [] },
+    [],
+    defaultSettings(),
+    0,
+  )
+  expect(
+    graph.nodes.find((node) => node.id === 'zone:script-zone')?.selection,
+  ).toEqual({ kind: 'script' })
+})

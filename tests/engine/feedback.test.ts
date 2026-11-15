@@ -242,3 +242,16 @@ it('keeps future packets cancellable inside the engine when MIDIOutput.clear is 
   sender.flush()
   expect(output.send).toHaveBeenCalledExactlyOnceWith([2], 200)
 })
+it('places script colours above bindings and below beat, hit and queued feedback', () => {
+  const s = state()
+  s.scriptPads = { 'pad.2': '#b07cff' }
+  s.scriptDisplay = ['Scene', 'Strings']
+  expect(screenLines(s)).toEqual(['Scene', 'Strings'])
+  expect(
+    controlFrame(profile, s, { time: 0, blink: true })['pad.2'].color,
+  ).toBe('#b07cff')
+  s.playing = true
+  expect(
+    controlFrame(profile, s, { time: 0, blink: true, beat: 2 })['pad.2'].color,
+  ).not.toBe('#b07cff')
+})

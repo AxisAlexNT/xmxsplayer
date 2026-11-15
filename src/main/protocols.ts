@@ -37,7 +37,15 @@ export class FileTokens {
   }
   async issue(file: string, roots: string[]): Promise<string> {
     const canonical = await realpath(file)
-    const allowed = await Promise.all(roots.map(async root => { try { return await realpath(root) } catch { return null } }))
+    const allowed = await Promise.all(
+      roots.map(async (root) => {
+        try {
+          return await realpath(root)
+        } catch {
+          return null
+        }
+      }),
+    )
     if (!allowed.some((root) => root !== null && inside(root, canonical)))
       throw new Error('File is outside approved folders')
     const token = randomUUID()
@@ -91,7 +99,15 @@ export function installProtocols(rendererRoot: string): void {
       const canonical = await realpath(file)
       if (!inside(rendererRoot, canonical))
         return new Response('Forbidden', { status: 403 })
-      return await net.fetch(pathToFileURL(canonical).href)
+      const response = await net.fetch(pathToFileURL(canonical).href)
+      if (!path.endsWith('.html')) return response
+      const nonce = randomUUID()
+      const html = (await response.text())
+        .replaceAll('__XM_CSP_NONCE__', nonce)
+        .replace("style-src 'self'", `style-src 'self' 'nonce-${nonce}'`)
+      return new Response(html, {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      })
     } catch {
       return new Response('Not found', { status: 404 })
     }

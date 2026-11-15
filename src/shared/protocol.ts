@@ -1,3 +1,4 @@
+import type { ScriptStatus } from './script-api'
 import type { ActivityState } from './activity'
 import type { DeviceFeedback } from './feedback'
 import type { RecordedTake } from './recording'
@@ -18,6 +19,8 @@ import type {
 
 export type ProjectMeta = Project
 export interface CommandMap {
+  'script:apply': undefined
+  'script:disable': undefined
   ping: undefined
   'audio:scope': { folder: string }
   'grid:tapMap': {
@@ -83,6 +86,7 @@ export interface RuntimeState {
   queuedCueIds?: Id[]
   trackModes?: Record<Id, TrackMode>
   scriptEnabled?: boolean
+  scriptZones?: boolean
   pendingActions: { action: Action; tick: number }[]
   expectedNext: { tick: number; keys: number[] } | null
   clips: Record<Id, 'stopped' | 'queued' | 'playing'>
@@ -94,6 +98,7 @@ export interface LogEntry {
   message: string
 }
 export interface EventMap {
+  'script:status': ScriptStatus
   feedback: DeviceFeedback
   'param:change': { action: Extract<Action, { type: 'param' }>; value: number }
   ready: undefined

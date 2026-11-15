@@ -369,3 +369,52 @@ it('reports semantic instrument ids and virtual-track activity even when an inst
   input.close()
   isolated.close()
 })
+it('keeps transformed notes from different physical keys independent across route changes', async () => {
+  const { project, backend, router, rack } = await rig()
+  router.note(
+    'keys',
+    0,
+    72,
+    100,
+    true,
+    undefined,
+    undefined,
+    undefined,
+    false,
+    60,
+  )
+  project.base.patch = [
+    { id: 'new', trackId: 'piano', instrumentId: 'strings' },
+  ]
+  router.setProject(project)
+  router.note(
+    'keys',
+    0,
+    72,
+    100,
+    true,
+    undefined,
+    undefined,
+    undefined,
+    false,
+    61,
+  )
+  backend.events = []
+  router.note(
+    'keys',
+    0,
+    72,
+    0,
+    false,
+    undefined,
+    undefined,
+    undefined,
+    false,
+    61,
+  )
+  const released = backend.events.filter((e) => e.type === 'off')
+  expect(released).toHaveLength(1)
+  expect(released[0].slot).toBe(rack.get('strings')!.slot)
+  router.disconnect('keys')
+  expect(router.keys().held).toEqual([])
+})

@@ -267,3 +267,58 @@ it('keeps runtime track modes across mixer refreshes, then clears them on a scen
   })
   expect(scenes.effectiveProject()!.tracks[0].mode).toBe('auto')
 })
+it('keeps script routing transient and clears it on scene activation or reload', () => {
+  const project = liveProject('Script rig')
+  project.scenes.push({ id: 'reprise', name: 'Reprise', color: '#4cc2ff' })
+  const scenes = new Scenes({
+    queue: (_at, run) => {
+      run()
+      return 0
+    },
+    changed: () => undefined,
+    context: () => ({ playing: false, bar: 1 }),
+  })
+  scenes.configure(project)
+  scenes.setZones([])
+  scenes.setPatch('piano', [])
+  scenes.setScriptMode('piano', 'auto')
+  scenes.setFollow('waitNotes')
+  expect(scenes.effectiveProject()!.base.zones).toEqual([])
+  expect(scenes.effectiveProject()!.base.patch).toEqual([])
+  expect(scenes.effectiveProject()!.tracks[0].mode).toBe('auto')
+  expect(scenes.effectiveProject()!.follow.mode).toBe('waitNotes')
+  expect(project.tracks[0].mode).toBe('live')
+  scenes.activate('reprise')
+  expect(scenes.effectiveProject()!.base.patch).toEqual(project.base.patch)
+  expect(scenes.effectiveProject()!.tracks[0].mode).toBe('live')
+  expect(scenes.effectiveProject()!.follow.mode).toBe('written')
+})
+it('gives script patch overrides valid, unique IDs when captured into a saved scene', async () => {
+  const { projectSchema } = await import('../../src/shared/schema')
+  const project = liveProject('Capture script')
+  project.tracks.push({ ...project.tracks[0], id: 'upper' })
+  project.base.patch.push({
+    id: 'script-piano-piano',
+    trackId: 'upper',
+    instrumentId: 'piano',
+  })
+  const scenes = new Scenes({
+    queue: (_at, run) => {
+      run()
+      return 0
+    },
+    changed: () => undefined,
+    context: () => ({ playing: false, bar: 1 }),
+  })
+  scenes.configure(project)
+  scenes.setPatch('piano', ['piano'])
+  const setup = scenes.setup([], false)!
+  expect(new Set(setup.patch.map((p) => p.id)).size).toBe(setup.patch.length)
+  project.scenes.push({
+    ...setup,
+    id: 'captured',
+    name: 'Captured',
+    color: '#4cc2ff',
+  })
+  expect(() => projectSchema.parse(project)).not.toThrow()
+})

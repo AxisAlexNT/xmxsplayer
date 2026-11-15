@@ -51,6 +51,10 @@ export const useRuntimeStore = defineStore('runtime', () => {
     instrumentIds: [],
     routes: [],
   })
+  const scriptStatus = ref<import('../../shared/script-api').ScriptStatus>({
+    hash: '',
+    state: 'empty',
+  })
   const connected = ref(false)
   const logs = ref<(LogEntry & { time: string })[]>([])
   const transport = ref<TransportState>({
@@ -78,6 +82,7 @@ export const useRuntimeStore = defineStore('runtime', () => {
     ]
   }
   return {
+    scriptStatus,
     activity,
     feedback,
     controls,

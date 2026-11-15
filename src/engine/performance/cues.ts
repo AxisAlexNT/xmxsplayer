@@ -12,6 +12,7 @@ export interface CueHost {
   isQueued(id: number): boolean
   invalidate(): void
   changed(): void
+  fired?(id: string): void
   run(action: Action): void
   seek(tick: number): void
   warn?(message: string): void
@@ -215,6 +216,7 @@ export class Cues implements SchedulerTimeline {
       this.pending.delete(id)
       this.firing.add(cue.id)
       try {
+        this.host.fired?.(cue.id)
         for (const [index, action] of cue.actions.entries()) {
           try {
             this.host.run(action)

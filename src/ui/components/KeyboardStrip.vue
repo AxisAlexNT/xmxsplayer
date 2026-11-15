@@ -7,7 +7,9 @@ import { noteName } from '../../shared/schema'
 import { usePerformanceStore } from '../stores/performance'
 import { uniqueId } from '../../shared/ids'
 import ZoneEditor from './ZoneEditor.vue'
+const emit = defineEmits<{ script: [] }>()
 const performance = usePerformanceStore()
+const scripted = computed(() => performance.editScene && !!runtime.state.scriptZones)
 const selectedZone = ref<string | null>(null),
   zoneAnchor = ref({ right: 0, top: 0 })
 const preview = ref<{ id: string; lo: number; hi: number } | null>(null)
@@ -57,7 +59,7 @@ function zoneStyle(lo: number, hi: number, color: string) {
   }
 }
 const zones = computed(() =>
-  performance.setup.zones
+  (scripted.value ? runtime.state.effective.zones : performance.setup.zones)
     .map((z) =>
       preview.value?.id === z.id
         ? { ...z, lo: preview.value.lo, hi: preview.value.hi }
@@ -66,17 +68,19 @@ const zones = computed(() =>
     .filter((z) => z.hi >= range.value[0] && z.lo <= range.value[1]),
 )
 watch(
-  () => performance.sceneId,
+  () => [performance.sceneId, scripted.value],
   () => {
     selectedZone.value = null
     preview.value = null
   },
 )
 function editZone(id: string, element: HTMLElement): void {
+  if (scripted.value) { emit('script'); return }
   selectedZone.value = id
   zoneAnchor.value = element.getBoundingClientRect()
 }
 function openZone(id: string, anchor: { right: number; top: number }): void {
+  if (scripted.value) { emit('script'); return }
   selectedZone.value = id
   zoneAnchor.value = anchor
 }
@@ -91,6 +95,7 @@ function keyAt(clientX: number, element: HTMLElement): number {
   )
 }
 async function addZone(event: MouseEvent): Promise<void> {
+  if (scripted.value) { emit('script'); return }
   if ((event.target as HTMLElement).closest('.xm-zone,select,button')) return
   const el = event.currentTarget as HTMLElement,
     lo = keyAt(event.clientX, el)
@@ -229,6 +234,7 @@ onUnmounted(() => {
         :style="zoneStyle(zone.lo, zone.hi, zone.color)"
       >
         <button
+          v-if="!scripted"
           class="xm-zone-edge is-left"
           :aria-label="`Resize ${zone.id} lower edge`"
           @pointerdown.stop.prevent="dragEdge($event, zone.id, 'lo')"
@@ -236,7 +242,8 @@ onUnmounted(() => {
         />
         <button
           class="xm-zone-label"
-          :aria-label="`Edit zone ${zone.id}`"
+          :aria-label="scripted ? `Edit script for zone ${zone.id}` : `Edit zone ${zone.id}`"
+          :title="scripted ? 'Script zone — edit in Script' : undefined"
           @click="editZone(zone.id, $event.currentTarget as HTMLElement)"
         >
           <span>{{
@@ -248,6 +255,7 @@ onUnmounted(() => {
           }}</span><span class="xm-faint xm-mono">{{ noteName(zone.lo) }}–{{ noteName(zone.hi) }}</span>
         </button>
         <button
+          v-if="!scripted"
           class="xm-zone-edge is-right"
           :aria-label="`Resize ${zone.id} upper edge`"
           @pointerdown.stop.prevent="dragEdge($event, zone.id, 'hi')"

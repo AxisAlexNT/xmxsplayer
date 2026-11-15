@@ -1,3 +1,8 @@
+import { ScriptHost } from './script/script-host'
+import { ScriptSession } from './script/script-session'
+import { NoteHooks } from './script/note-hooks'
+import { ScriptTimeline, combineTimelines } from './script/timeline'
+import { createApi } from './script/api'
 import { Activity } from './performance/activity'
 import { Cues } from './performance/cues'
 import { Scenes } from './performance/scenes'
@@ -42,6 +47,35 @@ let leds: LedManager | undefined
 let cues: Cues | undefined
 let cueNoteSerial = 0
 let activity: Activity | undefined
+let script: ScriptHost | undefined
+let scriptSession: ScriptSession | undefined
+let noteHooks: NoteHooks | undefined
+let scriptTimeline: ScriptTimeline | undefined
+let scriptPads: Record<string, string> = {}
+let scriptDisplay: [string, string] | undefined
+let scriptTransportSignature = ''
+let scriptNoteSerial = 0
+let scriptCommandRevision = 0
+const scriptNotes = new Map<
+  string,
+  { key: number; trackId: string; timer: ReturnType<typeof setTimeout> }
+>()
+function releaseScriptNotes(): void {
+  for (const [source, note] of scriptNotes) {
+    clearTimeout(note.timer)
+    router?.note(source, 0, note.key, 0, false, undefined, note.trackId)
+  }
+  scriptNotes.clear()
+}
+function resetScriptEffects(): void {
+  releaseScriptNotes()
+  scriptPads = {}
+  scriptDisplay = undefined
+  scenes.clearScript()
+  scriptTimeline?.reset()
+  leds?.invalidate(true)
+}
+
 let engineClosing = false
 let controlCapture = false
 const runtimeState: RuntimeState = {
@@ -64,6 +98,7 @@ const scenes = new Scenes({
     playing: transport?.clock.playing ?? false,
   }),
   changed: () => applyPerformance(),
+  activated: (id) => script?.emit('scene', { id }),
 })
 let runtimeSignature = ''
 function performanceProject(): Project | undefined {
@@ -71,8 +106,10 @@ function performanceProject(): Project | undefined {
 }
 function publishRuntime(): void {
   if (!project) return
-  const setup = scenes.setup([], false)
+  const setup = performanceProject()?.base
   if (!setup) return
+  runtimeState.scriptEnabled = script?.running ?? false
+  runtimeState.scriptZones = !!script?.running && scenes.hasScriptZones
   runtimeState.trackModes = Object.fromEntries(
     (performanceProject()?.tracks ?? []).map((t) => [t.id, t.mode]),
   )
@@ -124,13 +161,14 @@ function reportKeys(): void {
     bus?.send('keys', { held })
   }, 34)
 }
-function liveNote(
+function routedLiveNote(
   source: string,
   channel: number,
   key: number,
   velocity: number,
   on: boolean,
   when?: number,
+  inputKey = key,
 ): void {
   if (engineClosing) return
   const owner = JSON.stringify([source, channel, key])
@@ -152,8 +190,37 @@ function liveNote(
         ),
       )
     }
-    router?.note(source, channel, key, velocity, on, undefined, undefined, when)
+    router?.note(
+      source,
+      channel,
+      key,
+      velocity,
+      on,
+      undefined,
+      undefined,
+      when,
+      false,
+      inputKey,
+    )
   }
+}
+function liveNote(
+  source: string,
+  channel: number,
+  key: number,
+  velocity: number,
+  on: boolean,
+  when?: number,
+): void {
+  if (engineClosing) return
+  const owner = JSON.stringify([source, channel, key])
+  if ((on && audition) || (!on && previews.has(owner)) || !noteHooks)
+    routedLiveNote(source, channel, key, velocity, on, when)
+  else
+    noteHooks.receive(
+      { deviceId: source, channel, key, vel: velocity, on, timestamp: when },
+      when,
+    )
 }
 function receiveMidi(message: MidiMessage): void {
   const when = graph
@@ -211,6 +278,10 @@ function runAction(
   source = 'action',
 ): void {
   if (!project || engineClosing) return
+  if (action.type === 'script') {
+    script?.invoke(action.fn)
+    return
+  }
   if (action.type === 'trackMode') {
     scenes.mode(action)
     return
@@ -274,7 +345,11 @@ function runAction(
     return
   }
   transport?.actions.run(action, value)
-  if (action.type === 'transport' && action.cmd === 'stop') cues?.stop()
+  if (action.type === 'transport' && action.cmd === 'stop') {
+    cues?.stop()
+    releaseScriptNotes()
+    scriptTimeline?.reset()
+  }
 }
 function receiveControl(event: ControlEvent): void {
   if (engineClosing) return
@@ -284,6 +359,7 @@ function receiveControl(event: ControlEvent): void {
     bindings?.releaseControl(event)
     return
   }
+  script?.emit('control', { ...event, id: event.controlId })
   try {
     if (
       !cues?.control(event.controlId, event.edge === 'press' && event.pressed)
@@ -356,6 +432,96 @@ async function initialize(value: Settings): Promise<void> {
       () => bus,
       (message) => log('warn', 'transport', message),
     )
+    script = new ScriptHost(
+      (on, state, active) =>
+        createApi(
+          {
+            project: () => project!,
+            position: () => ({
+              ...transport!.clock.map.tickToBarBeat(transport!.clock.tick),
+              tick: transport!.clock.tick,
+              playing: transport!.clock.playing,
+              rate: transport!.clock.rate,
+            }),
+            play: () => transport!.play(),
+            stop: () => runAction({ type: 'transport', cmd: 'stop' }),
+            seekBar: (bar) =>
+              transport!.seek(transport!.clock.map.barToTick(bar)),
+            setRate: (rate) => transport!.rate(rate),
+            hold: () => {
+              transport!.scheduler.holdAt(transport!.clock.tick)
+              transport!.changed()
+            },
+            release: () => {
+              if (!cues?.skip()) transport!.scheduler.releaseHold()
+              transport!.changed()
+            },
+            scene: () => scenes.activeId,
+            activate: (id, at) => {
+              scenes.activate(id, at)
+            },
+            registers: () => scenes.registers.values,
+            register: (index, on) =>
+              scenes.register(
+                { type: 'register', cmd: 'set', index, on },
+                'script',
+              ),
+            zones: (zones) => scenes.setZones(zones),
+            patch: (id, instruments) => scenes.setPatch(id, instruments),
+            mode: (id) =>
+              performanceProject()!.tracks.find((t) => t.id === id)!.mode,
+            setMode: (id, mode) => scenes.setScriptMode(id, mode),
+            playNote: (trackId, key, vel, beats) => {
+              const source = `script:note:${++scriptNoteSerial}`
+              router!.note(source, 0, key, vel, true, undefined, trackId)
+              const duration =
+                (beats * 60000) /
+                transport!.clock.map.tempoAt(transport!.clock.tick) /
+                transport!.clock.speed
+              const timer = setTimeout(() => {
+                router?.note(source, 0, key, 0, false, undefined, trackId)
+                scriptNotes.delete(source)
+              }, duration)
+              scriptNotes.set(source, { trackId, key, timer })
+            },
+            follow: () => performanceProject()!.follow.mode,
+            setFollow: (mode) => scenes.setFollow(mode),
+            pad: (n) => scriptPads[`pad.${n}`] ?? '#4cc2ff',
+            setPad: (n, color) => {
+              scriptPads[`pad.${n}`] = color
+              leds?.invalidate(true)
+            },
+            display: (a, b) => {
+              scriptDisplay = [a, b]
+              leds?.invalidate(true)
+            },
+            log: (message) => log('info', 'script', message),
+            error: (error) => script?.error(error),
+          },
+          on,
+          state,
+          active,
+        ),
+      (entry) => bus?.send('log', entry),
+    )
+    scriptSession = new ScriptSession(script, resetScriptEffects, (status) => {
+      bus?.send('script:status', status)
+      publishRuntime()
+    })
+    noteHooks = new NoteHooks(
+      (note) => script!.note(note),
+      (note, source, when, inputKey) =>
+        routedLiveNote(
+          source,
+          note.channel,
+          note.key,
+          note.vel,
+          note.on,
+          when,
+          inputKey,
+        ),
+    )
+    scriptTimeline = new ScriptTimeline(transport.clock, script)
     cues = new Cues({
       clock: transport.clock,
       queue: (at, run) => transport!.queue(at, run),
@@ -368,6 +534,7 @@ async function initialize(value: Settings): Promise<void> {
       },
       seek: (tick) => transport!.seek(tick),
       warn: (message) => log('error', 'cues', message),
+      fired: (id) => script?.emit('cue', { id }),
       run: (action) => {
         if (action.type !== 'note') {
           runAction(action)
@@ -383,9 +550,16 @@ async function initialize(value: Settings): Promise<void> {
       },
     })
     cues.chaseOnSeek = value.chaseCuesOnSeek ?? true
-    transport.scheduler.timeline = cues
-    transport.onSeek = () => cues!.seek()
-    transport.onStop = () => cues!.stop()
+    transport.scheduler.timeline = combineTimelines(cues, scriptTimeline)
+    transport.onSeek = () => {
+      cues!.seek()
+      scriptTimeline?.reset()
+    }
+    transport.onStop = () => {
+      cues!.stop()
+      scriptTimeline?.reset()
+      releaseScriptNotes()
+    }
     transport.inputLatencyMs = value.audio.inputLatencyMs
     transport.resolveProject = (source) => performanceProject() ?? source
     transport.conditionContext = (tick) => ({
@@ -395,6 +569,21 @@ async function initialize(value: Settings): Promise<void> {
     transport.onPosition = () => {
       if (!transport!.clock.playing) cues?.pause()
       publishRuntime()
+      const clock = transport!.clock
+      const signature = JSON.stringify([
+        clock.playing,
+        clock.holding,
+        clock.rate,
+      ])
+      if (signature !== scriptTransportSignature) {
+        scriptTransportSignature = signature
+        script?.emit('transport', {
+          playing: clock.playing,
+          holding: clock.holding,
+          rate: clock.rate,
+          tick: clock.tick,
+        })
+      }
     }
     if (project) {
       router.setProject(performanceProject() ?? project)
@@ -410,6 +599,7 @@ async function initialize(value: Settings): Promise<void> {
       receiveControl,
       (ports) => bus?.send('midi:ports', ports),
       (source) => {
+        noteHooks?.disconnect(source)
         bindings?.disconnect(source)
         transport?.recorder.disconnect(source)
         router?.disconnect(source)
@@ -441,7 +631,9 @@ async function initialize(value: Settings): Promise<void> {
       state: () =>
         project && transport
           ? {
-              project,
+              project: performanceProject() ?? project,
+              scriptPads,
+              scriptDisplay,
               runtime: runtimeState,
               playing: transport.clock.playing,
               recording: transport.clock.recording,
@@ -496,9 +688,10 @@ async function initialize(value: Settings): Promise<void> {
     throw error
   }
 }
-async function synchronize(): Promise<void> {
+async function synchronize(forceScript = false): Promise<void> {
   if (!rack || !project) return
   const revision = ++syncRevision
+  const commandRevision = scriptCommandRevision
   bus?.send('synth:state', { loading: true, readyIds: [] })
   router?.setProject(performanceProject() ?? project)
   await Promise.all([
@@ -507,6 +700,12 @@ async function synchronize(): Promise<void> {
   ])
   if (revision !== syncRevision) return
   cues?.configure(project.cues)
+  await scriptSession?.update(
+    project.script,
+    settings?.trustedScripts ?? [],
+    forceScript && commandRevision === scriptCommandRevision,
+  )
+  if (revision !== syncRevision) return
   router?.setProject(performanceProject() ?? project)
   publishRuntime()
   bus?.send('synth:state', {
@@ -586,12 +785,16 @@ window.addEventListener('message', (event) => {
   bus = new Bus(event.ports[0], 'evt')
   bus.on('settings:set', (value) => {
     if (engineClosing) return
+    const trustChanged =
+      JSON.stringify(settings?.trustedScripts) !==
+      JSON.stringify(value.trustedScripts)
     settings = value
+    if (trustChanged) scriptSession?.suspend()
     if (cues) cues.chaseOnSeek = value.chaseCuesOnSeek ?? true
     midi?.configure(value.devices)
-    void initialize(value).catch((error) =>
-      log('error', 'audio', String(error)),
-    )
+    void initialize(value)
+      .then(() => synchronize())
+      .catch((error) => log('error', 'audio', String(error)))
   })
   bus.on('ping', () => {
     void (
@@ -603,6 +806,7 @@ window.addEventListener('message', (event) => {
         runtimeSignature = ''
         activity?.invalidate()
         publishRuntime()
+        if (scriptSession) bus!.send('script:status', scriptSession.status)
         reportKeys()
       },
       (error) => log('error', 'audio', String(error)),
@@ -632,7 +836,21 @@ window.addEventListener('message', (event) => {
   bus.on('control:capture', ({ active }) => {
     controlCapture = active
   })
+  bus.on('script:disable', () => {
+    scriptCommandRevision++
+    scriptSession?.stop()
+  })
+  bus.on('script:apply', () => {
+    scriptCommandRevision++
+    void synchronize(true).catch((error) =>
+      log('error', 'script', String(error)),
+    )
+  })
   bus.on('audio:scope', ({ folder }) => {
+    syncRevision++
+    scriptCommandRevision++
+    noteHooks?.clear()
+    scriptSession?.clear()
     bindings?.clear()
     cues?.reset()
     activity?.clear()
@@ -647,6 +865,7 @@ window.addEventListener('message', (event) => {
   bus.on('project:meta', (value) => {
     if (engineClosing) return
     const old = project
+    if (old?.script !== value.script) scriptSession?.suspend()
     project = applyMetadata(value, old)
     scenes.configure(project)
     if (old?.name !== value.name || old.tracks.length !== value.tracks.length)
@@ -787,6 +1006,8 @@ window.addEventListener('message', (event) => {
     bus?.send('doc:patch', { loop })
   })
   bus.on('panic', () => {
+    releaseScriptNotes()
+    noteHooks?.clear()
     bindings?.clear()
     transport?.stop()
     previews.forEach((entry) => {
@@ -808,6 +1029,8 @@ window.engineHost.onShutdown(async () => {
   await initialization?.catch(() => undefined)
   bindings?.clear()
   transport?.stop()
+  scriptSession?.clear()
+  noteHooks?.clear()
   midi?.close()
   router?.panic()
   await leds?.close()

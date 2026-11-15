@@ -1,9 +1,11 @@
+import { uniqueId } from '../../shared/ids'
 import type {
   Action,
   Project,
   Setup,
   Timing,
   TrackMode,
+  Zone,
 } from '../../shared/model'
 import type { ConditionContext } from '../../shared/conditions'
 import { matchesCondition } from '../../shared/conditions'
@@ -12,6 +14,7 @@ import { Registers } from './registers'
 
 export interface SceneHost {
   queue(at: Timing, run: () => void): number
+  activated?(id: string | null): void
   changed(): void
   context(): Pick<ConditionContext, 'bar' | 'playing'>
 }
@@ -20,6 +23,36 @@ export class Scenes {
   activeId: string | null = null
   private project?: Project
   private modes: Record<string, TrackMode> = {}
+  private scriptModes: Record<string, TrackMode> = {}
+  private scriptZones?: Zone[]
+  private scriptPatch = new Map<string, string[]>()
+  private scriptFollow?: Project['follow']['mode']
+  clearScript(notify = true): void {
+    this.scriptModes = {}
+    this.scriptZones = undefined
+    this.scriptPatch.clear()
+    this.scriptFollow = undefined
+    if (notify) this.host.changed()
+  }
+  get hasScriptZones(): boolean {
+    return this.scriptZones !== undefined
+  }
+  setScriptMode(trackId: string, mode: TrackMode): void {
+    this.scriptModes[trackId] = mode
+    this.host.changed()
+  }
+  setZones(zones: Zone[]): void {
+    this.scriptZones = zones
+    this.host.changed()
+  }
+  setPatch(trackId: string, instrumentIds: string[]): void {
+    this.scriptPatch.set(trackId, instrumentIds)
+    this.host.changed()
+  }
+  setFollow(mode: Project['follow']['mode']): void {
+    this.scriptFollow = mode
+    this.host.changed()
+  }
   constructor(private host: SceneHost) {}
   configure(project: Project): void {
     const previous = this.project
@@ -47,9 +80,11 @@ export class Scenes {
       const scene = this.project?.scenes.find((s) => s.id === id)
       if (id !== null && !scene) return
       this.activeId = id
+      this.clearScript(false)
       this.modes = {}
       if (scene?.registers) this.registers.preset(scene.registers)
       this.host.changed()
+      this.host.activated?.(id)
     })
   }
   run(action: Extract<Action, { type: 'scene' }>, at: Timing = 'now'): number {
@@ -109,7 +144,21 @@ export class Scenes {
   ): Setup | undefined {
     if (!this.project) return undefined
     const setup = effectiveSetup(this.project, this.activeId, profileIds)
-    setup.trackModes = { ...setup.trackModes, ...this.modes }
+    setup.trackModes = {
+      ...setup.trackModes,
+      ...this.modes,
+      ...this.scriptModes,
+    }
+    if (this.scriptZones) setup.zones = this.scriptZones
+    for (const [trackId, instrumentIds] of this.scriptPatch) {
+      setup.patch = setup.patch.filter((p) => p.trackId !== trackId)
+      const ids = setup.patch.map((p) => p.id)
+      for (const instrumentId of instrumentIds) {
+        const id = uniqueId(`script-${trackId}-${instrumentId}`, ids)
+        ids.push(id)
+        setup.patch.push({ id, trackId, instrumentId })
+      }
+    }
     if (!filterPatch) return setup
     return {
       ...setup,
@@ -131,6 +180,10 @@ export class Scenes {
     return {
       ...this.project,
       base: setup,
+      follow: {
+        ...this.project.follow,
+        ...(this.scriptFollow ? { mode: this.scriptFollow } : {}),
+      },
       tracks: this.project.tracks.map((track) => ({
         ...track,
         mode: setup.trackModes[track.id] ?? track.mode,
@@ -139,6 +192,7 @@ export class Scenes {
   }
   reset(notify = true): void {
     this.activeId = null
+    this.clearScript(false)
     this.modes = {}
     this.registers.reset()
     if (notify) this.host.changed()

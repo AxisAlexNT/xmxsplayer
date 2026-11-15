@@ -18,6 +18,8 @@ export interface FeedbackState {
   holding: boolean
   tick: number
   rate: number
+  scriptPads?: Readonly<Record<string, string>>
+  scriptDisplay?: [string, string]
 }
 export interface FrameOptions {
   time: number
@@ -188,11 +190,23 @@ export function controlFrame(
               state: 'queued' as const,
             }
           : undefined
-    result[control.id] = mergeFeedback(base, bindingLayer, beat, flash, queued)
+    const scriptColor = state.scriptPads?.[control.id]
+    const script = scriptColor
+      ? { color: scriptColor, level: 1, state: 'on' as const }
+      : undefined
+    result[control.id] = mergeFeedback(
+      base,
+      bindingLayer,
+      script,
+      beat,
+      flash,
+      queued,
+    )
   }
   return result
 }
 export function screenLines(state: FeedbackState): [string, string] {
+  if (state.scriptDisplay) return state.scriptDisplay
   const p = state.project,
     pos = new TimeMap(p).tickToBarBeat(state.tick),
     name =
