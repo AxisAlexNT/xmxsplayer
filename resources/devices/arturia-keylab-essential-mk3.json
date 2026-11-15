@@ -1,0 +1,737 @@
+{
+  "id": "arturia-keylab-essential-mk3",
+  "name": "Arturia KeyLab Essential mk3",
+  "ports": [
+    {
+      "role": "main",
+      "match": ["KL Essential 61 mk3 MIDI"],
+      "dir": "both"
+    },
+    {
+      "role": "aux",
+      "match": [
+        "KL Essential 61 mk3 DINTHRU",
+        "KL Essential 61 mk3 MCU/HUI",
+        "KL Essential 61 mk3 ALV"
+      ],
+      "dir": "both"
+    }
+  ],
+  "controls": [
+    {
+      "id": "pad.1",
+      "label": "Pad 1",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 0,
+        "col": 0
+      },
+      "msg": {
+        "type": "note",
+        "channel": 9,
+        "number": 40
+      },
+      "ledId": 28
+    },
+    {
+      "id": "pad.2",
+      "label": "Pad 2",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 0,
+        "col": 1
+      },
+      "msg": {
+        "type": "note",
+        "channel": 9,
+        "number": 41
+      },
+      "ledId": 29
+    },
+    {
+      "id": "pad.3",
+      "label": "Pad 3",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 0,
+        "col": 2
+      },
+      "ledId": 30
+    },
+    {
+      "id": "pad.4",
+      "label": "Pad 4",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 0,
+        "col": 3
+      },
+      "ledId": 31
+    },
+    {
+      "id": "pad.5",
+      "label": "Pad 5",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 1,
+        "col": 0
+      },
+      "ledId": 32
+    },
+    {
+      "id": "pad.6",
+      "label": "Pad 6",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 1,
+        "col": 1
+      },
+      "ledId": 33
+    },
+    {
+      "id": "pad.7",
+      "label": "Pad 7",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 1,
+        "col": 2
+      },
+      "ledId": 34
+    },
+    {
+      "id": "pad.8",
+      "label": "Pad 8",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 1,
+        "col": 3
+      },
+      "msg": {
+        "type": "note",
+        "channel": 9,
+        "number": 39
+      },
+      "ledId": 35
+    },
+    {
+      "id": "pad.9",
+      "label": "Pad 1 \u00b7 B",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 2,
+        "col": 0
+      },
+      "ledId": 36
+    },
+    {
+      "id": "pad.10",
+      "label": "Pad 2 \u00b7 B",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 2,
+        "col": 1
+      },
+      "ledId": 37
+    },
+    {
+      "id": "pad.11",
+      "label": "Pad 3 \u00b7 B",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 2,
+        "col": 2
+      },
+      "ledId": 38
+    },
+    {
+      "id": "pad.12",
+      "label": "Pad 4 \u00b7 B",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 2,
+        "col": 3
+      },
+      "ledId": 39
+    },
+    {
+      "id": "pad.13",
+      "label": "Pad 5 \u00b7 B",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 3,
+        "col": 0
+      },
+      "ledId": 40
+    },
+    {
+      "id": "pad.14",
+      "label": "Pad 6 \u00b7 B",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 3,
+        "col": 1
+      },
+      "ledId": 41
+    },
+    {
+      "id": "pad.15",
+      "label": "Pad 7 \u00b7 B",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 3,
+        "col": 2
+      },
+      "ledId": 42
+    },
+    {
+      "id": "pad.16",
+      "label": "Pad 8 \u00b7 B",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 3,
+        "col": 3
+      },
+      "ledId": 43
+    },
+    {
+      "id": "knob.1",
+      "label": "Knob 1",
+      "kind": "knob",
+      "mode": "absolute",
+      "ui": {
+        "group": "knobs",
+        "row": 0,
+        "col": 0
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 74
+      }
+    },
+    {
+      "id": "knob.2",
+      "label": "Knob 2",
+      "kind": "knob",
+      "mode": "absolute",
+      "ui": {
+        "group": "knobs",
+        "row": 0,
+        "col": 1
+      }
+    },
+    {
+      "id": "knob.3",
+      "label": "Knob 3",
+      "kind": "knob",
+      "mode": "absolute",
+      "ui": {
+        "group": "knobs",
+        "row": 0,
+        "col": 2
+      }
+    },
+    {
+      "id": "knob.4",
+      "label": "Knob 4",
+      "kind": "knob",
+      "mode": "absolute",
+      "ui": {
+        "group": "knobs",
+        "row": 0,
+        "col": 3
+      }
+    },
+    {
+      "id": "knob.5",
+      "label": "Knob 5",
+      "kind": "knob",
+      "mode": "absolute",
+      "ui": {
+        "group": "knobs",
+        "row": 0,
+        "col": 4
+      }
+    },
+    {
+      "id": "knob.6",
+      "label": "Knob 6",
+      "kind": "knob",
+      "mode": "absolute",
+      "ui": {
+        "group": "knobs",
+        "row": 0,
+        "col": 5
+      }
+    },
+    {
+      "id": "knob.7",
+      "label": "Knob 7",
+      "kind": "knob",
+      "mode": "absolute",
+      "ui": {
+        "group": "knobs",
+        "row": 0,
+        "col": 6
+      }
+    },
+    {
+      "id": "knob.8",
+      "label": "Knob 8",
+      "kind": "knob",
+      "mode": "absolute",
+      "ui": {
+        "group": "knobs",
+        "row": 0,
+        "col": 7
+      }
+    },
+    {
+      "id": "knob.9",
+      "label": "Knob 9",
+      "kind": "knob",
+      "mode": "absolute",
+      "ui": {
+        "group": "knobs",
+        "row": 0,
+        "col": 8
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 17
+      }
+    },
+    {
+      "id": "fader.1",
+      "label": "Fader 1",
+      "kind": "fader",
+      "mode": "absolute",
+      "ui": {
+        "group": "faders",
+        "row": 0,
+        "col": 0
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 73
+      }
+    },
+    {
+      "id": "fader.2",
+      "label": "Fader 2",
+      "kind": "fader",
+      "mode": "absolute",
+      "ui": {
+        "group": "faders",
+        "row": 0,
+        "col": 1
+      }
+    },
+    {
+      "id": "fader.3",
+      "label": "Fader 3",
+      "kind": "fader",
+      "mode": "absolute",
+      "ui": {
+        "group": "faders",
+        "row": 0,
+        "col": 2
+      }
+    },
+    {
+      "id": "fader.4",
+      "label": "Fader 4",
+      "kind": "fader",
+      "mode": "absolute",
+      "ui": {
+        "group": "faders",
+        "row": 0,
+        "col": 3
+      }
+    },
+    {
+      "id": "fader.5",
+      "label": "Fader 5",
+      "kind": "fader",
+      "mode": "absolute",
+      "ui": {
+        "group": "faders",
+        "row": 0,
+        "col": 4
+      }
+    },
+    {
+      "id": "fader.6",
+      "label": "Fader 6",
+      "kind": "fader",
+      "mode": "absolute",
+      "ui": {
+        "group": "faders",
+        "row": 0,
+        "col": 5
+      }
+    },
+    {
+      "id": "fader.7",
+      "label": "Fader 7",
+      "kind": "fader",
+      "mode": "absolute",
+      "ui": {
+        "group": "faders",
+        "row": 0,
+        "col": 6
+      }
+    },
+    {
+      "id": "fader.8",
+      "label": "Fader 8",
+      "kind": "fader",
+      "mode": "absolute",
+      "ui": {
+        "group": "faders",
+        "row": 0,
+        "col": 7
+      }
+    },
+    {
+      "id": "fader.9",
+      "label": "Fader 9",
+      "kind": "fader",
+      "mode": "absolute",
+      "ui": {
+        "group": "faders",
+        "row": 0,
+        "col": 8
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 85
+      }
+    },
+    {
+      "id": "transport.stop",
+      "label": "Stop",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "transport",
+        "row": 0,
+        "col": 0
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 20
+      },
+      "ledId": 20
+    },
+    {
+      "id": "transport.play",
+      "label": "Play / pause",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "transport",
+        "row": 0,
+        "col": 1
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 21
+      },
+      "ledId": 21
+    },
+    {
+      "id": "transport.record",
+      "label": "Record",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "transport",
+        "row": 0,
+        "col": 2
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 22
+      },
+      "ledId": 22
+    },
+    {
+      "id": "transport.rewind",
+      "label": "Rewind",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "transport",
+        "row": 0,
+        "col": 3
+      },
+      "ledId": 17
+    },
+    {
+      "id": "transport.forward",
+      "label": "Forward",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "transport",
+        "row": 0,
+        "col": 4
+      },
+      "ledId": 18
+    },
+    {
+      "id": "transport.loop",
+      "label": "Loop",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "transport",
+        "row": 0,
+        "col": 5
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 24
+      },
+      "ledId": 16
+    },
+    {
+      "id": "transport.metronome",
+      "label": "Metronome",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "transport",
+        "row": 0,
+        "col": 6
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 27
+      },
+      "ledId": 19
+    },
+    {
+      "id": "transport.tap",
+      "label": "Tap",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "transport",
+        "row": 0,
+        "col": 7
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 23
+      },
+      "ledId": 23
+    },
+    {
+      "id": "daw.save",
+      "label": "Save",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "buttons",
+        "row": 1,
+        "col": 0
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 52
+      },
+      "ledId": 12
+    },
+    {
+      "id": "daw.quantize",
+      "label": "Quantize",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "buttons",
+        "row": 1,
+        "col": 1
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 41
+      },
+      "ledId": 13
+    },
+    {
+      "id": "daw.undo",
+      "label": "Undo",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "buttons",
+        "row": 1,
+        "col": 2
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 54
+      },
+      "ledId": 14
+    },
+    {
+      "id": "daw.redo",
+      "label": "Redo",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "buttons",
+        "row": 1,
+        "col": 3
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 55
+      },
+      "ledId": 15
+    },
+    {
+      "id": "context.1",
+      "label": "Context 1",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "buttons",
+        "row": 2,
+        "col": 0
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 30
+      },
+      "ledId": 24
+    },
+    {
+      "id": "context.2",
+      "label": "Context 2",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "buttons",
+        "row": 2,
+        "col": 1
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 31
+      },
+      "ledId": 25
+    },
+    {
+      "id": "context.3",
+      "label": "Context 3",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "buttons",
+        "row": 2,
+        "col": 2
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 86
+      },
+      "ledId": 26
+    },
+    {
+      "id": "context.4",
+      "label": "Context 4",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "buttons",
+        "row": 2,
+        "col": 3
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 87
+      },
+      "ledId": 27
+    },
+    {
+      "id": "encoder.main",
+      "label": "Main encoder",
+      "kind": "encoder",
+      "mode": "relative64",
+      "ui": {
+        "group": "buttons",
+        "row": 3,
+        "col": 0
+      }
+    },
+    {
+      "id": "encoder.main.press",
+      "label": "Encoder press",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "buttons",
+        "row": 3,
+        "col": 1
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 115
+      }
+    }
+  ],
+  "feedback": "arturia-mk3"
+}

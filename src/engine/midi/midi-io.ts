@@ -80,6 +80,11 @@ export class MidiIO {
     private ports: (value: EventMap['midi:ports']) => void,
     private disconnect: (id: string) => void,
     private warn: (message: string) => void,
+    private raw?: (
+      source: string,
+      data: Uint8Array,
+      timestamp: number,
+    ) => boolean,
   ) {}
   async start(): Promise<void> {
     if (!navigator.requestMIDIAccess) {
@@ -107,6 +112,7 @@ export class MidiIO {
         this.inputs.set(input.id, input)
         input.onmidimessage = (event) => {
           if (event.data) {
+            if (this.raw?.(input.id, event.data, event.timeStamp)) return
             const message = decodeMidi(input.id, event.data, event.timeStamp)
             if (message) this.receive(message)
           }
@@ -116,6 +122,10 @@ export class MidiIO {
           .catch((error) => this.warn(`${input.name}: ${String(error)}`))
       }
     this.report()
+  }
+  output(id: string): MIDIOutput | undefined {
+    const output = this.access?.outputs.get(id)
+    return output?.state === 'connected' ? output : undefined
   }
   report(): void {
     const inputs = [...this.inputs.values()].map((p) => ({

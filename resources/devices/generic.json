@@ -1,0 +1,12 @@
+{
+  "id": "generic",
+  "name": "Generic MIDI controller",
+  "ports": [
+    {
+      "role": "main",
+      "match": ["*"],
+      "dir": "both"
+    }
+  ],
+  "controls": []
+}

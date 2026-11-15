@@ -10,7 +10,8 @@ import type {
 import type { CommandMap } from '../shared/protocol'
 import { AudioGraph } from './audio/graph'
 import { WebSynthBackend } from './synth/web-synth'
-import { MidiIO, type MidiMessage } from './midi/midi-io'
+import type { MidiMessage } from './midi/midi-io'
+import { DeviceManager } from './midi/device-manager'
 import { Router } from './router/router'
 import { InstrumentRack } from './synth/rack'
 import { Transport } from './transport/transport'
@@ -22,7 +23,7 @@ let graph: AudioGraph | undefined
 let backend: WebSynthBackend | undefined
 let rack: InstrumentRack | undefined
 let router: Router | undefined
-let midi: MidiIO | undefined
+let midi: DeviceManager | undefined
 let transport: Transport | undefined
 let keysTimer: ReturnType<typeof setTimeout> | undefined
 let syncRevision = 0
@@ -163,8 +164,10 @@ async function initialize(value: Settings): Promise<void> {
         transport.synchronize(project),
       ])
     }
-    midi = new MidiIO(
+    midi = new DeviceManager(
+      settings?.devices ?? value.devices,
       receiveMidi,
+      (event) => bus?.send('control', event),
       (ports) => bus?.send('midi:ports', ports),
       (source) => {
         transport?.recorder.disconnect(source)
@@ -273,6 +276,7 @@ window.addEventListener('message', (event) => {
   bus = new Bus(event.ports[0], 'evt')
   bus.on('settings:set', (value) => {
     settings = value
+    midi?.configure(value.devices)
     void initialize(value).catch((error) =>
       log('error', 'audio', String(error)),
     )

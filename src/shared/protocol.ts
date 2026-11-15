@@ -108,6 +108,9 @@ export interface EventMap {
     controlId: string
     value: number
     pressed: boolean
+    edge?: 'press' | 'release' | 'change'
+    delta?: number
+    timestamp?: number
   }
   'learn:captured': { deviceId: string; control: ControlDef }
   keys: { held: { key: number; trackIds: Id[] }[] }

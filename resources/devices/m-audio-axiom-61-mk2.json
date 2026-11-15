@@ -1,0 +1,453 @@
+{
+  "id": "m-audio-axiom-61-mk2",
+  "name": "M-Audio Axiom 61 mk2",
+  "ports": [
+    {
+      "role": "main",
+      "match": ["*Axiom*61*"],
+      "dir": "both"
+    }
+  ],
+  "controls": [
+    {
+      "id": "pad.1",
+      "label": "Pad 1",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 0,
+        "col": 0
+      }
+    },
+    {
+      "id": "pad.2",
+      "label": "Pad 2",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 0,
+        "col": 1
+      }
+    },
+    {
+      "id": "pad.3",
+      "label": "Pad 3",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 0,
+        "col": 2
+      }
+    },
+    {
+      "id": "pad.4",
+      "label": "Pad 4",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 0,
+        "col": 3
+      }
+    },
+    {
+      "id": "pad.5",
+      "label": "Pad 5",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 1,
+        "col": 0
+      }
+    },
+    {
+      "id": "pad.6",
+      "label": "Pad 6",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 1,
+        "col": 1
+      }
+    },
+    {
+      "id": "pad.7",
+      "label": "Pad 7",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 1,
+        "col": 2
+      }
+    },
+    {
+      "id": "pad.8",
+      "label": "Pad 8",
+      "kind": "pad",
+      "mode": "momentary",
+      "ui": {
+        "group": "pads",
+        "row": 1,
+        "col": 3
+      }
+    },
+    {
+      "id": "knob.1",
+      "label": "Knob 1",
+      "kind": "encoder",
+      "mode": "relative64",
+      "ui": {
+        "group": "knobs",
+        "row": 0,
+        "col": 0
+      }
+    },
+    {
+      "id": "knob.2",
+      "label": "Knob 2",
+      "kind": "encoder",
+      "mode": "relative64",
+      "ui": {
+        "group": "knobs",
+        "row": 0,
+        "col": 1
+      }
+    },
+    {
+      "id": "knob.3",
+      "label": "Knob 3",
+      "kind": "encoder",
+      "mode": "relative64",
+      "ui": {
+        "group": "knobs",
+        "row": 0,
+        "col": 2
+      }
+    },
+    {
+      "id": "knob.4",
+      "label": "Knob 4",
+      "kind": "encoder",
+      "mode": "relative64",
+      "ui": {
+        "group": "knobs",
+        "row": 0,
+        "col": 3
+      }
+    },
+    {
+      "id": "knob.5",
+      "label": "Knob 5",
+      "kind": "encoder",
+      "mode": "relative64",
+      "ui": {
+        "group": "knobs",
+        "row": 0,
+        "col": 4
+      }
+    },
+    {
+      "id": "knob.6",
+      "label": "Knob 6",
+      "kind": "encoder",
+      "mode": "relative64",
+      "ui": {
+        "group": "knobs",
+        "row": 0,
+        "col": 5
+      }
+    },
+    {
+      "id": "knob.7",
+      "label": "Knob 7",
+      "kind": "encoder",
+      "mode": "relative64",
+      "ui": {
+        "group": "knobs",
+        "row": 0,
+        "col": 6
+      }
+    },
+    {
+      "id": "knob.8",
+      "label": "Knob 8",
+      "kind": "encoder",
+      "mode": "relative64",
+      "ui": {
+        "group": "knobs",
+        "row": 0,
+        "col": 7
+      }
+    },
+    {
+      "id": "fader.1",
+      "label": "Fader 1",
+      "kind": "fader",
+      "mode": "absolute",
+      "ui": {
+        "group": "faders",
+        "row": 0,
+        "col": 0
+      }
+    },
+    {
+      "id": "fader.2",
+      "label": "Fader 2",
+      "kind": "fader",
+      "mode": "absolute",
+      "ui": {
+        "group": "faders",
+        "row": 0,
+        "col": 1
+      }
+    },
+    {
+      "id": "fader.3",
+      "label": "Fader 3",
+      "kind": "fader",
+      "mode": "absolute",
+      "ui": {
+        "group": "faders",
+        "row": 0,
+        "col": 2
+      }
+    },
+    {
+      "id": "fader.4",
+      "label": "Fader 4",
+      "kind": "fader",
+      "mode": "absolute",
+      "ui": {
+        "group": "faders",
+        "row": 0,
+        "col": 3
+      }
+    },
+    {
+      "id": "fader.5",
+      "label": "Fader 5",
+      "kind": "fader",
+      "mode": "absolute",
+      "ui": {
+        "group": "faders",
+        "row": 0,
+        "col": 4
+      }
+    },
+    {
+      "id": "fader.6",
+      "label": "Fader 6",
+      "kind": "fader",
+      "mode": "absolute",
+      "ui": {
+        "group": "faders",
+        "row": 0,
+        "col": 5
+      }
+    },
+    {
+      "id": "fader.7",
+      "label": "Fader 7",
+      "kind": "fader",
+      "mode": "absolute",
+      "ui": {
+        "group": "faders",
+        "row": 0,
+        "col": 6
+      }
+    },
+    {
+      "id": "fader.8",
+      "label": "Fader 8",
+      "kind": "fader",
+      "mode": "absolute",
+      "ui": {
+        "group": "faders",
+        "row": 0,
+        "col": 7
+      }
+    },
+    {
+      "id": "fader.9",
+      "label": "Fader 9",
+      "kind": "fader",
+      "mode": "absolute",
+      "ui": {
+        "group": "faders",
+        "row": 0,
+        "col": 8
+      }
+    },
+    {
+      "id": "button.1",
+      "label": "Button 1",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "buttons",
+        "row": 0,
+        "col": 0
+      }
+    },
+    {
+      "id": "button.2",
+      "label": "Button 2",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "buttons",
+        "row": 0,
+        "col": 1
+      }
+    },
+    {
+      "id": "button.3",
+      "label": "Button 3",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "buttons",
+        "row": 0,
+        "col": 2
+      }
+    },
+    {
+      "id": "button.4",
+      "label": "Button 4",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "buttons",
+        "row": 0,
+        "col": 3
+      }
+    },
+    {
+      "id": "button.5",
+      "label": "Button 5",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "buttons",
+        "row": 0,
+        "col": 4
+      }
+    },
+    {
+      "id": "button.6",
+      "label": "Button 6",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "buttons",
+        "row": 0,
+        "col": 5
+      }
+    },
+    {
+      "id": "button.7",
+      "label": "Button 7",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "buttons",
+        "row": 0,
+        "col": 6
+      }
+    },
+    {
+      "id": "button.8",
+      "label": "Button 8",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "buttons",
+        "row": 0,
+        "col": 7
+      }
+    },
+    {
+      "id": "button.9",
+      "label": "Button 9",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "buttons",
+        "row": 0,
+        "col": 8
+      }
+    },
+    {
+      "id": "transport.rewind",
+      "label": "Rewind",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "transport",
+        "row": 1,
+        "col": 0
+      }
+    },
+    {
+      "id": "transport.forward",
+      "label": "Forward",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "transport",
+        "row": 1,
+        "col": 1
+      }
+    },
+    {
+      "id": "transport.loop",
+      "label": "Loop",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "transport",
+        "row": 1,
+        "col": 2
+      }
+    },
+    {
+      "id": "transport.stop",
+      "label": "Stop",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "transport",
+        "row": 1,
+        "col": 3
+      }
+    },
+    {
+      "id": "transport.play",
+      "label": "Play",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "transport",
+        "row": 1,
+        "col": 4
+      }
+    },
+    {
+      "id": "transport.record",
+      "label": "Record",
+      "kind": "button",
+      "mode": "momentary",
+      "ui": {
+        "group": "transport",
+        "row": 1,
+        "col": 5
+      }
+    }
+  ]
+}
