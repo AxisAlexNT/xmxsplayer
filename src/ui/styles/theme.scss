@@ -1,0 +1,156 @@
+@font-face {
+  font-family: Inter;
+  src: url('../assets/fonts/Inter-Regular.otf');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: Inter;
+  src: url('../assets/fonts/Inter-SemiBold.otf');
+  font-weight: 600 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fira Code';
+  src: url('../assets/fonts/FiraCode-Regular.ttf');
+  font-display: swap;
+}
+.xm-mono,
+.xm-pos,
+.xm-log {
+  font-variant-ligatures: none;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.xm-app.is-collapsed {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+.xm-app.is-collapsed .xm-left {
+  visibility: hidden;
+}
+.xm-left {
+  resize: horizontal;
+  position: relative;
+}
+.xm-sec-h {
+  width: 100%;
+  background: none;
+  border: 0;
+  color: inherit;
+  text-align: left;
+}
+.xm-ruler-bars {
+  display: grid;
+  grid-template-columns: var(--xm-lane-gutter) repeat(4, 1fr);
+  height: 100%;
+}
+.xm-ruler-bars span {
+  border-right: 1px solid var(--xm-border);
+  padding-left: var(--xm-s2);
+  font-family: var(--xm-font-mono);
+  color: var(--xm-text-muted);
+}
+.xm-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  min-height: 100%;
+  padding: var(--xm-s4);
+  gap: var(--xm-s3);
+  color: var(--xm-text-muted);
+  background: var(--xm-bg-lane);
+}
+.xm-main {
+  grid-template-rows: auto var(--xm-h-ruler) var(--xm-h-cues) minmax(0, 1fr);
+}
+.xm-conflicts {
+  max-height: 30vh;
+  overflow: auto;
+}
+.xm-file-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--xm-s3);
+  padding: var(--xm-s2) var(--xm-s3);
+  background: color-mix(in srgb, var(--xm-warn) 12%, var(--xm-bg-1));
+  border-bottom: 1px solid var(--xm-warn);
+}
+.xm-file-banner span {
+  flex: 1;
+}
+.xm-keybed {
+  position: relative;
+  display: flex;
+}
+.xm-shell-white {
+  flex: 1;
+  background: var(--xm-staff-ink);
+  border: 1px solid var(--xm-bg-lane);
+  border-radius: 0 0 3px 3px;
+  color: var(--xm-bg-3);
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  font: 10px var(--xm-font-mono);
+  padding-bottom: var(--xm-s1);
+}
+.xm-shell-black {
+  position: absolute;
+  top: 0;
+  height: 62%;
+  width: 1.8%;
+  background: var(--xm-bg-0);
+  border: 1px solid var(--xm-border);
+  border-radius: 0 0 3px 3px;
+  z-index: 1;
+}
+.xm-toast-stack {
+  position: fixed;
+  bottom: calc(var(--xm-h-keys) + var(--xm-s3));
+  right: var(--xm-s3);
+  z-index: 20;
+}
+.xm-toast-stack .xm-log {
+  border-left: 3px solid var(--xm-accent);
+}
+.xm-register-name {
+  width: 100%;
+  min-width: 0;
+  font-size: var(--xm-fs-xs);
+  color: var(--xm-text-muted);
+  background: transparent;
+  border: 0;
+  text-align: center;
+}
+.xm-shell-divider {
+  position: absolute;
+  top: var(--xm-h-transport);
+  bottom: var(--xm-h-keys);
+  width: 6px;
+  cursor: col-resize;
+  z-index: 10;
+}
+.xm-name {
+  color: var(--xm-text);
+  background: none;
+  border: none;
+  max-width: 150px;
+  font-weight: 600;
+}
+.xm-shell-track {
+  min-height: 180px;
+}
+@media (max-width: 1599px) {
+  .xm-time-key,
+  .xm-engine-label {
+    display: none;
+  }
+}
+@media (max-width: 1399px) {
+  .xm-loop-field {
+    display: none;
+  }
+}

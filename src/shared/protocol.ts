@@ -1,0 +1,111 @@
+import type {
+  Action,
+  Binding,
+  ControlDef,
+  Id,
+  Note,
+  Project,
+  Settings,
+  Setup,
+  Timing,
+} from './model'
+
+export type ProjectMeta = Project
+export interface CommandMap {
+  ping: undefined
+  'project:meta': ProjectMeta
+  'track:notes': { trackId: Id; notes: Note[] }
+  'settings:set': Settings
+  'action:run': { action: Action; value?: number; at?: Timing }
+  'transport:seek': { tick: number }
+  'transport:setRate': { rate: number }
+  'transport:setLoop': Project['loop']
+  'scene:activate': { sceneId: Id | null }
+  'register:set': { index: number; on: boolean }
+  'live:note': { key: number; vel: number; on: boolean }
+  audition: { instrumentId: Id; key: number; on: boolean }
+  'learn:start': { controlId?: string }
+  'learn:stop': undefined
+  'device:assign': { portName: string; profileId: string }
+  panic: undefined
+}
+export interface TransportState {
+  playing: boolean
+  recording: boolean
+  holding: boolean
+  tick: number
+  rate: number
+  followFactor: number
+  perfTime: number
+}
+export interface RuntimeState {
+  activeSceneId: Id | null
+  registers: boolean[]
+  armedCueId: Id | null
+  pendingActions: { action: Action; tick: number }[]
+  expectedNext: { tick: number; keys: number[] } | null
+  clips: Record<Id, 'stopped' | 'queued' | 'playing'>
+  effective: Pick<Setup, 'zones' | 'patch'>
+}
+export interface LogEntry {
+  level: 'info' | 'ok' | 'warn' | 'error'
+  source: string
+  message: string
+}
+export interface EventMap {
+  ready: undefined
+  transport: TransportState
+  runtime: RuntimeState
+  'midi:ports': {
+    inputs: { id: string; name: string }[]
+    outputs: { id: string; name: string }[]
+    devices: { id: string; profileId: string; name: string }[]
+  }
+  control: {
+    deviceId: string
+    controlId: string
+    value: number
+    pressed: boolean
+  }
+  'learn:captured': { deviceId: string; control: ControlDef }
+  keys: { held: { key: number; trackIds: Id[] }[] }
+  activity: { trackIds: Id[]; instrumentIds: Id[] }
+  recorded: { trackId: Id; notes: Note[] }
+  'doc:patch': { bindings?: Binding[] }
+  latency: {
+    baseMs: number
+    outputMs: number
+    backend: string
+    fluidMs: number
+  }
+  log: LogEntry
+  app: { cmd: string }
+}
+export interface RequestMap {
+  'soundfont:presets': {
+    input: { soundfontId: Id }
+    output: { bank: number; program: number; name: string; isDrum: boolean }[]
+  }
+  'audio:load': {
+    input: { trackId: Id; url: string }
+    output: { durationSec: number; peaks: number[] }
+  }
+  'audio:devices': { input: undefined; output: { id: string; label: string }[] }
+}
+type Messages<M, K extends 'cmd' | 'evt'> = {
+  [N in keyof M]: { kind: K; name: N; payload: M[N] }
+}[keyof M]
+export type Envelope =
+  | Messages<CommandMap, 'cmd'>
+  | Messages<EventMap, 'evt'>
+  | {
+      [N in keyof RequestMap]:
+        | { kind: 'req'; name: N; payload: RequestMap[N]['input']; rid: string }
+        | {
+            kind: 'res'
+            name: N
+            payload: RequestMap[N]['output']
+            rid: string
+            error?: string
+          }
+    }[keyof RequestMap]

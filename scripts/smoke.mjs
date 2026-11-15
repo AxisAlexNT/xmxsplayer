@@ -1,15 +1,15 @@
 import { spawn } from 'node:child_process'
 import electron from 'electron'
 
-const env = { ...process.env }
+const env = { ...process.env, XM_SMOKE: '1' }
 delete env.ELECTRON_RUN_AS_NODE
-const child = spawn(electron, ['.', '--smoke'], { env, stdio: 'inherit' })
+const child = spawn(electron, ['.'], { env, stdio: 'inherit' })
 let timedOut = false
 const timeout = setTimeout(() => {
   timedOut = true
-  console.error('Electron startup timed out after 30 seconds.')
+  console.error('Electron startup timed out after 35 seconds.')
   child.kill('SIGKILL')
-}, 30_000)
+}, 35_000)
 child.on('error', (error) => {
   clearTimeout(timeout)
   console.error(error.message)
@@ -21,6 +21,6 @@ child.on('exit', (code, signal) => {
     console.error(`Electron startup failed (${signal ?? code}).`)
     process.exitCode = 1
   } else {
-    console.log('Electron startup smoke test passed.')
+    console.log('UI mount and engine handshake smoke test passed.')
   }
 })
