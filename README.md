@@ -4,9 +4,11 @@ A cross-platform desktop workspace for transcription by ear and live MIDI perfor
 
 ## Status
 
-M2: live MIDI input and soundfont performance. The hidden engine runs SF2/SF3 synthesis with timed events, a limiter and output/cue routing. New projects find a GM bank and create a piano instrument, MIDI track, full-range zone and patch. The playable keyboard shows held notes; routing supports splits, overlap, layering, transposition, sustain, wheels and pressure, with note-offs retained across routing changes. The instrument picker searches and auditions presets. Audio settings expose output, buffer, sample rate and latency, with project restoration after restart.
+M0–M5 are implemented. Projects support explicit saves, undo/redo and live YAML reload with conflict handling. The hidden engine provides SF2/SF3 synthesis, live MIDI splits and layers, sustain and controller expression, and retained note-offs across routing changes.
 
-Verified on Ubuntu 24.04 with an Arturia KeyLab Essential 61 mk3 in Arturia mode. Playback, recording, note editing, controller function mappings, pad feedback and score linking follow in later milestones. Windows and alternate hardware audio outputs are not yet verified. This is not a release-ready application.
+The transcription workspace imports MIDI and audio, shares a transport and timeline, loops sections, changes playback speed without changing pitch, and provides beat-grid anchors, time/key maps, a metronome and count-in. Armed MIDI tracks record post-zone notes and expression with latency compensation and loop overdub. Each take is one undo step. The piano roll supports snapped drawing, selection, moving, resizing, velocity edits, duplication, deletion and quantization, with mouse, touch and pen input. Two-finger gestures pan and zoom; double-click a MIDI track header to expand its lane.
+
+Verified on Ubuntu 24.04, including live input from an Arturia KeyLab Essential 61 mk3. Automated desktop checks cover recording at 60% speed over looping audio, take undo/redo, native pointer editing, simulated pen pressure and touch zoom. Physical Windows pen/eraser behavior, Windows audio codecs and alternate hardware outputs remain unverified. Controller function mappings, pad feedback, scene scripting, score linking and staff rendering follow in later milestones. This is not a release-ready application.
 
 ## Development
 
@@ -18,6 +20,8 @@ npm run dev
 ```
 
 Choose **New project** and select an empty folder, or **Open project** to select an existing project folder. Play the connected MIDI keyboard or tap the keyboard strip. Click an instrument in Patch to search and audition presets; open Audio settings with the gear. Edit the project name or register names, then save with Ctrl+S. Edit `setup.yaml` externally to see live reload; if that file also has unsaved changes, choose **Keep mine** or **Take file**. Ctrl+Z and Ctrl+Y undo and redo document edits, including reloads.
+
+Import MIDI or reference audio from the menu. Shift-drag the ruler to set a loop and use Speed to slow playback. Arm a MIDI track and press Record; recording while stopped starts playback. In Roll view, use the lane toolbar to select, draw or erase notes and choose the snap grid. Drag selected notes to move them, drag their edge handles to resize, or Alt-drag vertically to change velocity. Ctrl+D duplicates, Delete removes and arrow keys nudge the selection. Quantize uses the current snap grid on the selection, or on the last recorded take when nothing is selected. Hold Shift and use the mouse wheel to pan horizontally.
 
 - `npm run build`: compile all process and renderer entries.
 - `npm run check`: typecheck, lint, and run unit tests.

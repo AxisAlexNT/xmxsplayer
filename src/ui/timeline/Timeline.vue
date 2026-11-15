@@ -1,9 +1,18 @@
 <script setup lang="ts">
 defineOptions({ name: 'TrackTimeline' })
-import { computed, onMounted, onUnmounted, provide, ref, shallowRef } from 'vue'
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  provide,
+  ref,
+  shallowRef,
+  watch,
+} from 'vue'
 import type { Track } from '../../shared/model'
 import { TimeMap } from '../../shared/time-map'
 import { useProjectStore } from '../stores/project'
+import { useEditorStore } from '../stores/editor'
 import { useRuntimeStore } from '../stores/runtime'
 import { timelineKey } from './context'
 import { LinearAxis } from './linear-axis'
@@ -20,6 +29,9 @@ const emit = defineEmits<{
 }>()
 const doc = useProjectStore(),
   runtime = useRuntimeStore(),
+  editor = useEditorStore(),
+  timePreview = ref<number | null>(null),
+  manualOffset = ref<number | null>(null),
   root = ref<HTMLElement>(),
   list = ref<HTMLElement>(),
   width = ref(1296),
@@ -29,7 +41,17 @@ const doc = useProjectStore(),
   loopPreview = ref<import('../../shared/model').Project['loop'] | null>(null)
 const map = computed(() => new TimeMap(doc.project)),
   axis = computed(
-    () => new LinearAxis(map.value, width.value, doc.project.view.pxPerQuarter),
+    () =>
+      new LinearAxis(
+        editor.activeTrackId
+          ? new TimeMap({
+              ...doc.project,
+              lengthTicks: map.value.nextBar(doc.project.lengthTicks),
+            })
+          : map.value,
+        width.value,
+        timePreview.value ?? doc.project.view.pxPerQuarter,
+      ),
   )
 const frame = shallowRef<TimelineFrame>({
     tick: 0,
@@ -39,7 +61,64 @@ const frame = shallowRef<TimelineFrame>({
     edge: 0,
   }),
   viewport = new Viewport()
-provide(timelineKey, { axis, frame })
+provide(timelineKey, {
+  axis,
+  frame,
+  navigation: {
+    freeze: () => {
+      manualOffset.value = frame.value.offset
+    },
+    pan: (delta) => {
+      manualOffset.value = Math.max(
+        -axis.value.pageWidth / 2,
+        Math.min(
+          (axis.value.pageCount - 1) * axis.value.pageWidth,
+          (manualOffset.value ?? frame.value.offset) + delta,
+        ),
+      )
+    },
+    previewZoom: (px, tick, x) => {
+      timePreview.value = Math.max(15, Math.min(600, px))
+      const a = axis.value
+      manualOffset.value = Math.max(
+        -a.pageWidth / 2,
+        Math.min(
+          (a.pageCount - 1) * a.pageWidth,
+          a.pageOfTick(tick) * a.pageWidth + a.xInPage(tick) - x,
+        ),
+      )
+    },
+    commitZoom: () => {
+      const px = timePreview.value
+      if (px !== null)
+        doc.update((d) => {
+          d.view.pxPerQuarter = px
+        })
+      timePreview.value = null
+    },
+    cancelZoom: () => {
+      timePreview.value = null
+    },
+  },
+})
+watch(
+  () => runtime.transport.playing,
+  (playing, was) => {
+    if (playing && !was) manualOffset.value = null
+  },
+)
+watch(
+  () => doc.project.view.follow,
+  () => {
+    manualOffset.value = null
+  },
+)
+watch(
+  () => editor.followRevision,
+  () => {
+    manualOffset.value = null
+  },
+)
 const tracks = computed(() =>
   dragOrder.value
     ? dragOrder.value.flatMap((id) => {
@@ -83,6 +162,25 @@ function update(): void {
     performance.now(),
     runtime.transport.playing,
   )
+  if (manualOffset.value !== null) {
+    const a = axis.value,
+      offset = manualOffset.value,
+      first = Math.max(0, Math.floor(offset / a.pageWidth)),
+      last = Math.min(
+        a.pageCount - 1,
+        Math.floor((offset + a.pageWidth) / a.pageWidth),
+      )
+    frame.value = {
+      ...frame.value,
+      offset,
+      headX: a.pageOfTick(tick) * a.pageWidth + a.xInPage(tick) - offset,
+      pages: Array.from(
+        { length: Math.max(0, last - first + 1) },
+        (_, i) => first + i,
+      ),
+      edge: 0,
+    }
+  }
   animation = requestAnimationFrame(update)
 }
 function edit(id: string, change: (track: Track) => void): void {
@@ -187,6 +285,25 @@ function resize(event: PointerEvent, track: Track): void {
   target.addEventListener('pointermove', move)
   target.addEventListener('pointerup', up)
   target.addEventListener('pointercancel', cancel)
+}
+const expanded = new Map<string, number>()
+function expand(track: Track): void {
+  if (track.kind !== 'midi') return
+  const old = expanded.get(track.id)
+  doc.update((d) => {
+    const t = d.tracks.find((t) => t.id === track.id)!
+    if (old !== undefined) {
+      t.height = old
+      expanded.delete(track.id)
+    } else {
+      expanded.set(track.id, t.height)
+      t.height = Math.min(
+        900 / doc.project.view.laneZoom,
+        Math.max(360 / doc.project.view.laneZoom, t.height * 2),
+      )
+    }
+  })
+  editor.activate(track.id)
 }
 function selectLoop(event: PointerEvent): void {
   if (
@@ -308,8 +425,16 @@ onUnmounted(() => {
       >
         <div
           class="xm-th"
+          title="Double-click to expand or restore lane"
+          @dblclick="
+            !($event.target as HTMLElement).closest(
+              'button,select,input[type=range]',
+            ) && expand(track)
+          "
           @pointerdown="
-            track.kind === 'audio' && (runtime.selectedAudioId = track.id)
+            track.kind === 'audio'
+              ? (runtime.selectedAudioId = track.id)
+              : editor.activate(track.id)
           "
         >
           <div class="xm-th-top">

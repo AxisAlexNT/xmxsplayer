@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useProjectStore } from './stores/project'
 import { useRuntimeStore } from './stores/runtime'
+import { useEditorStore } from './stores/editor'
 import { useSettingsStore } from './stores/settings'
 import { importedAudio } from './sources/import-audio'
 import { audioFormats, audioExtension } from '../shared/audio'
@@ -18,6 +19,8 @@ import type { Action } from '../shared/model'
 const doc = useProjectStore()
 const runtime = useRuntimeStore()
 const settings = useSettingsStore()
+const editor = useEditorStore()
+watch(()=>editor.notice,value=>{if(value)notify(value.text)})
 const toast = ref('')
 const pickerId = ref<string | null>(null)
 const showAudio = ref(false)
@@ -141,10 +144,11 @@ function shortcut(event: KeyboardEvent): void {
     event.repeat ||
     document.querySelector('[role="dialog"]') ||
     (event.target as HTMLElement).closest(
-      'input,textarea,select,[contenteditable="true"],button',
+      'input,textarea,select,[contenteditable="true"]',
     )
   )
     return
+  if (editor.keydown(event)) return
   const key = event.key.toLowerCase()
   let cmd: Extract<Action, { type: 'transport' }>['cmd'] | undefined
   if (event.ctrlKey || event.metaKey) {
@@ -157,6 +161,11 @@ function shortcut(event: KeyboardEvent): void {
     }
     return
   }
+  if (
+    (key === ' ' || key === 'enter' || key === 'tab') &&
+    (event.target as HTMLElement).closest('button')
+  )
+    return
   if (key === ' ') cmd = 'toggle'
   else if (key === 'enter') cmd = 'stop'
   else if (key === 'r') cmd = 'record'
@@ -305,9 +314,14 @@ async function command(cmd: string): Promise<void> {
       })
     else if (cmd === 'zoomIn') laneZoom(1.1)
     else if (cmd === 'zoomOut') laneZoom(1 / 1.1)
-    else if (cmd === 'quantize')
-      notify('Select notes in the piano-roll editor to quantize')
-    else if (cmd === 'view:collapse') settings.collapse()
+    else if (cmd === 'quantize') {
+      if (!editor.quantize())
+        notify(
+          editor.snap
+            ? 'Select notes or record a take to quantize'
+            : 'Choose a snap grid to quantize',
+        )
+    } else if (cmd === 'view:collapse') settings.collapse()
     else if (cmd.startsWith('view:lanes:')) {
       const mode = cmd.slice(11)
       if (mode === 'staff' || mode === 'roll' || mode === 'per-track')
@@ -555,7 +569,8 @@ onUnmounted(() => {
           @click="
             doc.update((d) => {
               d.view.follow = mode
-            })
+            });
+            editor.followRevision++
           "
         >
           {{ mode === 'page' ? 'Page' : 'Center' }}
