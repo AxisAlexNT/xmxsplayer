@@ -167,6 +167,14 @@ export class ProjectIO {
   ): Promise<string> {
     if (!this.folder) throw new Error('Open a project first')
     if (!(await stat(source)).isFile()) throw new Error('Select a file')
+    if (kind === 'score') {
+      const canonical = await realpath(source),
+        rel = relative(this.folder, canonical).split('\\').join('/')
+      if (rel && !rel.startsWith('..') && !isAbsolute(rel)) {
+        await confined(this.folder, rel)
+        return rel
+      }
+    }
     const dir = kind === 'audio' ? 'audio' : 'scores'
     const name = basename(source)
     const dot = name.lastIndexOf('.')

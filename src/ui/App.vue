@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import SourcesPanel from './components/SourcesPanel.vue'
+import { useSourcesStore } from './stores/sources'
 import FollowControl from './components/FollowControl.vue'
 import ClipsPanel from './components/ClipsPanel.vue'
 import ScriptPanel from './components/ScriptPanel.vue'
@@ -122,6 +124,14 @@ async function editPatch(
   await nextTick()
   patchPanels.value[0]?.open(id, anchor)
 }
+const sources = useSourcesStore()
+sources.init()
+watch(
+  () => sources.notice,
+  (n) => {
+    if (n) notify(n.text)
+  },
+)
 const doc = useProjectStore()
 const runtime = useRuntimeStore()
 const settings = useSettingsStore()
@@ -373,7 +383,9 @@ async function command(cmd: string): Promise<void> {
       notify('Arm a MIDI track before recording')
       return
     }
-    if (cmd === 'import:audio') {
+    if (cmd === 'link:score') await sources.link()
+    else if (cmd === 'export:midi') await sources.exportForScore()
+    else if (cmd === 'import:audio') {
       if (!doc.folder) {
         notify('Create or open a project folder first')
         return
@@ -857,6 +869,10 @@ onUnmounted(() => {
           />
           <DevicesPanel v-else-if="section === 'Devices'" />
           <ClipsPanel v-else-if="section === 'Clips'" />
+          <SourcesPanel
+            v-else-if="section === 'Sources'"
+            @error="fail"
+          />
           <template v-else>
             <span class="xm-faint">{{
               {

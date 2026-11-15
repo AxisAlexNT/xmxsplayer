@@ -9,6 +9,8 @@ export class ProjectWatcher {
   async start(
     io: ProjectIO,
     notify: (change: FileChanges) => void,
+    sourceChanged: (change: { folder: string; paths: string[] }) => void = () =>
+      undefined,
   ): Promise<void> {
     await this.close()
     const folder = io.folder
@@ -21,14 +23,22 @@ export class ProjectWatcher {
     })
     this.watcher = watcher
     let queue = Promise.resolve()
+    const scores = new Set<string>()
     watcher.on('all', (_event, absolute) => {
       const path = relative(folder, absolute).split('\\').join('/')
-      if (!documentPath(path)) return
+      const isScore = /\.(mscz|mscx|mid|musicxml|mxl)$/i.test(path)
+      if (isScore) scores.add(path)
+      if (!documentPath(path) && !isScore) return
       clearTimeout(this.debounce)
       this.debounce = setTimeout(() => {
         queue = queue
           .then(async () => {
             if (io.folder !== folder || watcher !== this.watcher) return
+            if (scores.size) {
+              const paths = [...scores]
+              scores.clear()
+              sourceChanged({ folder, paths })
+            }
             const all = await io.readAll()
             const changes: FileChanges = { folder, files: {}, hashes: {} }
             for (const path of new Set([

@@ -10,6 +10,7 @@ import { projectSchema } from '../../shared/schema'
 export const useProjectStore = defineStore('project', () => {
   const project = shallowRef<Project>(newProject())
   const folder = ref('')
+  const loadRevision = ref(0)
   const baseline = shallowRef<FileMap>(toFiles(project.value))
   const diskContents = shallowRef<FileMap>({})
   const diskHashes = shallowRef<Record<string, string>>({})
@@ -57,6 +58,7 @@ export const useProjectStore = defineStore('project', () => {
     conflicts.value = {}
     history.value = []
     future.value = []
+    loadRevision.value++
   }
   async function save(): Promise<void> {
     if (Object.keys(conflicts.value).length)
@@ -143,6 +145,7 @@ export const useProjectStore = defineStore('project', () => {
   return {
     project,
     folder,
+    loadRevision,
     dirtyFiles,
     conflicts,
     history,

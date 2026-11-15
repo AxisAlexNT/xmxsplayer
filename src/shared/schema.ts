@@ -280,6 +280,7 @@ export const trackSchema = z.discriminatedUnion('kind', [
         sourceId: id,
         key: z.string(),
         state: enums(['synced', 'ahead']),
+        orphaned: z.boolean().optional(),
       })
       .optional(),
     view: enums(['staff', 'roll']),

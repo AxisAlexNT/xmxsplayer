@@ -14,7 +14,7 @@ export class ProjectFileError extends Error {
   }
 }
 const text = (value: unknown): string => stringify(value, { lineWidth: 100 })
-function encodeTrack(track: MidiTrack): Uint8Array {
+export function encodeTrack(track: MidiTrack): Uint8Array {
   const events: { tick: number; order: number; event: MidiEvent }[] = []
   for (const [tick, dur, key, vel] of track.notes) {
     events.push({
@@ -75,7 +75,9 @@ function encodeTrack(track: MidiTrack): Uint8Array {
     }),
   )
 }
-function decodeTrack(bytes: Uint8Array): Pick<MidiTrack, 'notes' | 'events'> {
+export function decodeTrack(
+  bytes: Uint8Array,
+): Pick<MidiTrack, 'notes' | 'events'> {
   const midi = parseMidi(bytes)
   if (!midi.header.ticksPerBeat)
     throw new Error('SMPTE time division is unsupported')
@@ -123,7 +125,7 @@ export function toFiles(project: Project): FileMap {
     const rest = { ...track }
     delete (rest as Partial<MidiTrack>).notes
     delete (rest as Partial<MidiTrack>).events
-    if (!track.link || track.link.state === 'ahead')
+    if (!track.link || track.link.state === 'ahead' || track.link.orphaned)
       files[`tracks/${track.id}.mid`] = encodeTrack(track)
     return rest
   })
@@ -216,7 +218,7 @@ export function fromFiles(files: FileMap, previous?: Project): Project {
         ? { notes: old.notes, events: old.events }
         : { notes: [], events: [] }
     const link = track.link as MidiTrack['link']
-    if (!link || link.state === 'ahead') {
+    if (!link || link.state === 'ahead' || link.orphaned) {
       const bytes = files[file]
       if (!(bytes instanceof Uint8Array))
         throw new ProjectFileError(file, 'Missing MIDI file')

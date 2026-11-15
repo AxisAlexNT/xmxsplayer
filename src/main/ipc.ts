@@ -1,8 +1,11 @@
+import { convertScore, detectMuseScore } from './musescore'
+import { atomicWrite } from './project-io'
+import type { Source } from '../shared/model'
 import { isWindowSender } from './window-sender'
 import { AudioCache } from './audio-cache'
 import { audioExtension, audioFormats, type AudioPeaks } from '../shared/audio'
 import { relaunchArgs } from './relaunch'
-import { app, dialog, ipcMain } from 'electron'
+import { app, dialog, ipcMain, shell } from 'electron'
 import { basename, dirname, join } from 'node:path'
 import type { FileMap } from '../shared/api'
 import { ProjectIO, confined } from './project-io'
@@ -37,10 +40,49 @@ export function installIpc(windows: Windows): () => Promise<void> {
   }
   const watch = async (): Promise<void> => {
     fileTokens.clear()
-    await watcher.start(io, (changes) => {
-      if (!ui.isDestroyed()) ui.webContents.send('project:changed', changes)
-    })
+    await watcher.start(
+      io,
+      (changes) => {
+        if (!ui.isDestroyed()) ui.webContents.send('project:changed', changes)
+      },
+      (change) => {
+        if (!ui.isDestroyed()) ui.webContents.send('scores:changed', change)
+      },
+    )
   }
+  handle('scores:detect', (path?: string) =>
+    detectMuseScore(path ?? loadSettings().musescorePath),
+  )
+  handle('scores:convert', async (source: Source) => {
+    if (
+      !source ||
+      !['mscz', 'mid', 'musicxml'].includes(source.kind) ||
+      typeof source.file !== 'string'
+    )
+      throw Error('Invalid score source')
+    if (!io.folder) throw Error('Open a project first')
+    const executable =
+      source.kind === 'mscz'
+        ? (await detectMuseScore(loadSettings().musescorePath)).path
+        : ''
+    return convertScore(io.folder, source, executable)
+  })
+  async function openFile(file: string): Promise<void> {
+    if (!io.folder) throw Error('Open a project first')
+    const error = await shell.openPath(await confined(io.folder, file))
+    if (error) throw Error(error)
+  }
+  handle('scores:open', openFile)
+  handle('scores:export', async (file: string, bytes: Uint8Array) => {
+    if (
+      !/^scores\/export\/[a-z0-9-]+\.mid$/.test(file) ||
+      !(bytes instanceof Uint8Array)
+    )
+      throw Error('Invalid MIDI export')
+    await atomicWrite(await confined(io.folder, file), bytes)
+    await openFile(file)
+    return file
+  })
   let restored = false
   handle('project:restore', async () => {
     if (restored) return null
@@ -87,8 +129,18 @@ export function installIpc(windows: Windows): () => Promise<void> {
     if (!['audio', 'score', 'midi'].includes(kind))
       throw new Error('Invalid import kind')
     const result = await dialog.showOpenDialog(ui, {
-      title: 'Import file',
+      title: kind === 'score' ? 'Link score' : 'Import file',
       properties: ['openFile'],
+      ...(kind === 'score'
+        ? {
+            filters: [
+              {
+                name: 'Scores',
+                extensions: ['mscz', 'mscx', 'mid', 'musicxml', 'mxl'],
+              },
+            ],
+          }
+        : {}),
     })
     return result.canceled ? null : io.importFile(kind, result.filePaths[0])
   })

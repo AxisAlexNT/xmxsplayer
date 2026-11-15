@@ -133,3 +133,49 @@ describe('project folder IO', () => {
     )
   })
 })
+
+describe('linked score files', () => {
+  it('copies external scores once and links files already inside the project in place', async () => {
+    const io = new ProjectIO(),
+      folder = await temp(),
+      external = await temp()
+    await io.create(folder)
+    const file = join(external, 'score.mscz')
+    await writeFile(file, 'external score')
+    expect(await io.importFile('score', file)).toBe('scores/score.mscz')
+    expect(await readFile(join(folder, 'scores/score.mscz'), 'utf8')).toBe(
+      'external score',
+    )
+    expect(
+      await io.importFile('score', join(folder, 'scores/score.mscz')),
+    ).toBe('scores/score.mscz')
+    expect(await io.importFile('score', file)).toBe('scores/score-2.mscz')
+    expect(await readFile(file, 'utf8')).toBe('external score')
+  })
+  it('notifies source saves, deletion and replacement while ignoring conversion outputs', async () => {
+    const io = new ProjectIO(),
+      folder = await temp()
+    await io.create(folder)
+    const w = new ProjectWatcher()
+    watchers.push(w)
+    const sources: { folder: string; paths: string[] }[] = []
+    await w.start(
+      io,
+      () => undefined,
+      (change) => sources.push(change),
+    )
+    const file = join(folder, 'scores/score.mscx')
+    // Polling needs a directory mtime distinct from its initial snapshot.
+    await new Promise((r) => setTimeout(r, 20))
+    await atomicWrite(file, 'first')
+    await until(() => sources.length === 1)
+    expect(sources[0]).toEqual({ folder, paths: ['scores/score.mscx'] })
+    await atomicWrite(file, 'second')
+    await until(() => sources.length === 2)
+    await rm(file)
+    await until(() => sources.length === 3)
+    await atomicWrite(join(folder, '.xmxs/score/score.musicxml'), 'output')
+    await new Promise((r) => setTimeout(r, 600))
+    expect(sources).toHaveLength(3)
+  })
+})

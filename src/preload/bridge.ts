@@ -23,6 +23,14 @@ export function installBridge(ui: boolean): void {
   )
   if (!ui) return
   const api: DesktopApi = {
+    scores: {
+      detect: (path) => ipcRenderer.invoke('scores:detect', path),
+      convert: (source) => ipcRenderer.invoke('scores:convert', source),
+      open: (file) => ipcRenderer.invoke('scores:open', file),
+      exportMidi: (file, bytes) =>
+        ipcRenderer.invoke('scores:export', file, bytes),
+      onChanged: (handler) => subscribe('scores:changed', handler),
+    },
     project: {
       restore: () => ipcRenderer.invoke('project:restore'),
       create: () => ipcRenderer.invoke('project:create'),

@@ -86,7 +86,12 @@ export interface MidiTrack extends TrackBase {
   kind: 'midi'
   notes: Note[] // sorted; immutable arrays (replace on edit)
   events: { tick: number; type: 'cc' | 'bend'; num: number; value: number }[]
-  link?: { sourceId: Id; key: string; state: 'synced' | 'ahead' }
+  link?: {
+    sourceId: Id
+    key: string
+    state: 'synced' | 'ahead'
+    orphaned?: boolean
+  }
   view: 'staff' | 'roll'
   clef: 'auto' | 'treble' | 'bass'
   quantGrid: number // ticks, staff rendering of generated parts (default 120)

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'TrackTimeline' })
+import TrackSourceMenu from '../components/TrackSourceMenu.vue'
 import {
   computed,
   onMounted,
@@ -212,7 +213,7 @@ function mode(track: Track): void {
   )
 }
 function height(track: Track): number {
-  return heights.value[track.id] ?? track.height * doc.project.view.laneZoom
+  return Math.max(track.kind === 'midi' && track.link ? 196 : 0, heights.value[track.id] ?? track.height * doc.project.view.laneZoom)
 }
 function reorder(event: PointerEvent, id: string): void {
   if (event.button !== 0) return
@@ -462,13 +463,12 @@ onUnmounted(() => {
                   t.name = ($event.target as HTMLInputElement).value
                 })
               "
-            ><span
-              v-if="track.kind === 'midi' && track.link"
-              class="xm-badge"
-              :class="track.link.state === 'synced' ? 'is-synced' : 'is-ahead'"
-            >{{
-              track.link.state === 'synced' ? 'synced' : 'modified here'
-            }}</span>
+            >
+            <TrackSourceMenu
+              v-if="track.kind === 'midi'"
+              :track="track"
+              @error="emit('error', $event)"
+            />
             <div
               v-if="track.kind === 'midi'"
               class="xm-seg"
@@ -490,6 +490,23 @@ onUnmounted(() => {
               </button>
             </div>
           </div>
+          <span
+            v-if="track.kind === 'midi' && track.link"
+            class="xm-badge"
+            :class="
+              track.link.orphaned
+                ? 'is-orphan'
+                : track.link.state === 'synced'
+                  ? 'is-synced'
+                  : 'is-ahead'
+            "
+          >{{
+            track.link.orphaned
+              ? 'not in score'
+              : track.link.state === 'synced'
+                ? 'synced'
+                : 'modified here'
+          }}</span>
           <div class="xm-th-top">
             <button
               class="xm-mode"

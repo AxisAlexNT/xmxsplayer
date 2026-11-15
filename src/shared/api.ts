@@ -1,5 +1,5 @@
 import type { AudioPeaks, AudioSource } from './audio'
-import type { Settings } from './model'
+import type { Source, Settings } from './model'
 export interface SoundFontFile {
   file: string
   bytes: number
@@ -20,7 +20,20 @@ export interface FileChanges {
   files: Record<string, string | Uint8Array | null>
   hashes: Record<string, string>
 }
+export interface ScoreData {
+  midi: Uint8Array
+  musicxml?: string
+}
 export interface DesktopApi {
+  scores: {
+    detect: (path?: string) => Promise<{ path: string; version: string }>
+    convert: (source: Source) => Promise<ScoreData>
+    open: (file: string) => Promise<void>
+    exportMidi: (file: string, bytes: Uint8Array) => Promise<string>
+    onChanged: (
+      handler: (change: { folder: string; paths: string[] }) => void,
+    ) => () => void
+  }
   project: {
     restore: () => Promise<ProjectSnapshot | null>
     create: () => Promise<ProjectSnapshot | null>
