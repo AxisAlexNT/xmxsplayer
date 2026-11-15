@@ -48,3 +48,11 @@ await copyFile(
   new URL('../docs/licenses/signalsmith-stretch.txt', import.meta.url),
   new URL('Signalsmith-Stretch-LICENSE.txt', destination),
 )
+
+const notation = new URL('../src/engine/public/notation/', import.meta.url)
+await mkdir(notation, { recursive: true })
+for (const file of ['verovio-module.mjs', 'verovio.mjs'])
+  await copyFile(
+    new URL(`../node_modules/verovio/dist/${file}`, import.meta.url),
+    new URL(file, notation),
+  )

@@ -16,3 +16,4 @@ Thumbs.db
 /*.svg
 /scratch/
 src/engine/public/worklets/
+src/engine/public/notation/

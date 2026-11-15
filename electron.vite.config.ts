@@ -19,6 +19,7 @@ export default defineConfig({
     root: '.',
     publicDir: resolve('src/engine/public'),
     plugins: [vue()],
+    worker: { format: 'es' },
     html: { cspNonce: '__XM_CSP_NONCE__' },
     server: {
       host: '127.0.0.1',

@@ -621,3 +621,17 @@ button:disabled {
 .xm-source-summary small { margin-top: 4px; }
 
 .xm-th > .xm-badge { align-self: flex-start; flex-shrink: 0; }
+
+.xm-notation-definitions { position: absolute; pointer-events: none; overflow: hidden; }
+.xm-notation-measure { position: fixed; left: -100000px; top: 0; visibility: hidden; pointer-events: none; }
+.xm-vrv-page { fill: currentColor; stroke: currentColor; }
+.xm-vrv-page .is-sounding { fill: currentColor; filter: drop-shadow(0 0 3px currentColor); }
+.xm-expected-note { fill: none; stroke: var(--xm-warn); stroke-width: 1.5px; stroke-dasharray: 3 2; }
+.xm-staff-lane { color: var(--xm-staff-ink); }
+.xm-staff-lane.is-paper { color: var(--xm-paper-ink); background: var(--xm-paper); }
+.xm-staff-page { position: absolute; top: 50%; transform: translateY(-50%); overflow: hidden; pointer-events: none; }
+.xm-notation-warning { padding: 8px 12px; color: var(--xm-warn); background: var(--xm-bg-1); border-bottom: 1px solid var(--xm-border); }
+.xm-staff-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 8px 12px; color: var(--xm-text-muted); }
+.xm-staff-tools label { display: flex; align-items: center; gap: 8px; }
+.xm-staff-tools input { min-height: var(--xm-hit); }
+.xm-staff-tools button { min-height: var(--xm-hit); }
