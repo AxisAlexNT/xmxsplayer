@@ -235,3 +235,48 @@ it('retains the old preset slot until its held note ends during a document routi
   expect(backend.events.at(-1)).toEqual({ type: 'release', slot: old })
   output.close()
 })
+it('reports note activity at its scheduled time and keeps original routing identities after a scene switch', async () => {
+  const p = liveProject('Activity'),
+    track = p.tracks[0]
+  if (track.kind !== 'midi') throw Error('Expected MIDI')
+  p.instruments.push({ ...p.instruments[0], id: 'horn', program: 60 })
+  p.scenes = [
+    {
+      id: 'b',
+      name: 'B',
+      color: '#4cc2ff',
+      patch: [{ id: 'horn', trackId: 'piano', instrumentId: 'horn' }],
+    },
+  ]
+  const backend = new FakeBackend()
+  let now = 0
+  const output = new SequenceOutput(
+    backend,
+    async () => undefined,
+    () => now,
+    () => undefined,
+    () => undefined,
+  )
+  await output.synchronize(p)
+  const note: ScheduledNote = {
+    id: 'held',
+    track,
+    note: [0, 1920, 60, 100],
+    start: 0,
+    end: 1920,
+    cycle: 0,
+  }
+  output.noteOn(note, 1)
+  expect(output.activity(0)).toEqual([])
+  now = 1.1
+  output.reset(true)
+  output.route(p.scenes[0].patch!)
+  expect(output.activity(now)).toContainEqual({
+    sourceId: 'sequencer',
+    trackId: 'piano',
+    instrumentId: 'piano',
+  })
+  output.noteOff(note, 2)
+  expect(output.activity(2)).toEqual([])
+  output.close()
+})

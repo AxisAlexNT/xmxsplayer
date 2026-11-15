@@ -1,3 +1,4 @@
+import type { ActivityRoute } from '../../shared/activity'
 import { allPatches } from '../../shared/patches'
 import type { ConditionContext } from '../../shared/conditions'
 import { eventSignature, sequenceSignature } from './signature'
@@ -48,6 +49,7 @@ export class Transport {
   onStop: () => void = () => undefined
   onBeat: (tick: number, when: number) => void = () => undefined
   onTimingChange: (keepBeat: boolean) => void = () => undefined
+  onNoteActivity: (route: ActivityRoute, when: number) => void = () => undefined
   private serial = Promise.resolve()
   private starting = false
   private playRevision = 0
@@ -101,6 +103,7 @@ export class Transport {
         this.onTimingChange(keepHeld)
       },
       (tick) => this.conditionContext(tick),
+      (route, when) => this.onNoteActivity(route, when),
     )
     this.scheduler = new Scheduler(this.clock, this.output)
     this.audio = new AudioTracks(
@@ -354,6 +357,12 @@ export class Transport {
       },
       Math.max(1, (time - this.context.currentTime) * 1000),
     )
+  }
+  activity(): ActivityRoute[] {
+    return [
+      ...this.output.activity(this.context.currentTime),
+      ...this.audio.activity(),
+    ]
   }
   stop(): void {
     this.playRevision++

@@ -4,7 +4,7 @@ A cross-platform desktop workspace for transcription by ear and live MIDI perfor
 
 ## Status
 
-M0–M5 are implemented. M7 now provides scenes, registers, editable zones, conditional patching and timeline cues. M6 software includes device profiles, MIDI control decoding, learning, scoped bindings and KeyLab pad/display feedback; physical controller capture and feedback verification remain pending. Projects support explicit saves, undo/redo and live YAML reload with conflict handling. The hidden engine provides SF2/SF3 synthesis, live MIDI splits and layers, sustain and controller expression, and retained note-offs across routing changes.
+M0–M5 are implemented. M7 now provides scenes, registers, editable zones, conditional patching, timeline cues and a live signal-flow view. M6 software includes device profiles, MIDI control decoding, learning, scoped bindings and KeyLab pad/display feedback; physical controller capture and feedback verification remain pending. Projects support explicit saves, undo/redo and live YAML reload with conflict handling. The hidden engine provides SF2/SF3 synthesis, live MIDI splits and layers, sustain and controller expression, and retained note-offs across routing changes.
 
 The transcription workspace imports MIDI and audio, shares a transport and timeline, loops sections, changes playback speed without changing pitch, and provides beat-grid anchors, time/key maps, a metronome and count-in. Armed MIDI tracks record post-zone notes and expression with latency compensation and loop overdub. Each take is one undo step. The piano roll supports snapped drawing, selection, moving, resizing, velocity edits, duplication, deletion and quantization, with mouse, touch and pen input. Two-finger gestures pan and zoom; double-click a MIDI track header to expand its lane.
 
@@ -57,6 +57,8 @@ Patch lists one row per MIDI track. Click + to add another instrument connection
 Add a cue at the playhead with + in the cue lane, or double-click empty lane space. Drag a cue to move it with the current snap; each drag is one undo step. Click a marker to edit its name, bar/beat, trigger, control, firing boundary and ordered actions. Learn captures an already learned controller control while suspending its normal binding.
 
 Automatic cues run when playback reaches them. Armed cues accept their assigned control until fired or replaced by the next cue. Wait cues freeze the transport and audio at their marker; release with the assigned control, a live-zone key when no control is assigned, or Skip hold in Cue options. Then fire can defer the actions to the next beat or bar after release. Automatic cues already on that boundary run there. Cue note actions tap a note for one quarter beat. Seeking cancels queued actions; Chase cues on seek, enabled by default in Cue options, applies the scene/register/track-mode actions of the last scene-affecting cue before the destination without replaying note hits.
+
+Expand Signal flow to inspect Inputs → Zones → Tracks → Instruments → Outputs. Scroll horizontally to follow a route across the panel. Dashed connections show their condition, including closed gates; active boxes and wires show live, sequenced and audio-track activity. A Held connection keeps the original destination visible after a scene change. Click a box to open its editor, or a condition label to edit the connection in the active scene. The diagram does not move or edit routing by dragging.
 
 ## Project files
 

@@ -1,3 +1,4 @@
+import type { ActivityRoute } from '../../shared/activity'
 import type {
   MidiTrack,
   PatchConn,
@@ -17,6 +18,7 @@ interface Voice {
   key: number
   on: number
   trackId: string
+  instrumentId: string
   off?: number
 }
 export class SequenceOutput implements SchedulerOutput {
@@ -24,7 +26,12 @@ export class SequenceOutput implements SchedulerOutput {
   private tracks = new Map<string, { slot: RackSlot; patch: PatchConn }[]>()
   private slots = new Map<string, RackSlot>()
   private reachable = new Set<RackSlot>()
+  private identities = new Map<RackSlot, string>()
   private voices = new Map<string, Voice[]>()
+  private noteActivity = new Map<
+    string,
+    { trackId: string; on: number; off?: number }
+  >()
   constructor(
     private backend: SynthBackend,
     load: (font: SoundFontRef) => Promise<void>,
@@ -38,6 +45,8 @@ export class SequenceOutput implements SchedulerOutput {
       bar: 1,
       playing: false,
     }),
+    private activityPulse: (route: ActivityRoute, when: number) => void = () =>
+      undefined,
   ) {
     this.rack = new InstrumentRack(backend, load, warn)
   }
@@ -64,9 +73,13 @@ export class SequenceOutput implements SchedulerOutput {
     })
     await this.rack.synchronize({ ...project, instruments })
     this.slots.clear()
+    this.identities.clear()
     for (const conn of available) {
       const slot = this.rack.get(`seq:${patchKey(conn)}`)
-      if (slot) this.slots.set(patchKey(conn), slot)
+      if (slot) {
+        this.slots.set(patchKey(conn), slot)
+        this.identities.set(slot, conn.instrumentId)
+      }
     }
     this.route(project.base.patch, tick)
   }
@@ -107,17 +120,26 @@ export class SequenceOutput implements SchedulerOutput {
     ])
   }
   noteOn(note: ScheduledNote, when: number): void {
+    this.noteActivity.set(note.id, { trackId: note.track.id, on: when })
+    this.activityPulse({ sourceId: 'sequencer', trackId: note.track.id }, when)
     const voices: Voice[] = []
     for (const slot of this.destinations(note.track.id, note.start)) {
       const key = note.note[2] + slot.instrument.transpose
       if (key < 0 || key > 127) continue
       slot.backend.noteOn(slot.slot, key, note.note[3], when)
       this.rack.retain(slot)
-      voices.push({ slot, key, on: when, trackId: note.track.id })
+      const instrumentId = this.identities.get(slot)!
+      voices.push({ slot, key, on: when, trackId: note.track.id, instrumentId })
+      this.activityPulse(
+        { sourceId: 'sequencer', trackId: note.track.id, instrumentId },
+        when,
+      )
     }
     this.voices.set(note.id, voices)
   }
   noteOff(note: ScheduledNote, when: number): void {
+    const activity = this.noteActivity.get(note.id)
+    if (activity) activity.off = when
     for (const voice of this.voices.get(note.id) ?? []) {
       voice.off = when
       const overlapping = [...this.voices.values()].some((voices) =>
@@ -179,6 +201,8 @@ export class SequenceOutput implements SchedulerOutput {
     this.event(track, { tick, type: 'bend', num: 0, value: bend }, when)
   }
   boundary(when: number): void {
+    for (const note of this.noteActivity.values())
+      if (note.off === undefined || note.off > when) note.off = when
     for (const slot of this.allSlots()) {
       slot.backend.cc(slot.slot, 64, 0, when)
       slot.backend.cc(slot.slot, 123, 0, when)
@@ -198,6 +222,10 @@ export class SequenceOutput implements SchedulerOutput {
         this.backend.cc(slot.slot, 120, 0)
       }
     }
+    for (const [id, note] of this.noteActivity) {
+      if (!keepHeld || note.on > now) this.noteActivity.delete(id)
+      else note.off = undefined
+    }
     for (const [id, voices] of this.voices) {
       const retained = keepHeld ? voices.filter((v) => v.on <= now) : []
       for (const voice of voices)
@@ -213,11 +241,29 @@ export class SequenceOutput implements SchedulerOutput {
     return this.voices.has(id)
   }
   collect(now: number): void {
+    for (const [id, note] of this.noteActivity)
+      if (note.off !== undefined && note.off <= now)
+        this.noteActivity.delete(id)
     for (const [id, voices] of this.voices)
       if (voices.every((v) => v.off !== undefined && v.off <= now)) {
         for (const voice of voices) this.rack.release(voice.slot)
         this.voices.delete(id)
       }
+  }
+  activity(now: number): ActivityRoute[] {
+    return [
+      ...[...this.noteActivity.values()]
+        .filter((v) => v.on <= now && (v.off === undefined || v.off > now))
+        .map((v) => ({ sourceId: 'sequencer', trackId: v.trackId })),
+      ...[...this.voices.values()]
+        .flat()
+        .filter((v) => v.on <= now && (v.off === undefined || v.off > now))
+        .map((v) => ({
+          sourceId: 'sequencer',
+          trackId: v.trackId,
+          instrumentId: v.instrumentId,
+        })),
+    ]
   }
   close(): void {
     this.reset(false)

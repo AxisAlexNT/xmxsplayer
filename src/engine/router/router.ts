@@ -1,3 +1,4 @@
+import { activitySource, type ActivityRoute } from '../../shared/activity'
 import {
   matchesCondition,
   type ConditionContext,
@@ -11,6 +12,8 @@ interface Target {
   slot: RackSlot
   key: number
   trackId: string
+  instrumentId: string
+  zoneId?: string
 }
 interface Voice {
   source: string
@@ -18,6 +21,7 @@ interface Voice {
   key: number
   targets: Target[]
   routed: RoutedNote[]
+  activityPaths: ActivityRoute[]
 }
 export class Router {
   private project?: Project
@@ -40,6 +44,7 @@ export class Router {
       bar: 1,
       playing: false,
     }),
+    private activityPulse: (route: ActivityRoute) => void = () => undefined,
   ) {}
   setProject(project: Project): void {
     this.project = project
@@ -93,6 +98,12 @@ export class Router {
       (this.sounding.get(this.targetKey(target)) ?? 0) + 1,
     )
     voice.targets.push(target)
+    this.activityPulse({
+      sourceId: activitySource(voice.source),
+      trackId: target.trackId,
+      instrumentId: target.instrumentId,
+      zoneId: target.zoneId,
+    })
   }
   note(
     source: string,
@@ -108,7 +119,15 @@ export class Router {
     const id = this.noteOwner(source, channel, key)
     const owner = this.owner(source, channel)
     if (on && velocity > 0) {
-      const voice: Voice = { source, channel, key, targets: [], routed: [] }
+      const voice: Voice = {
+        source,
+        channel,
+        key,
+        targets: [],
+        routed: [],
+        activityPaths: [{ sourceId: activitySource(source) }],
+      }
+      this.activityPulse(voice.activityPaths[0])
       const serial = ++this.noteSerial
       if (instrumentId) {
         const slot = this.rack.acquire(instrumentId)
@@ -117,7 +136,7 @@ export class Router {
           this.startTarget(
             voice,
             owner,
-            { slot, key: sentKey, trackId: '' },
+            { slot, key: sentKey, trackId: '', instrumentId },
             velocity,
           )
         else if (slot) this.rack.release(slot)
@@ -142,6 +161,15 @@ export class Router {
           const track = this.project?.tracks.find((t) => t.id === trackId)
           if (track?.kind !== 'midi') continue
           const postKey = key + zone.transpose
+          if (postKey >= 0 && postKey <= 127) {
+            const route: ActivityRoute = {
+              sourceId: activitySource(source),
+              trackId,
+              ...(trackOnly ? {} : { zoneId: zone.id }),
+            }
+            voice.activityPaths.push(route)
+            this.activityPulse(route)
+          }
           if (
             (!trackOnly || recordDirect) &&
             postKey >= 0 &&
@@ -188,7 +216,13 @@ export class Router {
             this.startTarget(
               voice,
               owner,
-              { slot, key: sentKey, trackId },
+              {
+                slot,
+                key: sentKey,
+                trackId,
+                instrumentId: patch.instrumentId,
+                ...(trackOnly ? {} : { zoneId: zone.id }),
+              },
               this.velocity(velocity, zone.velocity),
             )
           }
@@ -363,6 +397,21 @@ export class Router {
         trackIds: [...trackIds],
       })),
     }
+  }
+  activity(): ActivityRoute[] {
+    const targets = (voice: Voice): ActivityRoute[] =>
+      voice.targets.map((target) => ({
+        sourceId: activitySource(voice.source),
+        trackId: target.trackId,
+        instrumentId: target.instrumentId,
+        zoneId: target.zoneId,
+      }))
+    return [
+      ...[...this.held.values()]
+        .flat()
+        .flatMap((voice) => [...voice.activityPaths, ...targets(voice)]),
+      ...[...this.sustained.values()].flat().flatMap(targets),
+    ]
   }
   panic(): void {
     for (const source of new Set(

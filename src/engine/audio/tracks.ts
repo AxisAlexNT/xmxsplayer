@@ -174,6 +174,23 @@ export class AudioTracks {
       this.refresh(true)
     for (const player of this.players.values()) player.tick(this.clock.now())
   }
+  activity(): import('../../shared/activity').ActivityRoute[] {
+    if (!this.project || !this.clock.playing || this.clock.holding) return []
+    if (this.clock.contextAt(this.clock.raw) > this.clock.now() + 1e-7)
+      return []
+    const solo = this.project.tracks.some((t) => t.solo),
+      song = this.clock.songAt()
+    return this.project.tracks.flatMap((track) =>
+      track.kind === 'audio' &&
+      track.mode === 'auto' &&
+      (!solo || track.solo) &&
+      this.players.has(track.id) &&
+      song >= track.offsetSec &&
+      song < track.offsetSec + track.durationSec
+        ? [{ sourceId: `audio:${track.id}`, trackId: track.id }]
+        : [],
+    )
+  }
   get latency(): number {
     return Math.max(0, ...[...this.players.values()].map((p) => p.latency))
   }

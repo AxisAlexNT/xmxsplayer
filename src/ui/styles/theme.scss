@@ -336,3 +336,19 @@ button:disabled {
 .xm-cue { max-width: var(--xm-w-header); }
 .xm-cue-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .xm-editor-pop > label.xm-row { min-height: var(--xm-hit); }
+.xm-flow-viewport { max-height: 360px; overflow: auto; border: 1px solid var(--xm-border); border-radius: var(--xm-r); background: var(--xm-bg-1); }
+.xm-flow { display: block; width: 1060px; min-width: 1060px; }
+.xm-flow text { font-family: var(--xm-font); font-size: 12px; fill: var(--xm-text); pointer-events: none; }
+.xm-flow .cap { font-size: 10px; fill: var(--xm-text-faint); letter-spacing: 1px; text-transform: uppercase; }
+.xm-flow rect { fill: var(--xm-bg-2); stroke: var(--xm-border-strong); rx: 6px; }
+.xm-flow rect.on { stroke: var(--c); fill: color-mix(in srgb, var(--c) 18%, var(--xm-bg-2)); }
+.xm-flow path { fill: none; stroke: var(--xm-border-strong); stroke-width: 1.5; }
+.xm-flow path.on { stroke: var(--c); stroke-width: 2; }
+.xm-flow path.gated { stroke-dasharray: 5 4; }
+.xm-flow .tag { font-size: 10px; fill: var(--xm-warn); }
+.xm-flow .xm-flow-hit { fill: transparent; stroke: transparent; }
+.xm-flow-node[role=button], .xm-flow-gate[role=button] { cursor: pointer; }
+.xm-flow-node:focus-visible > rect:not(.xm-flow-hit), .xm-flow-node:hover > rect:not(.xm-flow-hit) { stroke: var(--xm-accent); stroke-width: 2px; }
+.xm-flow-gate:focus-visible .xm-flow-hit { stroke: var(--xm-accent); }
+.xm-flow .is-disabled { opacity: .55; }
+.xm-flow-help { font-size: var(--xm-fs-xs); margin: var(--xm-s2) 0 0; }

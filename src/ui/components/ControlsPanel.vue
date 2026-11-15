@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef, watch } from 'vue'
+import { nextTick, computed, ref, shallowRef, watch } from 'vue'
 import type { ControlDef, DeviceProfile } from '../../shared/model'
 import type { BindingScope } from '../bindings/edit'
 import { effectiveSetup, isUnbound } from '../../shared/overlay'
@@ -153,6 +153,27 @@ function open(event: MouseEvent, control: ControlDef): void {
     anchor: { left: r.left, right: r.right, top: r.top },
   }
 }
+async function selectControl(
+  deviceId: string,
+  controlId: string,
+  anchor: { right: number; top: number },
+): Promise<void> {
+  selected.value = deviceId
+  await refresh()
+  await nextTick()
+  const control = profile.value?.controls.find((c) => c.id === controlId)
+  if (!control) return
+  bank.value =
+    /^pad\.(\d+)$/.test(controlId) && Number(controlId.split('.')[1]) > 8
+      ? 1
+      : 0
+  if (!control.msg) {
+    learning.value = controlId
+    return
+  }
+  editing.value = { control, anchor: { left: anchor.right, ...anchor } }
+}
+defineExpose({ selectControl })
 function relearn(): void {
   if (editing.value) learning.value = editing.value.control.id
   editing.value = null

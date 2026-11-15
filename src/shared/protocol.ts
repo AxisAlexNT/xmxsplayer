@@ -1,3 +1,4 @@
+import type { ActivityState } from './activity'
 import type { DeviceFeedback } from './feedback'
 import type { RecordedTake } from './recording'
 import type { AudioPeaks, AudioSource } from './audio'
@@ -81,6 +82,7 @@ export interface RuntimeState {
   armedCueId: Id | null
   queuedCueIds?: Id[]
   trackModes?: Record<Id, TrackMode>
+  scriptEnabled?: boolean
   pendingActions: { action: Action; tick: number }[]
   expectedNext: { tick: number; keys: number[] } | null
   clips: Record<Id, 'stopped' | 'queued' | 'playing'>
@@ -122,7 +124,7 @@ export interface EventMap {
   }
   'learn:captured': { deviceId: string; control: ControlDef }
   keys: { held: { key: number; trackIds: Id[] }[] }
-  activity: { trackIds: Id[]; instrumentIds: Id[] }
+  activity: ActivityState
   recorded: { trackId: Id; notes: Note[] } | RecordedTake
   'doc:patch': Partial<Project>
   latency: {

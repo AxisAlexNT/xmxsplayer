@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import SignalFlowPanel from './components/SignalFlowPanel.vue'
+import type { FlowSelection } from './flow/model'
+import { usePerformanceStore } from './stores/performance'
 import PatchPanel from './components/PatchPanel.vue'
 import ScenesPanel from './components/ScenesPanel.vue'
 import RegistersPanel from './components/RegistersPanel.vue'
@@ -22,6 +25,87 @@ import { TimeMap } from '../shared/time-map'
 import type { Action } from '../shared/model'
 
 const patchPanels = ref<InstanceType<typeof PatchPanel>[]>([])
+const controlPanels = ref<InstanceType<typeof ControlsPanel>[]>([])
+const keyboardStrip = ref<InstanceType<typeof KeyboardStrip>>()
+const rig = usePerformanceStore()
+async function flowSelect(
+  selection: FlowSelection,
+  anchor: { right: number; top: number },
+): Promise<void> {
+  if (selection.kind === 'instrument') {
+    pickerId.value = selection.id
+    return
+  }
+  if (selection.kind === 'output') {
+    if (selection.instrumentId) pickerId.value = selection.instrumentId
+    else showAudio.value = true
+    return
+  }
+  if (selection.kind === 'zone') {
+    rig.editScene = true
+    await nextTick()
+    keyboardStrip.value?.openZone(selection.id, anchor)
+    return
+  }
+  if (selection.kind === 'track') {
+    const track = doc.project.tracks.find((t) => t.id === selection.id)
+    if (!track) return
+    if (track.kind === 'midi') editor.activate(track.id)
+    else runtime.selectedAudioId = track.id
+    const header = [
+      ...document.querySelectorAll<HTMLElement>('[data-track-id]'),
+    ].find((el) => el.dataset.trackId === track.id)
+    header?.scrollIntoView({ block: 'nearest' })
+    header
+      ?.querySelector<HTMLInputElement>('.xm-track-name')
+      ?.focus({ preventScroll: true })
+    return
+  }
+  if (selection.kind === 'keyboard') {
+    document
+      .querySelector<SVGElement>('[aria-label="Playable keyboard"] [data-key]')
+      ?.focus()
+    return
+  }
+  if (selection.kind === 'cues') {
+    document
+      .querySelector<HTMLButtonElement>('[aria-label="Add cue at playhead"]')
+      ?.focus()
+    return
+  }
+  const section =
+    selection.kind === 'control'
+      ? 'Controls'
+      : selection.kind === 'device'
+        ? 'Devices'
+        : 'Script'
+  settings.sections[section] = true
+  await nextTick()
+  const pane = [...document.querySelectorAll<HTMLElement>('.xm-sec')].find(
+    (el) => el.querySelector('h6')?.textContent?.trim() === section,
+  )
+  pane?.scrollIntoView({ block: 'nearest' })
+  if (selection.kind === 'control')
+    await controlPanels.value[0]?.selectControl(
+      selection.deviceId,
+      selection.controlId,
+      anchor,
+    )
+  else if (selection.kind === 'device') {
+    const device = runtime.midi.devices.find((d) => d.id === selection.id)
+    pane?.querySelectorAll<HTMLSelectElement>('select').forEach((el) => {
+      if (el.getAttribute('aria-label') === `${device?.name} profile`)
+        el.focus({ preventScroll: true })
+    })
+  }
+}
+async function flowPatch(
+  id: string,
+  anchor: { right: number; top: number },
+): Promise<void> {
+  rig.editScene = true
+  await editPatch(id, anchor)
+}
 async function editPatch(
   id: string,
   anchor: { right: number; top: number },
@@ -701,7 +785,15 @@ onUnmounted(() => {
         >
           <ScenesPanel v-if="section === 'Scenes'" />
           <RegistersPanel v-else-if="section === 'Registers'" />
-          <ControlsPanel v-else-if="section === 'Controls'" />
+          <ControlsPanel
+            v-else-if="section === 'Controls'"
+            ref="controlPanels"
+          />
+          <SignalFlowPanel
+            v-else-if="section === 'Signal flow'"
+            @select="flowSelect"
+            @patch="flowPatch"
+          />
           <template v-else-if="section === 'Log'">
             <button
               class="btn btn-sm btn-ghost mb-2"
@@ -744,7 +836,6 @@ onUnmounted(() => {
             <span class="xm-faint">{{
               {
                 Clips: 'No clips',
-                'Signal flow': 'No routes',
                 Soundfonts: 'No soundfonts',
                 Sources: 'No linked scores',
               }[section]
@@ -766,7 +857,7 @@ onUnmounted(() => {
       @command="command"
       @error="fail"
     />
-    <KeyboardStrip />
+    <KeyboardStrip ref="keyboardStrip" />
     <InstrumentPicker
       v-if="pickerId"
       :instrument-id="pickerId"

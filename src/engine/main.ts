@@ -1,3 +1,4 @@
+import { Activity } from './performance/activity'
 import { Cues } from './performance/cues'
 import { Scenes } from './performance/scenes'
 import { LedManager } from './feedback/led-manager'
@@ -40,6 +41,7 @@ let bindings: Bindings | undefined
 let leds: LedManager | undefined
 let cues: Cues | undefined
 let cueNoteSerial = 0
+let activity: Activity | undefined
 let engineClosing = false
 let controlCapture = false
 const runtimeState: RuntimeState = {
@@ -69,7 +71,7 @@ function performanceProject(): Project | undefined {
 }
 function publishRuntime(): void {
   if (!project) return
-  const setup = scenes.setup()
+  const setup = scenes.setup([], false)
   if (!setup) return
   runtimeState.trackModes = Object.fromEntries(
     (performanceProject()?.tracks ?? []).map((t) => [t.id, t.mode]),
@@ -317,7 +319,8 @@ async function initialize(value: Settings): Promise<void> {
     await initialization
     await graph!.apply(value.audio)
     if (transport) transport.inputLatencyMs = value.audio.inputLatencyMs
-    if (project) await transport?.audio.synchronize(performanceProject() ?? project)
+    if (project)
+      await transport?.audio.synchronize(performanceProject() ?? project)
     return
   }
   initialization = (async () => {
@@ -334,11 +337,17 @@ async function initialize(value: Settings): Promise<void> {
       (message) => log('warn', 'synth', message),
       true,
     )
+    activity = new Activity(
+      () => performance.now(),
+      () => [...(router?.activity() ?? []), ...(transport?.activity() ?? [])],
+      (state) => bus?.send('activity', state),
+    )
     router = new Router(
       rack,
       reportKeys,
       (note) => transport?.recorder.note(note),
       () => scenes.context,
+      (route) => activity?.pulse(route),
     )
     transport = new Transport(
       graph,
@@ -448,7 +457,16 @@ async function initialize(value: Settings): Promise<void> {
       report: (frame) => bus?.send('feedback', frame),
       warn: (message) => log('warn', 'feedback', message),
     })
-    transport.onTimingChange = (keepBeat) => leds?.invalidate(keepBeat)
+    transport.onNoteActivity = (route, when) =>
+      activity?.pulse(
+        route,
+        performance.now() + (when - graph!.context.currentTime) * 1000,
+        'sequencer',
+      )
+    transport.onTimingChange = (keepBeat) => {
+      leds?.invalidate(keepBeat)
+      activity?.cancel('sequencer', keepBeat)
+    }
     transport.onBeat = (tick, when) => {
       const ctx = graph!.context,
         stamp = ctx.getOutputTimestamp()
@@ -461,6 +479,7 @@ async function initialize(value: Settings): Promise<void> {
       leds?.beatAt(tick, perf)
     }
     publishRuntime()
+    activity.start()
     leds.start()
     void midi
       .start(!window.engineHost.smoke && !engineClosing)
@@ -582,6 +601,7 @@ window.addEventListener('message', (event) => {
         bus!.send('ready', undefined)
         midi?.report()
         runtimeSignature = ''
+        activity?.invalidate()
         publishRuntime()
         reportKeys()
       },
@@ -615,6 +635,7 @@ window.addEventListener('message', (event) => {
   bus.on('audio:scope', ({ folder }) => {
     bindings?.clear()
     cues?.reset()
+    activity?.clear()
     scenes.reset(false)
     runtimeSignature = ''
     leds?.invalidate()
@@ -790,4 +811,5 @@ window.engineHost.onShutdown(async () => {
   midi?.close()
   router?.panic()
   await leds?.close()
+  activity?.close()
 })

@@ -76,6 +76,11 @@ function editZone(id: string, element: HTMLElement): void {
   selectedZone.value = id
   zoneAnchor.value = element.getBoundingClientRect()
 }
+function openZone(id: string, anchor: { right: number; top: number }): void {
+  selectedZone.value = id
+  zoneAnchor.value = anchor
+}
+defineExpose({ openZone })
 function keyAt(clientX: number, element: HTMLElement): number {
   const r = element.getBoundingClientRect(),
     position = ((clientX - r.left) / r.width) * white.value.length

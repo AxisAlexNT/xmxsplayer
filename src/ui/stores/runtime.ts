@@ -46,6 +46,11 @@ export const useRuntimeStore = defineStore('runtime', () => {
   const heldKeys = ref<
     import('../../shared/protocol').EventMap['keys']['held']
   >([])
+  const activity = ref<import('../../shared/activity').ActivityState>({
+    trackIds: [],
+    instrumentIds: [],
+    routes: [],
+  })
   const connected = ref(false)
   const logs = ref<(LogEntry & { time: string })[]>([])
   const transport = ref<TransportState>({
@@ -73,6 +78,7 @@ export const useRuntimeStore = defineStore('runtime', () => {
     ]
   }
   return {
+    activity,
     feedback,
     controls,
     lastTake,

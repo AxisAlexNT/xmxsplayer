@@ -327,3 +327,45 @@ it('records direct pad notes on their track while keeping editor auditions out o
   router.close()
   rack.close()
 })
+it('reports semantic instrument ids and virtual-track activity even when an instrument gate is closed', async () => {
+  const { project, backend, rack, router } = await rig()
+  project.base.patch[0].when = { reg: 0, on: true }
+  router.setProject(project)
+  router.note('keys', 0, 60, 100, true)
+  expect(router.activity()).toContainEqual({
+    sourceId: 'keys:keys',
+    trackId: 'piano',
+    zoneId: 'keyboard',
+  })
+  expect(router.activity().some((r) => r.instrumentId)).toBe(false)
+  router.note('keys', 0, 60, 0, false)
+  delete project.base.patch[0].when
+  project.base.patch[1].instrumentId = 'piano'
+  project.base.zones.push({
+    ...project.base.zones[0],
+    id: 'upper',
+    trackIds: ['strings'],
+  })
+  router.close()
+  rack.close()
+  const isolated = new InstrumentRack(
+    backend,
+    async () => undefined,
+    () => undefined,
+    true,
+  )
+  await isolated.synchronize(project)
+  const input = new Router(isolated, () => undefined)
+  input.setProject(project)
+  input.note('keylab', 0, 60, 100, true)
+  expect(
+    input
+      .activity()
+      .filter((r) => r.instrumentId)
+      .map((r) => r.instrumentId),
+  ).toEqual(['piano', 'piano'])
+  input.note('keylab', 0, 60, 0, false)
+  expect(input.activity()).toEqual([])
+  input.close()
+  isolated.close()
+})
