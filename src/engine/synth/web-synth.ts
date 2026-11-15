@@ -1,10 +1,16 @@
+import processorUrl from './processor.worklet.ts?worker&url'
 import { WorkletSynthesizer } from 'spessasynth_lib'
 import type { MIDIController } from 'spessasynth_core'
 import type { Instrument, SoundFontRef } from '../../shared/model'
 import type { Preset, SlotId, SynthBackend } from './backend'
 
+class ScheduledSynthesizer extends WorkletSynthesizer {
+  clearScheduled(channel: number): void {
+    this.worklet.port.postMessage({ type: 'xmxs:cancelScheduled', channel })
+  }
+}
 interface Pool {
-  synth: WorkletSynthesizer
+  synth: ScheduledSynthesizer
   used: Set<number>
   file: string
   id: string
@@ -29,9 +35,7 @@ export class WebSynthBackend implements SynthBackend {
     context: AudioContext,
     output: AudioNode,
   ): Promise<WebSynthBackend> {
-    await context.audioWorklet.addModule(
-      'app://xmxsplayer/worklets/spessasynth_processor.min.js',
-    )
+    await context.audioWorklet.addModule(processorUrl)
     return new WebSynthBackend(context, output)
   }
   async loadSoundFont(sf: SoundFontRef, url: string): Promise<void> {
@@ -45,7 +49,7 @@ export class WebSynthBackend implements SynthBackend {
       if (!response.ok)
         throw new Error(`${sf.file}: loading failed (${response.status})`)
       const data = await response.arrayBuffer()
-      const synth = new WorkletSynthesizer(this.context)
+      const synth = new ScheduledSynthesizer(this.context)
       try {
         await synth.isReady
         synth.setLogLevel(false, true, false)
@@ -220,8 +224,13 @@ export class WebSynthBackend implements SynthBackend {
     const { pool, channel } = this.get(id)
     pool.synth.polyPressure(channel, key, value)
   }
+  clearScheduled(id: SlotId): void {
+    const { pool, channel } = this.get(id)
+    pool.synth.clearScheduled(channel)
+  }
   allNotesOff(): void {
     for (const { pool, channel } of this.slots.values()) {
+      pool.synth.clearScheduled(channel)
       pool.synth.controllerChange(channel, 64, 0)
       pool.synth.controllerChange(channel, 120, 0)
     }

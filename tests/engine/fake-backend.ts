@@ -43,6 +43,9 @@ export class FakeBackend implements SynthBackend {
   polyPressure(slot: string, key: number, value: number): void {
     this.events.push({ type: 'poly', slot, key, value })
   }
+  clearScheduled(slot: string): void {
+    this.events.push({ type: 'clear', slot })
+  }
   allNotesOff(): void {
     this.events.push({ type: 'panic' })
   }

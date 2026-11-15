@@ -4,6 +4,7 @@ import {
   BrowserWindow,
   ipcMain,
   MessageChannelMain,
+  powerSaveBlocker,
   session,
 } from 'electron'
 
@@ -30,6 +31,22 @@ export function createWindows(preloadRoot: string): Windows {
   let engineReady = false
   let shuttingDown = false
   let crashes = 0
+  let blocker: number | undefined
+  function stopBlocker(): void {
+    if (blocker !== undefined) powerSaveBlocker.stop(blocker)
+    blocker = undefined
+  }
+  ipcMain.on('engine:playing', (event, playing: unknown) => {
+    if (
+      event.sender !== engine.webContents ||
+      event.senderFrame !== engine.webContents.mainFrame ||
+      typeof playing !== 'boolean'
+    )
+      return
+    if (playing && blocker === undefined)
+      blocker = powerSaveBlocker.start('prevent-app-suspension')
+    else if (!playing) stopBlocker()
+  })
   function secure(window: BrowserWindow): void {
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
     window.webContents.on('will-navigate', (event) => event.preventDefault())
@@ -57,6 +74,7 @@ export function createWindows(preloadRoot: string): Windows {
     secure(engine)
     engine.webContents.on('render-process-gone', (_event, details) => {
       engineReady = false
+      stopBlocker()
       if (shuttingDown) return
       console.error(`Engine renderer exited: ${details.reason}`)
       ui.webContents.send('app:menu', 'engine:restarting')
@@ -98,6 +116,7 @@ export function createWindows(preloadRoot: string): Windows {
     app.quit()
   })
   app.on('before-quit', () => {
+    stopBlocker()
     shuttingDown = true
   })
   createEngine()

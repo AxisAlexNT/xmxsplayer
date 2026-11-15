@@ -12,6 +12,7 @@ import { WebSynthBackend } from './synth/web-synth'
 import { MidiIO, type MidiMessage } from './midi/midi-io'
 import { Router } from './router/router'
 import { InstrumentRack } from './synth/rack'
+import { Transport } from './transport/transport'
 
 let bus: Bus | undefined
 let project: Project | undefined
@@ -21,6 +22,7 @@ let backend: WebSynthBackend | undefined
 let rack: InstrumentRack | undefined
 let router: Router | undefined
 let midi: MidiIO | undefined
+let transport: Transport | undefined
 let keysTimer: ReturnType<typeof setTimeout> | undefined
 let syncRevision = 0
 let initialization: Promise<void> | undefined
@@ -119,9 +121,17 @@ async function initialize(value: Settings): Promise<void> {
       log('warn', 'synth', message),
     )
     router = new Router(rack, reportKeys)
+    transport = new Transport(
+      graph.context,
+      backend,
+      load,
+      () => bus,
+      (message) => log('warn', 'transport', message),
+    )
     if (project) {
       router.setProject(project)
       await rack.synchronize(project)
+      await transport.synchronize(project)
     }
     midi = new MidiIO(
       receiveMidi,
@@ -152,6 +162,7 @@ async function synchronize(): Promise<void> {
   bus?.send('synth:state', { loading: true, readyIds: [] })
   router?.setProject(project)
   await rack.synchronize(project)
+  await transport?.synchronize(project)
   if (revision !== syncRevision) return
   bus?.send('synth:state', {
     loading: false,
@@ -259,7 +270,13 @@ window.addEventListener('message', (event) => {
   })
   bus.on('track:notes', ({ trackId, notes }) => {
     const track = project?.tracks.find((t) => t.id === trackId)
-    if (track?.kind === 'midi') track.notes = notes
+    if (track?.kind === 'midi') {
+      track.notes = notes
+      if (project)
+        void transport
+          ?.synchronize(project)
+          .catch((error) => log('error', 'transport', String(error)))
+    }
   })
   bus.respond('audio:devices', () => graph?.devices() ?? [])
   bus.respond('soundfont:presets', async ({ soundfontId }) => {
@@ -294,7 +311,34 @@ window.addEventListener('message', (event) => {
       value,
     ),
   )
+  bus.on('action:run', ({ action, value, at }) => {
+    try {
+      transport?.scheduler.queue(at ?? 'now', () =>
+        transport?.actions.run(action, value),
+      )
+    } catch (error) {
+      log('error', 'transport', String(error))
+    }
+  })
+  bus.on('transport:seek', ({ tick }) => {
+    try {
+      transport?.seek(tick)
+    } catch (error) {
+      log('error', 'transport', String(error))
+    }
+  })
+  bus.on('transport:setRate', ({ rate }) => {
+    try {
+      transport?.rate(rate)
+    } catch (error) {
+      log('error', 'transport', String(error))
+    }
+  })
+  bus.on('transport:setLoop', (loop) => {
+    bus?.send('doc:patch', { loop })
+  })
   bus.on('panic', () => {
+    transport?.stop()
     previews.forEach((entry) => {
       if (entry.slot) backend?.release(entry.slot)
     })

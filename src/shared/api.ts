@@ -53,6 +53,7 @@ export interface DesktopApi {
 }
 declare global {
   interface Window {
+    engineHost: { setPlaying(playing: boolean): void }
     xm: DesktopApi
   }
 }

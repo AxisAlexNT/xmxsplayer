@@ -19,6 +19,7 @@ export interface SynthBackend {
   pitchBend(slot: SlotId, value14: number, whenCtx?: number): void
   channelPressure(slot: SlotId, value: number): void
   polyPressure(slot: SlotId, key: number, value: number): void
+  clearScheduled(slot: SlotId): void
   allNotesOff(): void
   latencySec(): number
 }
