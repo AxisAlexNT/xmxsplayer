@@ -9,7 +9,9 @@ import { uniqueId } from '../../shared/ids'
 import ZoneEditor from './ZoneEditor.vue'
 const emit = defineEmits<{ script: [] }>()
 const performance = usePerformanceStore()
-const scripted = computed(() => performance.editScene && !!runtime.state.scriptZones)
+const scripted = computed(
+  () => performance.editScene && !!runtime.state.scriptZones,
+)
 const selectedZone = ref<string | null>(null),
   zoneAnchor = ref({ right: 0, top: 0 })
 const preview = ref<{ id: string; lo: number; hi: number } | null>(null)
@@ -41,6 +43,20 @@ const color = (key: number): string => {
   return (
     runtime.state.effective.zones.find((z) => key >= z.lo && key <= z.hi)
       ?.color ?? 'var(--xm-accent)'
+  )
+}
+function expected(key: number): boolean {
+  const next = runtime.state.expectedNext
+  if (!next) return false
+  if (!next.notes) return next.keys.includes(key)
+  return next.notes.some((note) =>
+    runtime.state.effective.zones.some(
+      (zone) =>
+        key >= zone.lo &&
+        key <= zone.hi &&
+        zone.trackIds.includes(note.trackId) &&
+        key + zone.transpose === note.key,
+    ),
   )
 }
 function x(key: number): number {
@@ -75,12 +91,18 @@ watch(
   },
 )
 function editZone(id: string, element: HTMLElement): void {
-  if (scripted.value) { emit('script'); return }
+  if (scripted.value) {
+    emit('script')
+    return
+  }
   selectedZone.value = id
   zoneAnchor.value = element.getBoundingClientRect()
 }
 function openZone(id: string, anchor: { right: number; top: number }): void {
-  if (scripted.value) { emit('script'); return }
+  if (scripted.value) {
+    emit('script')
+    return
+  }
   selectedZone.value = id
   zoneAnchor.value = anchor
 }
@@ -95,7 +117,10 @@ function keyAt(clientX: number, element: HTMLElement): number {
   )
 }
 async function addZone(event: MouseEvent): Promise<void> {
-  if (scripted.value) { emit('script'); return }
+  if (scripted.value) {
+    emit('script')
+    return
+  }
   if ((event.target as HTMLElement).closest('.xm-zone,select,button')) return
   const el = event.currentTarget as HTMLElement,
     lo = keyAt(event.clientX, el)
@@ -242,7 +267,11 @@ onUnmounted(() => {
         />
         <button
           class="xm-zone-label"
-          :aria-label="scripted ? `Edit script for zone ${zone.id}` : `Edit zone ${zone.id}`"
+          :aria-label="
+            scripted
+              ? `Edit script for zone ${zone.id}`
+              : `Edit zone ${zone.id}`
+          "
           :title="scripted ? 'Script zone — edit in Script' : undefined"
           @click="editZone(zone.id, $event.currentTarget as HTMLElement)"
         >
@@ -304,6 +333,8 @@ onUnmounted(() => {
             rx="2"
             :fill="color(key)"
             :data-key="key"
+            :class="{ 'is-expected': expected(key) }"
+            :aria-description="expected(key) ? 'Next expected note' : undefined"
             role="button"
             :aria-label="noteName(key)"
             :aria-pressed="runtime.heldKeys.some((h) => h.key === key)"
@@ -333,6 +364,8 @@ onUnmounted(() => {
           rx="2"
           :fill="color(key)"
           :data-key="key"
+          :class="{ 'is-expected': expected(key) }"
+          :aria-description="expected(key) ? 'Next expected note' : undefined"
           role="button"
           :aria-label="noteName(key)"
           :aria-pressed="runtime.heldKeys.some((h) => h.key === key)"

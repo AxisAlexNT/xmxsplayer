@@ -155,8 +155,8 @@ export class Scheduler {
     const loop = this.clock.loopRange
     const end = this.clock.map.tickToSec(loop.endTick),
       start = this.clock.map.tickToSec(loop.startTick)
-    return loop.enabled && raw >= end
-      ? Math.floor((raw - end) / (end - start)) + 1
+    return loop.enabled && raw >= end - 1e-9
+      ? Math.floor((raw - end) / (end - start) + 1e-9) + 1
       : 0
   }
   private descriptor(event: MusicalEvent, cycle: number): ScheduledNote {

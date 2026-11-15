@@ -93,10 +93,17 @@ export interface RuntimeState {
   armedCueId: Id | null
   queuedCueIds?: Id[]
   trackModes?: Record<Id, TrackMode>
+  followMode?: Project['follow']['mode']
+  followHolding?: boolean
   scriptEnabled?: boolean
   scriptZones?: boolean
   pendingActions: { action: Action; tick: number }[]
-  expectedNext: { tick: number; keys: number[] } | null
+  expectedNext: {
+    tick: number
+    keys: number[]
+    trackIds?: Id[]
+    notes?: import('./expected-onsets').ExpectedNote[]
+  } | null
   clips: Record<Id, 'stopped' | 'queued' | 'playing'>
   effective: Pick<Setup, 'zones' | 'patch'>
 }

@@ -1,3 +1,5 @@
+import { WaitNotes } from '../follow/wait-notes'
+import type { RoutedNote } from '../../shared/recording'
 import type { ClipHost } from '../clips/clip-player'
 import { ClipPlayer, type ClipFrame } from '../clips/clip-player'
 import { AudioClipVoice } from '../clips/clip-voice'
@@ -21,6 +23,7 @@ import { Scheduler } from './scheduler'
 import { SequenceOutput } from './sequence-output'
 import TimerWorker from './timer.worker.ts?worker'
 export class Transport {
+  readonly waitNotes: WaitNotes
   readonly clock: TransportClock
   readonly scheduler: Scheduler
   readonly actions: Actions
@@ -116,6 +119,11 @@ export class Transport {
       (route, when) => this.onNoteActivity(route, when),
     )
     this.scheduler = new Scheduler(this.clock, this.output)
+    this.waitNotes = new WaitNotes({
+      clock: this.clock,
+      invalidate: () => this.scheduler.invalidate(true),
+      changed: () => this.changed(),
+    })
     this.audio = new AudioTracks(
       graph,
       this.clock,
@@ -208,6 +216,7 @@ export class Transport {
       this.metronome.cancel()
     this.project = project
     this.clips.configure(project.clips)
+    const followChanged = this.waitNotes.configure(project)
     const signature = sequenceSignature(project)
     if (signature === this.signature) {
       const seek = this.gridSeek
@@ -222,7 +231,7 @@ export class Transport {
         }
         await this.output.synchronize(project, true, available, this.clock.tick)
         await this.audio.synchronize(project)
-        if (seek !== undefined) this.changed()
+        if (seek !== undefined || followChanged) this.changed()
         else {
           this.report()
           this.armDeadline()
@@ -272,6 +281,7 @@ export class Transport {
     return work
   }
   applyPerformance(project: Project): void {
+    this.waitNotes.configure(project)
     this.project = project
     this.clips.configure(project.clips)
     this.signature = sequenceSignature(project)
@@ -340,6 +350,7 @@ export class Transport {
   }
   seek(tick: number): void {
     this.clock.seek(Math.min(this.project?.lengthTicks ?? tick, tick))
+    this.waitNotes.reset()
     this.scheduler.clearActions()
     this.onSeek()
     this.scheduler.invalidate(false)
@@ -356,6 +367,7 @@ export class Transport {
     this.changed()
   }
   changed(): void {
+    this.waitNotes.pause()
     this.recorder.clockChanged()
     if (
       !this.clock.playing ||
@@ -414,6 +426,13 @@ export class Transport {
       },
       Math.max(1, (time - this.context.currentTime) * 1000),
     )
+  }
+  liveNote(note: RoutedNote): void {
+    this.recorder.note(note)
+    this.waitNotes.note({
+      ...note,
+      when: (note.when ?? this.clock.now()) - this.inputLatencyMs / 1000,
+    })
   }
   activity(): ActivityRoute[] {
     return [

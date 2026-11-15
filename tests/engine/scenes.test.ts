@@ -322,3 +322,24 @@ it('gives script patch overrides valid, unique IDs when captured into a saved sc
   })
   expect(() => projectSchema.parse(project)).not.toThrow()
 })
+it('restores an action-selected follow mode after script overrides clear', () => {
+  const project = liveProject('Follow ownership')
+  const scenes = new Scenes({
+    queue: (_at, run) => {
+      run()
+      return 0
+    },
+    changed: () => undefined,
+    context: () => ({ playing: false, bar: 1 }),
+  })
+  scenes.configure(project)
+  scenes.setFollow('waitNotes', 'action')
+  scenes.setFollow('written')
+  expect(scenes.effectiveProject()!.follow.mode).toBe('written')
+  scenes.clearScript()
+  expect(scenes.effectiveProject()!.follow.mode).toBe('waitNotes')
+  const saved = structuredClone(project)
+  saved.follow.mode = 'tempoTrack'
+  scenes.configure(saved)
+  expect(scenes.effectiveProject()!.follow.mode).toBe('tempoTrack')
+})

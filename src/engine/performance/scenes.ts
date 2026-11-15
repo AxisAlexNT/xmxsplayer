@@ -27,6 +27,7 @@ export class Scenes {
   private scriptZones?: Zone[]
   private scriptPatch = new Map<string, string[]>()
   private scriptFollow?: Project['follow']['mode']
+  private manualFollow?: Project['follow']['mode']
   clearScript(notify = true): void {
     this.scriptModes = {}
     this.scriptZones = undefined
@@ -49,12 +50,22 @@ export class Scenes {
     this.scriptPatch.set(trackId, instrumentIds)
     this.host.changed()
   }
-  setFollow(mode: Project['follow']['mode']): void {
-    this.scriptFollow = mode
+  setFollow(
+    mode: Project['follow']['mode'],
+    owner: 'script' | 'action' = 'script',
+  ): void {
+    if (owner === 'action') {
+      this.manualFollow = mode
+      this.scriptFollow = undefined
+    } else this.scriptFollow = mode
     this.host.changed()
   }
   constructor(private host: SceneHost) {}
   configure(project: Project): void {
+    if (this.project && this.project.follow.mode !== project.follow.mode) {
+      this.scriptFollow = undefined
+      this.manualFollow = undefined
+    }
     const previous = this.project
       ? effectiveSetup(this.project, this.activeId)
       : undefined
@@ -182,7 +193,9 @@ export class Scenes {
       base: setup,
       follow: {
         ...this.project.follow,
-        ...(this.scriptFollow ? { mode: this.scriptFollow } : {}),
+        ...((this.scriptFollow ?? this.manualFollow)
+          ? { mode: this.scriptFollow ?? this.manualFollow }
+          : {}),
       },
       tracks: this.project.tracks.map((track) => ({
         ...track,

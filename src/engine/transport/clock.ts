@@ -32,9 +32,9 @@ export class TransportClock {
     const start = this.map.tickToSec(this.loop.startTick),
       end = this.map.tickToSec(this.loop.endTick),
       length = end - start
-    return length > 0 && raw >= end
-      ? start + ((((raw - end) % length) + length) % length)
-      : raw
+    if (length <= 0 || raw < end - 1e-9) return raw
+    const wrapped = (((raw - end) % length) + length) % length
+    return start + (wrapped < 1e-9 || length - wrapped < 1e-9 ? 0 : wrapped)
   }
   get tick(): number {
     return this.map.secToTick(this.songAt())
@@ -94,6 +94,15 @@ export class TransportClock {
     this.anchor(song)
   }
   hold(raw = this.raw): void {
+    if (this.loop.enabled) {
+      const start = this.map.tickToSec(this.loop.startTick),
+        end = this.map.tickToSec(this.loop.endTick),
+        length = end - start
+      if (length > 0 && raw >= end - 1e-9) {
+        const boundary = end + Math.round((raw - end) / length) * length
+        if (Math.abs(raw - boundary) < 1e-9) raw = boundary
+      }
+    }
     this.anchor(raw)
     this.holding = true
   }

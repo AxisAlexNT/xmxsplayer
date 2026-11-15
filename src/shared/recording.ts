@@ -10,6 +10,7 @@ export interface RecordedTake {
   tracks: RecordedTrack[]
 }
 export interface RoutedNote {
+  live?: boolean
   id: string
   source: string
   channel: number

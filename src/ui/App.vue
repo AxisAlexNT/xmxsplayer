@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FollowControl from './components/FollowControl.vue'
 import ClipsPanel from './components/ClipsPanel.vue'
 import ScriptPanel from './components/ScriptPanel.vue'
 import ScriptTrust from './components/ScriptTrust.vue'
@@ -502,7 +503,11 @@ async function prepareClose(): Promise<void> {
   try {
     if (runtime.connected)
       await engineBus.value?.request('recording:close', undefined)
-    if ((doc.dirtyFiles.length || scripts.dirty) && !(await window.xm.app.confirmClose())) return
+    if (
+      (doc.dirtyFiles.length || scripts.dirty) &&
+      !(await window.xm.app.confirmClose())
+    )
+      return
     closeAllowed = true
     window.close()
   } catch (error) {
@@ -539,7 +544,12 @@ onUnmounted(() => {
   <ScriptTrust />
   <div
     class="xm-app"
-    :class="{ 'is-collapsed': settings.collapsed }"
+    :class="{
+      'is-collapsed': settings.collapsed,
+      'is-following':
+        (runtime.state.followMode ?? p.follow.mode) !== 'written' ||
+        runtime.transport.holding,
+    }"
     :style="{ '--xm-w-left': `${settings.leftWidth}px` }"
     @dragover.prevent
     @drop.prevent="drop"
@@ -582,6 +592,7 @@ onUnmounted(() => {
               (button.cmd === 'record' && runtime.transport.recording) ||
               (button.cmd === 'loopToggle' && p.loop.enabled) ||
               (button.cmd === 'metronome' && p.metronome.audible),
+            'is-holding': button.cmd === 'toggle' && runtime.transport.holding,
             'is-rec': button.cmd === 'record',
             'is-active': button.cmd === 'record' && runtime.transport.recording,
           }"
@@ -599,7 +610,9 @@ onUnmounted(() => {
               transport(button.cmd)
           "
         >
-          <i :class="`bi bi-${button.icon}`" />
+          <i
+            :class="`bi bi-${button.cmd === 'toggle' && runtime.transport.holding ? 'hourglass-split' : button.icon}`"
+          />
         </button>
       </div>
       <div class="xm-pos">
@@ -666,20 +679,7 @@ onUnmounted(() => {
         }}</b>
       </div>
       <div class="xm-tsep" />
-      <div class="xm-field">
-        <span>Follow</span><button
-          class="btn btn-sm btn-xm dropdown-toggle"
-          disabled
-        >
-          {{
-            runtime.transport.countInBeat
-              ? `Count-in ${runtime.transport.countInBeat}`
-              : runtime.transport.holding
-                ? 'Holding'
-                : 'Written'
-          }}
-        </button>
-      </div>
+      <FollowControl />
       <div class="flex-grow-1" />
       <div
         class="xm-seg"

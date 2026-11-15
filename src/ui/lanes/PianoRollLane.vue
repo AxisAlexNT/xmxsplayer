@@ -184,6 +184,27 @@ function draw(): void {
       }
       ctx.restore()
     }
+    const expected = runtime.state.expectedNext
+    if (expected?.notes) {
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(origin + 96, 0, w - 96, h)
+      ctx.clip()
+      ctx.strokeStyle = '#ffb020'
+      ctx.lineWidth = 2
+      ctx.setLineDash([4, 3])
+      for (const target of expected.notes.filter(
+        (n) => n.trackId === props.track.id,
+      )) {
+        const note = displayNotes.value.find(
+          (n) => n[0] === target.tick && n[2] === target.key,
+        )
+        if (!note) continue
+        const r = rectangle(note, page)
+        if (r) ctx.strokeRect(r.x - 2, r.y - 2, r.w + 4, r.h + 4)
+      }
+      ctx.restore()
+    }
     ctx.save()
     ctx.beginPath()
     ctx.rect(origin + 96, 0, w - 96, h)
@@ -566,6 +587,7 @@ watch(
   },
 )
 watch(() => context.frame.value, draw, { flush: 'post' })
+watch(() => runtime.state.expectedNext, draw, { flush: 'post' })
 onMounted(() => {
   window.addEventListener('blur', cancel)
   observer = new IntersectionObserver((entries) => {

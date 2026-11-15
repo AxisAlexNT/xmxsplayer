@@ -317,7 +317,22 @@ it('records direct pad notes on their track while keeping editor auditions out o
     { on: true, trackId: 'strings', key: 64 },
     { on: false, trackId: 'strings', key: 64 },
   ])
-  expect(backend.events.filter((e) => e.type === 'on').at(-1)?.key).toBe(64)
+  expect(notes.every((n) => n.live === false)).toBe(true)
+  router.note(
+    'controller-pad',
+    0,
+    60,
+    100,
+    true,
+    undefined,
+    'piano',
+    undefined,
+    true,
+    60,
+    true,
+  )
+  router.note('controller-pad', 0, 60, 0, false, undefined, 'piano')
+  expect(notes.slice(-2).every((n) => n.live === true)).toBe(true)
   const count = backend.events.filter((e) => e.type === 'on').length
   project.tracks.find((t) => t.id === 'strings')!.mode = 'mute'
   router.note('pad', 0, 65, 100, true, undefined, 'strings', undefined, true)

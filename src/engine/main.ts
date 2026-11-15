@@ -118,6 +118,9 @@ function publishRuntime(): void {
   runtimeState.trackModes = Object.fromEntries(
     (performanceProject()?.tracks ?? []).map((t) => [t.id, t.mode]),
   )
+  runtimeState.followMode = performanceProject()?.follow.mode
+  runtimeState.followHolding = transport?.waitNotes.holding ?? false
+  runtimeState.expectedNext = transport?.waitNotes.expected ?? null
   runtimeState.armedCueId = cues?.armedId ?? null
   runtimeState.queuedCueIds = cues?.queuedIds ?? []
   runtimeState.pendingActions = cues?.pendingActions ?? []
@@ -292,6 +295,17 @@ function runAction(
     script?.invoke(action.fn)
     return
   }
+  if (action.type === 'follow') {
+    const modes = ['written', 'waitNotes', 'tempoTrack'] as const
+    const current = performanceProject()?.follow.mode ?? 'written'
+    scenes.setFollow(
+      action.mode === 'cycle'
+        ? modes[(modes.indexOf(current) + 1) % modes.length]
+        : action.mode,
+      'action',
+    )
+    return
+  }
   if (action.type === 'trackMode') {
     scenes.mode(action)
     return
@@ -302,7 +316,12 @@ function runAction(
     else cues?.fire(action.cmd === 'fire' ? action.cueId : undefined)
     return
   }
-  if (action.type === 'transport' && action.cmd === 'skipHold' && cues?.skip())
+  if (
+    action.type === 'transport' &&
+    (action.cmd === 'skipHold' ||
+      (action.cmd === 'forward' && transport?.clock.holding)) &&
+    (cues?.skip() || transport?.waitNotes.skip())
+  )
     return
   if (action.type === 'scene') {
     scenes.run(action)
@@ -325,6 +344,8 @@ function runAction(
       action.trackId,
       undefined,
       true,
+      action.key,
+      source.startsWith('binding:'),
     )
     return
   }
@@ -431,7 +452,7 @@ async function initialize(value: Settings): Promise<void> {
     router = new Router(
       rack,
       reportKeys,
-      (note) => transport?.recorder.note(note),
+      (note) => transport?.liveNote(note),
       () => scenes.context,
       (route) => activity?.pulse(route),
     )
@@ -471,7 +492,8 @@ async function initialize(value: Settings): Promise<void> {
               transport!.changed()
             },
             release: () => {
-              if (!cues?.skip()) transport!.scheduler.releaseHold()
+              if (!cues?.skip() && !transport!.waitNotes.skip())
+                transport!.scheduler.releaseHold()
               transport!.changed()
             },
             scene: () => scenes.activeId,
@@ -599,12 +621,18 @@ async function initialize(value: Settings): Promise<void> {
       },
     })
     cues.chaseOnSeek = value.chaseCuesOnSeek ?? true
-    transport.scheduler.timeline = combineTimelines(cues, scriptTimeline)
+    transport.scheduler.timeline = combineTimelines(
+      cues,
+      scriptTimeline,
+      transport.waitNotes,
+    )
     transport.onSeek = () => {
+      transport!.waitNotes.reset()
       cues!.seek()
       scriptTimeline?.reset()
     }
     transport.onStop = () => {
+      transport!.waitNotes.reset()
       cues!.stop()
       scriptTimeline?.reset()
       releaseScriptNotes()
@@ -1086,7 +1114,10 @@ window.addEventListener('message', (event) => {
       try {
         if (action.type === 'clip')
           runAction(action, value, pressed, source, { at })
-        else transport?.queue(at ?? 'now', () => runAction(action, value))
+        else
+          transport?.queue(at ?? 'now', () =>
+            runAction(action, value, pressed, source),
+          )
       } catch (error) {
         log('error', 'transport', String(error))
       }

@@ -469,6 +469,26 @@ onUnmounted(() => {
             >{{
               track.link.state === 'synced' ? 'synced' : 'modified here'
             }}</span>
+            <div
+              v-if="track.kind === 'midi'"
+              class="xm-seg"
+            >
+              <button
+                v-for="view in ['staff', 'roll'] as const"
+                :key="view"
+                :class="{ 'is-on': track.view === view }"
+                :title="view === 'staff' ? 'Staff' : 'Piano roll'"
+                @click="
+                  edit(track.id, (t) => {
+                    if (t.kind === 'midi') t.view = view
+                  })
+                "
+              >
+                <i
+                  :class="`bi bi-${view === 'staff' ? 'music-note-beamed' : 'bar-chart-steps'}`"
+                />
+              </button>
+            </div>
           </div>
           <div class="xm-th-top">
             <button
@@ -506,27 +526,22 @@ onUnmounted(() => {
             >
               <i class="bi bi-record-fill" />
             </button>
-            <div class="flex-grow-1" />
-            <div
-              v-if="track.kind === 'midi'"
-              class="xm-seg"
+            <button
+              v-if="track.kind === 'midi' && displayedMode(track) === 'live'"
+              class="xm-sq xm-follow-lead"
+              :class="{ 'is-on': track.leads }"
+              :aria-label="`${track.name} leads follow`"
+              :aria-pressed="track.leads"
+              title="Lead the follow mode"
+              @click="
+                edit(track.id, (t) => {
+                  if (t.kind === 'midi') t.leads = !t.leads
+                })
+              "
             >
-              <button
-                v-for="view in ['staff', 'roll'] as const"
-                :key="view"
-                :class="{ 'is-on': track.view === view }"
-                :title="view === 'staff' ? 'Staff' : 'Piano roll'"
-                @click="
-                  edit(track.id, (t) => {
-                    if (t.kind === 'midi') t.view = view
-                  })
-                "
-              >
-                <i
-                  :class="`bi bi-${view === 'staff' ? 'music-note-beamed' : 'bar-chart-steps'}`"
-                />
-              </button>
-            </div>
+              <i class="bi bi-magnet" />
+            </button>
+            <div class="flex-grow-1" />
           </div>
           <AudioTrackControls
             v-if="track.kind === 'audio'"

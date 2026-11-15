@@ -117,6 +117,7 @@ export class Router {
     when?: number,
     recordDirect = false,
     inputKey = key,
+    liveDirect = false,
   ): void {
     const id = this.noteOwner(source, channel, inputKey)
     const owner = this.owner(source, channel)
@@ -182,6 +183,7 @@ export class Router {
             )
           ) {
             const routed: RoutedNote = {
+              live: !trackOnly || liveDirect,
               id: `${serial}:${trackId}:${postKey}`,
               source,
               channel,
