@@ -36,4 +36,8 @@ Unlinked and locally modified tracks generate notation from their notes. Generat
 
 ## Remaining verification
 
-An installed MIDI-file association is needed for the exported MIDI to open in MuseScore. OS launch requests and exported MIDI contents are tested separately; desktop association behavior and an actual MuseScore GUI Ctrl+S workflow still need a user check. The automated desktop check edits a private copied score on disk, then verifies watched conversion during playback, protected in-app edits and undoable discard.
+A real MuseScore 3.2.3 GUI save was verified on Ubuntu: Ctrl+A/Up changed pitches in a disposable copied score, and Ctrl+S saved it. The packaged player watched the save and imported the changed first pitch from 59 to 60 while looping playback continued. The original score hash was unchanged, and MuseScore closed cleanly. This complements the existing headless export, protected-edit and undoable-discard checks.
+
+The GUI test used temporary settings, disabled MIDI input, a process-local silent ALSA configuration and disabled first-use tours. Earlier isolated launches with synthesis disabled crashed with exit 139; the successful setup kept the internal synthesizer available without hardware audio I/O. This does not verify MuseScore audio playback or a normal desktop audio configuration.
+
+An installed MIDI-file association is needed for exported MIDI to open in MuseScore. OS launch requests and exported contents are tested separately; actual desktop association behavior, MuseScore 4 and Windows still require a user check.

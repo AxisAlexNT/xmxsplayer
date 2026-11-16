@@ -8,7 +8,7 @@ Version 0.1.0 is in release validation. The software is implemented; it is not y
 
 The approved PipeWire comparison reduced the Built-in buffer-128 median estimate from 82.7 ms at quantum 1024 to 18.7 ms at 256; the original 1024 setting was restored. FluidSynth's muted PipeWire driver started at both sizes and displayed configured 10.7 ms. These are different kinds of readouts, not physical latency measurements. See [latency observations](docs/latency.md).
 
-Physical KeyLab input and split/sustain release were confirmed earlier. Full controller feedback, Axiom capture, audible native/external output, alternate cue devices and performance tuning remain unverified. Windows, physical pen behavior, MuseScore 4, MuseScore GUI saves/associations and clean-account operation remain untested. Linux AppImage startup, packaged notation/audio assets, external routing and portable settings loading/saving passed. Physical and platform gates in the [release checklist](docs/release-checklist.md) remain. No release has been tagged or published.
+Physical KeyLab input and split/sustain release were confirmed earlier. Full controller feedback, Axiom capture, audible native/external output, alternate cue devices and performance tuning remain unverified. Windows, physical pen behavior, MuseScore 4, desktop file associations and clean-account operation remain untested. A real MuseScore 3 GUI Ctrl+S save re-synced during packaged-player playback in an isolated silent setup. Linux AppImage startup, packaged notation/audio assets, external routing and portable settings loading/saving passed. Physical and platform gates in the [release checklist](docs/release-checklist.md) remain. No release has been tagged or published.
 
 ## Start
 

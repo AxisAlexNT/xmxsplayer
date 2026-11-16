@@ -9,6 +9,7 @@ Current validation: 0.1.0, Ubuntu Studio 24.04, 2026-11-16. This document separa
 - `npm run smoke`: UI mount and engine handshake passed before packaging; real MIDI disabled.
 - Isolated desktop checks: recording/editing, real muted audio processing and five import formats, clips, scenes/cues/registers/scripts, follow modes, linked-score conversion and notation, backend changes/recovery and external MIDI routing.
 - External MIDI desktop checks: audition, live and sequenced notes, shared note/pedal ownership, original held destinations, channel change, stop cancellation, reconnect, saved YAML, 40 px picker controls, and 1920/1280 viewports. Real MIDI ports were replaced before app code.
+- Actual MuseScore 3.2.3 GUI Ctrl+A/Up/Ctrl+S: copied score saved, first imported pitch changed from 59 to 60, packaged-player playback continued, original score hash unchanged and GUI closed cleanly. Temporary settings disabled MIDI input and first-use tours, with process-local silent ALSA routing. Earlier synthesis-disabled launches crashed with exit 139; normal desktop audio remains untested.
 - Copied Expedition score: all 967 engraved attacks matched the unrolled MIDI pitches/ticks through the end. Original scores were not modified.
 - Permissioned, muted PipeWire comparison: Built-in readouts and FluidSynth PipeWire startup at quantum 1024 and 256; original 1024 restored and independently read back. No test Electron/FluidSynth processes remained. See [latency observations](latency.md).
 - Production license allowlist: passed; 82 dependencies plus the application, with font/runtime notices considered separately.
@@ -31,7 +32,7 @@ The package contains no private sketch/instruction files. Both unpacked Verovio 
 | Reprise scenes/registers/scripts, exclusive groups, wait cue, live YAML/conflict | State/routing/script tests and desktop checks | Perform the arrangement on real hardware |
 | Wait any/all, tempo tracking, wrong notes and skip | Synthetic performance and muted audio checks | Tune matching with the performer |
 | Clips: all launches/sweeps, groups, speed, pressure, LEDs, WAV/MP3/OGG/M4A/FLAC | Decoder/processing/controller simulations and desktop checks | Actual pad/fader use, sound and LEDs |
-| MuseScore save/re-sync, ahead protection, export/discard, repeats | Copied-score headless exports and file watching; notation matches to end | Actual MuseScore GUI Ctrl+S, associations; MuseScore 4 |
+| MuseScore save/re-sync, ahead protection, export/discard, repeats | Copied-score headless exports, real GUI Ctrl+S during playback and file watching; notation matches to end | Desktop associations; MuseScore 4 |
 | Built-in/FluidSynth switching and readouts | Muted built-in signal, native file audio, recovery and quantum comparison | Audible native output and timing under full arrangement load |
 | Save/quit/reopen; copied project and missing-font lookup | Folder IO and desktop persistence checks | Copied-project move/missing-font and clean-account checks |
 | AppImage and portable settings | AppImage startup and packaged portable data read/write passed; launcher-path precedence unit tests | Test a separate clean OS account; Windows launcher remains untested |
