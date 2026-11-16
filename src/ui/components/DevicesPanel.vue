@@ -134,6 +134,13 @@ defineExpose({ learn })
       No controller connected
     </div>
   </div>
+  <p
+    v-if="devices.some((d) => d.profile?.feedback === 'arturia-mk3')"
+    class="xm-faint mt-2"
+  >
+    For KeyLab pad colours and display text, select DAWs on the keyboard.
+    Leave automatic Arturia program selection off to keep DAWs selected.
+  </p>
   <label
     v-if="devices.some((d) => d.profile?.feedback === 'arturia-mk3')"
     class="xm-force-program"

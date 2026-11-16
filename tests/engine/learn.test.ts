@@ -77,3 +77,17 @@ it('cancels pending captures and separates successive wizard steps', () => {
     msg: { number: 75 },
   })
 })
+
+it('relearning replaces the whole factory address set', () => {
+  const captured = vi.fn(),
+    learn = new Learn(captured)
+  learn.start('a', {
+    ...control,
+    msg: { type: 'cc', number: 71, channel: null },
+    aliases: [{ type: 'cc', number: 97, channel: null }],
+  })
+  for (const value of [0, 64, 127]) learn.receive(msg([0xb0, 7, value]))
+  vi.advanceTimersByTime(450)
+  expect(captured.mock.lastCall?.[1].msg.number).toBe(7)
+  expect(captured.mock.lastCall?.[1].aliases).toBeUndefined()
+})

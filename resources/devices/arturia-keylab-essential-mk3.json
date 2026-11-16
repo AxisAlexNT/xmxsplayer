@@ -35,7 +35,14 @@
         "channel": 9,
         "number": 40
       },
-      "ledId": 28
+      "ledId": 28,
+      "aliases": [
+        {
+          "type": "note",
+          "channel": 10,
+          "number": 40
+        }
+      ]
     },
     {
       "id": "pad.2",
@@ -52,7 +59,14 @@
         "channel": 9,
         "number": 41
       },
-      "ledId": 29
+      "ledId": 29,
+      "aliases": [
+        {
+          "type": "note",
+          "channel": 10,
+          "number": 41
+        }
+      ]
     },
     {
       "id": "pad.3",
@@ -64,7 +78,12 @@
         "row": 0,
         "col": 2
       },
-      "ledId": 30
+      "ledId": 30,
+      "msg": {
+        "type": "note",
+        "channel": 10,
+        "number": 42
+      }
     },
     {
       "id": "pad.4",
@@ -76,7 +95,12 @@
         "row": 0,
         "col": 3
       },
-      "ledId": 31
+      "ledId": 31,
+      "msg": {
+        "type": "note",
+        "channel": 10,
+        "number": 43
+      }
     },
     {
       "id": "pad.5",
@@ -88,7 +112,12 @@
         "row": 1,
         "col": 0
       },
-      "ledId": 32
+      "ledId": 32,
+      "msg": {
+        "type": "note",
+        "channel": 10,
+        "number": 36
+      }
     },
     {
       "id": "pad.6",
@@ -100,7 +129,12 @@
         "row": 1,
         "col": 1
       },
-      "ledId": 33
+      "ledId": 33,
+      "msg": {
+        "type": "note",
+        "channel": 10,
+        "number": 37
+      }
     },
     {
       "id": "pad.7",
@@ -112,7 +146,12 @@
         "row": 1,
         "col": 2
       },
-      "ledId": 34
+      "ledId": 34,
+      "msg": {
+        "type": "note",
+        "channel": 10,
+        "number": 38
+      }
     },
     {
       "id": "pad.8",
@@ -129,7 +168,14 @@
         "channel": 9,
         "number": 39
       },
-      "ledId": 35
+      "ledId": 35,
+      "aliases": [
+        {
+          "type": "note",
+          "channel": 10,
+          "number": 39
+        }
+      ]
     },
     {
       "id": "pad.9",
@@ -141,7 +187,12 @@
         "row": 2,
         "col": 0
       },
-      "ledId": 36
+      "ledId": 36,
+      "msg": {
+        "type": "note",
+        "channel": 9,
+        "number": 48
+      }
     },
     {
       "id": "pad.10",
@@ -153,7 +204,19 @@
         "row": 2,
         "col": 1
       },
-      "ledId": 37
+      "ledId": 37,
+      "msg": {
+        "type": "note",
+        "channel": 9,
+        "number": 49
+      },
+      "aliases": [
+        {
+          "type": "note",
+          "channel": 10,
+          "number": 49
+        }
+      ]
     },
     {
       "id": "pad.11",
@@ -165,7 +228,12 @@
         "row": 2,
         "col": 2
       },
-      "ledId": 38
+      "ledId": 38,
+      "msg": {
+        "type": "note",
+        "channel": 9,
+        "number": 50
+      }
     },
     {
       "id": "pad.12",
@@ -177,7 +245,12 @@
         "row": 2,
         "col": 3
       },
-      "ledId": 39
+      "ledId": 39,
+      "msg": {
+        "type": "note",
+        "channel": 9,
+        "number": 51
+      }
     },
     {
       "id": "pad.13",
@@ -189,7 +262,12 @@
         "row": 3,
         "col": 0
       },
-      "ledId": 40
+      "ledId": 40,
+      "msg": {
+        "type": "note",
+        "channel": 9,
+        "number": 44
+      }
     },
     {
       "id": "pad.14",
@@ -201,7 +279,12 @@
         "row": 3,
         "col": 1
       },
-      "ledId": 41
+      "ledId": 41,
+      "msg": {
+        "type": "note",
+        "channel": 9,
+        "number": 45
+      }
     },
     {
       "id": "pad.15",
@@ -213,7 +296,12 @@
         "row": 3,
         "col": 2
       },
-      "ledId": 42
+      "ledId": 42,
+      "msg": {
+        "type": "note",
+        "channel": 9,
+        "number": 46
+      }
     },
     {
       "id": "pad.16",
@@ -225,7 +313,12 @@
         "row": 3,
         "col": 3
       },
-      "ledId": 43
+      "ledId": 43,
+      "msg": {
+        "type": "note",
+        "channel": 9,
+        "number": 47
+      }
     },
     {
       "id": "knob.1",
@@ -241,7 +334,14 @@
         "type": "cc",
         "channel": null,
         "number": 74
-      }
+      },
+      "aliases": [
+        {
+          "type": "cc",
+          "channel": null,
+          "number": 96
+        }
+      ]
     },
     {
       "id": "knob.2",
@@ -252,7 +352,19 @@
         "group": "knobs",
         "row": 0,
         "col": 1
-      }
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 71
+      },
+      "aliases": [
+        {
+          "type": "cc",
+          "channel": null,
+          "number": 97
+        }
+      ]
     },
     {
       "id": "knob.3",
@@ -263,6 +375,11 @@
         "group": "knobs",
         "row": 0,
         "col": 2
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 98
       }
     },
     {
@@ -274,6 +391,11 @@
         "group": "knobs",
         "row": 0,
         "col": 3
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 99
       }
     },
     {
@@ -285,6 +407,11 @@
         "group": "knobs",
         "row": 0,
         "col": 4
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 100
       }
     },
     {
@@ -296,6 +423,11 @@
         "group": "knobs",
         "row": 0,
         "col": 5
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 101
       }
     },
     {
@@ -307,6 +439,11 @@
         "group": "knobs",
         "row": 0,
         "col": 6
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 102
       }
     },
     {
@@ -318,6 +455,11 @@
         "group": "knobs",
         "row": 0,
         "col": 7
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 103
       }
     },
     {
@@ -334,7 +476,14 @@
         "type": "cc",
         "channel": null,
         "number": 17
-      }
+      },
+      "aliases": [
+        {
+          "type": "cc",
+          "channel": null,
+          "number": 104
+        }
+      ]
     },
     {
       "id": "fader.1",
@@ -350,7 +499,14 @@
         "type": "cc",
         "channel": null,
         "number": 73
-      }
+      },
+      "aliases": [
+        {
+          "type": "cc",
+          "channel": null,
+          "number": 105
+        }
+      ]
     },
     {
       "id": "fader.2",
@@ -361,6 +517,11 @@
         "group": "faders",
         "row": 0,
         "col": 1
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 106
       }
     },
     {
@@ -372,6 +533,11 @@
         "group": "faders",
         "row": 0,
         "col": 2
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 107
       }
     },
     {
@@ -383,6 +549,11 @@
         "group": "faders",
         "row": 0,
         "col": 3
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 108
       }
     },
     {
@@ -394,6 +565,11 @@
         "group": "faders",
         "row": 0,
         "col": 4
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 109
       }
     },
     {
@@ -405,6 +581,11 @@
         "group": "faders",
         "row": 0,
         "col": 5
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 110
       }
     },
     {
@@ -416,6 +597,11 @@
         "group": "faders",
         "row": 0,
         "col": 6
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 111
       }
     },
     {
@@ -427,6 +613,11 @@
         "group": "faders",
         "row": 0,
         "col": 7
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 112
       }
     },
     {
@@ -443,7 +634,14 @@
         "type": "cc",
         "channel": null,
         "number": 85
-      }
+      },
+      "aliases": [
+        {
+          "type": "cc",
+          "channel": null,
+          "number": 113
+        }
+      ]
     },
     {
       "id": "transport.stop",
@@ -506,7 +704,12 @@
         "row": 0,
         "col": 1
       },
-      "ledId": 17
+      "ledId": 17,
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 25
+      }
     },
     {
       "id": "transport.forward",
@@ -518,7 +721,12 @@
         "row": 0,
         "col": 2
       },
-      "ledId": 18
+      "ledId": 18,
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 26
+      }
     },
     {
       "id": "transport.loop",
@@ -586,7 +794,14 @@
         "channel": null,
         "number": 52
       },
-      "ledId": 12
+      "ledId": 12,
+      "aliases": [
+        {
+          "type": "cc",
+          "channel": null,
+          "number": 40
+        }
+      ]
     },
     {
       "id": "daw.quantize",
@@ -620,7 +835,14 @@
         "channel": null,
         "number": 54
       },
-      "ledId": 14
+      "ledId": 14,
+      "aliases": [
+        {
+          "type": "cc",
+          "channel": null,
+          "number": 42
+        }
+      ]
     },
     {
       "id": "daw.redo",
@@ -637,7 +859,14 @@
         "channel": null,
         "number": 55
       },
-      "ledId": 15
+      "ledId": 15,
+      "aliases": [
+        {
+          "type": "cc",
+          "channel": null,
+          "number": 43
+        }
+      ]
     },
     {
       "id": "context.1",
@@ -654,7 +883,14 @@
         "channel": null,
         "number": 30
       },
-      "ledId": 24
+      "ledId": 24,
+      "aliases": [
+        {
+          "type": "cc",
+          "channel": null,
+          "number": 44
+        }
+      ]
     },
     {
       "id": "context.2",
@@ -671,7 +907,14 @@
         "channel": null,
         "number": 31
       },
-      "ledId": 25
+      "ledId": 25,
+      "aliases": [
+        {
+          "type": "cc",
+          "channel": null,
+          "number": 45
+        }
+      ]
     },
     {
       "id": "context.3",
@@ -688,7 +931,14 @@
         "channel": null,
         "number": 86
       },
-      "ledId": 26
+      "ledId": 26,
+      "aliases": [
+        {
+          "type": "cc",
+          "channel": null,
+          "number": 46
+        }
+      ]
     },
     {
       "id": "context.4",
@@ -705,7 +955,14 @@
         "channel": null,
         "number": 87
       },
-      "ledId": 27
+      "ledId": 27,
+      "aliases": [
+        {
+          "type": "cc",
+          "channel": null,
+          "number": 47
+        }
+      ]
     },
     {
       "id": "encoder.main",
@@ -716,7 +973,19 @@
         "group": "buttons",
         "row": 2,
         "col": 0
-      }
+      },
+      "msg": {
+        "type": "cc",
+        "channel": null,
+        "number": 114
+      },
+      "aliases": [
+        {
+          "type": "cc",
+          "channel": null,
+          "number": 116
+        }
+      ]
     },
     {
       "id": "encoder.main.press",
@@ -732,7 +1001,14 @@
         "type": "cc",
         "channel": null,
         "number": 115
-      }
+      },
+      "aliases": [
+        {
+          "type": "cc",
+          "channel": null,
+          "number": 117
+        }
+      ]
     }
   ],
   "feedback": "arturia-mk3"

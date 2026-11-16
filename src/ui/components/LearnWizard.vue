@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import type { ControlDef, DeviceProfile } from '../../shared/model'
+import { controlMessages, sameControlMessage } from '../../shared/control-messages'
 import { uniqueId } from '../../shared/ids'
 import { useSettingsStore } from '../stores/settings'
 import { useRuntimeStore } from '../stores/runtime'
@@ -53,6 +54,9 @@ function begin(): void {
         ...current.value,
         ui: { ...current.value.ui },
         ...(current.value.msg ? { msg: { ...current.value.msg } } : {}),
+        ...(current.value.aliases
+          ? { aliases: current.value.aliases.map((msg) => ({ ...msg })) }
+          : {}),
       }),
     })
 }
@@ -84,13 +88,11 @@ function accept(): boolean {
     match = draft.value.controls.find(
       (c) =>
         c.id !== captured.id &&
-        c.msg &&
-        captured.msg &&
-        c.msg.type === captured.msg.type &&
-        c.msg.number === captured.msg.number &&
-        (c.msg.channel === null ||
-          captured.msg.channel === null ||
-          c.msg.channel === captured.msg.channel),
+        controlMessages(c).some((existing) =>
+          controlMessages(captured).some((incoming) =>
+            sameControlMessage(existing, incoming),
+          ),
+        ),
     )
   if (match) {
     error.value = `This message is already assigned to ${match.label}. Re-learn this control or skip it.`

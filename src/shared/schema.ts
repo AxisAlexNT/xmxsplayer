@@ -456,17 +456,17 @@ export const projectSchema = z
       })
     }
   }) satisfies z.ZodType<Project>
+const controlMessageSchema = z.strictObject({
+  type: enums(['note', 'cc']),
+  channel: int.min(0).max(15).nullable(),
+  number: byte,
+})
 const controlSchema = z.strictObject({
   id: z.string(),
   label: z.string(),
   kind: enums(['pad', 'button', 'knob', 'fader', 'encoder']),
-  msg: z
-    .strictObject({
-      type: enums(['note', 'cc']),
-      channel: int.min(0).max(15).nullable(),
-      number: byte,
-    })
-    .optional(),
+  msg: controlMessageSchema.optional(),
+  aliases: controlMessageSchema.array().optional(),
   mode: enums(['momentary', 'absolute', 'relative64']),
   ledId: byte.optional(),
   ui: z.strictObject({

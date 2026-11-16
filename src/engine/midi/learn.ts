@@ -73,8 +73,10 @@ export class Learn {
     if (!this.target || !this.address || !this.samples.length || this.done)
       return
     this.done = true
+    const control = { ...this.target.control }
+    delete control.aliases
     this.captured(this.target.deviceId, {
-      ...this.target.control,
+      ...control,
       msg: this.address,
       mode: learnedMode(this.target.control, this.samples),
     })

@@ -1,4 +1,5 @@
 import type { ControlDef, DeviceProfile, Settings } from '../../shared/model'
+import { controlMessages } from '../../shared/control-messages'
 import { deviceProfileSchema } from '../../shared/schema'
 import arturia from '../../../resources/devices/arturia-keylab-essential-mk3.json'
 import axiom from '../../../resources/devices/m-audio-axiom-61-mk2.json'
@@ -88,11 +89,13 @@ export class ProfileDecoder {
         (release || message.type === 'poly'
           ? this.owners.get(address)
           : undefined) ??
-        profile.controls.find(
-          (c) =>
-            c.msg?.type === type &&
-            c.msg.number === number &&
-            (c.msg.channel === null || c.msg.channel === message.channel),
+        profile.controls.find((c) =>
+          controlMessages(c).some(
+            (msg) =>
+              msg.type === type &&
+              msg.number === number &&
+              (msg.channel === null || msg.channel === message.channel),
+          ),
         )
     if (
       message.type === 'note' &&
@@ -145,12 +148,13 @@ export class ProfileDecoder {
         },
       }
     }
-    // Unlearned KeyLab pads share channel 10; they must not become keyboard notes.
+    // Reserved KeyLab pad addresses must never become keyboard notes.
     if (
       profile.feedback === 'arturia-mk3' &&
-      profile.controls.some((c) => c.kind === 'pad' && !c.msg) &&
-      message.channel === 9 &&
-      (message.type === 'note' || message.type === 'poly')
+      (message.channel === 9 || message.channel === 10) &&
+      (message.type === 'note' || message.type === 'poly') &&
+      message.key >= 36 &&
+      message.key <= 51
     )
       return null
     if (

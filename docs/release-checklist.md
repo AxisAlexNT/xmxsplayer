@@ -13,6 +13,7 @@ Current validation: 0.1.0, Ubuntu Studio 24.04, 2026-11-16. This document separa
 - Copied Expedition score: all 967 engraved attacks matched the unrolled MIDI pitches/ticks through the end. Original scores were not modified.
 - Permissioned, muted PipeWire comparison: Built-in readouts and FluidSynth PipeWire startup at quantum 1024 and 256; original 1024 restored and independently read back. No test Electron/FluidSynth processes remained. See [latency observations](latency.md).
 - Copied-project portability: two destination folders with spaces restored all three tracks and saved linked notes. Filename-based font lookup, missing-font Locate recovery and persisted lookup in another fresh profile passed with a real muted synthesis signal.
+- Physical KeyLab session: piano/strings split, pitch/modulation, chords and sustain release passed. In DAWs mode the owner confirmed project/transport text, pale pad colours, top-row beat chase, uninterrupted chase after pad presses and Stop. Arturia showed no visible feedback. Captured addresses differ between modes; the corrected decoder is regression tested with both address sets, but the new alias routing still needs a physical recheck. See [captured controls](controllers.md#captured-keylab-addresses).
 - Production npm license allowlist: passed; 82 dependencies plus the application, with font/runtime notices considered separately.
 
 The latest live-input and portable-path regressions are unit verified. Fresh native switching/recovery checks also passed after fixing preset selection across engine choices. The initial fresh native run caught that regression and timed out; it was corrected and the complete rerun passed.
@@ -31,7 +32,7 @@ The Linux and Windows packages contain no private sketch/instruction files. Both
 | Multi-track MIDI, instruments, staff/roll, page/center, reorder, zoom | Import/timing/notation tests and desktop checks | Physical packaged-build interaction pass |
 | Four-bar audio loop at 50%, knob speed, filter/isolation, grid/taps, click/cue | Real muted processing and synthetic control checks | Listen for pitch/timing; physical knob and alternate output checks |
 | Reduced-speed recording, undo/redo, edits, quantize, updated staves | Desktop recording/editing/notation checks | Physical playing/pen comfort and listening |
-| Transport/DAW, Learn, conditions, beat chase, register LEDs/display, hot-plug | Profile/binding/feedback simulations and no-SysEx smoke | Press/release/sweep actual controls; confirm colours/display and hot-plug |
+| Transport/DAW, Learn, conditions, beat chase, register LEDs/display, hot-plug | Profile/binding/feedback simulations plus physical DAWs display, colours, beat chase and control captures | Recheck corrected mode aliases; seven DAWs bank B pads and Arturia-only gaps; hot-plug and exact timing |
 | Reprise scenes/registers/scripts, exclusive groups, wait cue, live YAML/conflict | State/routing/script tests and desktop checks | Perform the arrangement on real hardware |
 | Wait any/all, tempo tracking, wrong notes and skip | Synthetic performance and muted audio checks | Tune matching with the performer |
 | Clips: all launches/sweeps, groups, speed, pressure, LEDs, WAV/MP3/OGG/M4A/FLAC | Decoder/processing/controller simulations and desktop checks | Actual pad/fader use, sound and LEDs |

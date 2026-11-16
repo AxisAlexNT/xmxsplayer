@@ -302,6 +302,7 @@ export interface ControlDef {
   label: string
   kind: 'pad' | 'button' | 'knob' | 'fader' | 'encoder'
   msg?: { type: 'note' | 'cc'; channel: number | null; number: number }
+  aliases?: NonNullable<ControlDef['msg']>[]
   mode: 'momentary' | 'absolute' | 'relative64'
   ledId?: number
   ui: { group: string; row: number; col: number }
