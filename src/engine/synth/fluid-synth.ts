@@ -266,7 +266,11 @@ export class FluidSynthBackend implements SynthBackend {
     if (!this.online || slot.releasing) return
     const time = when ?? this.now()
     if (!Number.isFinite(time)) throw Error('Invalid FluidSynth event time')
-    this.queue.push(time, slot.channel, fluidMidi(command, slot.channel, a, b))
+    const line = fluidMidi(command, slot.channel, a, b)
+    if (time <= this.now()) {
+      this.flush()
+      this.send([line])
+    } else this.queue.push(time, slot.channel, line)
   }
   noteOn(id: SlotId, key: number, velocity: number, when?: number): void {
     this.enqueue(id, 'noteon', key, velocity, when)

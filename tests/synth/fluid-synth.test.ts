@@ -177,3 +177,22 @@ it('marks failed restoration unavailable and retries after a missing font is loc
   expect(backend.available).toBe(true)
   expect(vi.mocked(api.send).mock.calls.at(-1)![0][0]).toBe('select 0 105 0 0')
 })
+
+it('dispatches live input immediately after older due events without waiting for the timer', async () => {
+  const { api, backend, instrument, setTime } = rig()
+  await backend.loadSoundFont(
+    { id: 'gm', file: 'Piano.sf2' },
+    'xmfile://f/font',
+  )
+  const id = await backend.allocate(instrument)
+  vi.mocked(api.send).mockClear()
+  backend.noteOn(id, 60, 100, 1)
+  setTime(1)
+  backend.cc(id, 64, 127)
+  expect(vi.mocked(api.send).mock.calls.map((call) => call[0])).toEqual([
+    ['noteon 0 60 100'],
+    ['cc 0 64 127'],
+  ])
+  backend.noteOff(id, 60)
+  expect(api.send).toHaveBeenLastCalledWith(['noteoff 0 60'])
+})

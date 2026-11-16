@@ -5,18 +5,19 @@ import {
   renameSync,
   writeFileSync,
 } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname } from 'node:path'
 import { app } from 'electron'
 import { defaultSettings } from '../shared/defaults'
 import { settingsSchema } from '../shared/schema'
 import type { Settings } from '../shared/model'
+import { settingsLocation } from './settings-location'
 
 export function settingsPath(): string {
-  const portable = join(dirname(app.getPath('exe')), 'xmxsplayer-data')
-  return join(
-    process.env.XMXS_DATA_DIR ||
-      (existsSync(portable) ? portable : app.getPath('userData')),
-    'settings.json',
+  return settingsLocation(
+    app.getPath('exe'),
+    app.getPath('userData'),
+    process.env,
+    existsSync,
   )
 }
 export function loadSettings(): Settings {
