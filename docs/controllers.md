@@ -1,0 +1,11 @@
+# Controllers
+
+Devices lists the main MIDI ports and their assigned profiles. Use **Learn…** to capture missing controls, or click an unlearned element in Controls to learn it individually. Press and release buttons and pads; sweep absolute controls across their full range and turn relative encoders in both directions. Review each capture, correct its mode if necessary, then finish to save the profile on this PC. Unknown hardware messages remain unassigned until learned.
+
+Click a learned control to edit its binding. Choose its edge, action, condition and timing; edits apply immediately. Store bindings in Shared, This controller, This scene, or a controller's scene override. Unbind disables that edge in the selected scope. Absolute parameter controls use soft takeover: move to the parameter's current value before they take control. Relative encoders apply changes from the current value.
+
+New projects include transport and DAW bindings, speed on knob 1, track volumes by fader order and master volume on fader 9. The KeyLab mapping assigns bank B pads to registers 1–8; the Axiom mapping uses buttons 1–8. Scene and register actions update the live routing. Cues can run actions automatically or wait for a control; script functions can extend the live setup; clip actions launch or sweep audio fragments.
+
+KeyLab feedback uses only its paired main MIDI output. Mapping colours, binding state, beat chase, hit flashes and queued-cue blinking share the same states on the screen and keyboard. Turn **Visual pads** off in Bar grid to disable beat chase. The display shows the project or scene name, position, speed and follow state. Feedback reinitializes after a program change and refreshes after pad release. **Select Arturia program on connect** is off by default; enabling it changes the keyboard's active program. Physical colours, release repainting, program-selection display and timing still need confirmation on the keyboard.
+
+Electron 45 lacks `MIDIOutput.clear()`, so future LED messages remain in a cancellable engine queue until their deadlines. Isolated Linux checks measured up to 2.5 ms of dispatch lateness; this is not physical MIDI or audio latency. At high audio output latency, pad feedback aligned to the audible beat can trail the transport's on-screen beat lamps; visual alignment remains a release QA item.

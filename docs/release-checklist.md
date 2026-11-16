@@ -1,0 +1,45 @@
+# Release verification
+
+Current validation: 0.1.0, Ubuntu Studio 24.04, 2026-11-16. This document separates completed software checks from physical or platform work still required. A passing unit suite does not establish full live-performance readiness.
+
+## Completed checks
+
+- `CHOKIDAR_USEPOLLING=1 npm run check`: typecheck and lint passed; 320 tests passed, one optional native test skipped.
+- `XM_FLUID_FILE_TEST=1 CHOKIDAR_USEPOLLING=1 npx vitest run tests/main/fluidsynth-native.test.ts`: passed again with real FluidSynth 2.3.4, SF2/SF3 and file output. No hardware MIDI.
+- `npm run smoke`: UI mount and engine handshake passed before packaging; real MIDI disabled.
+- Isolated desktop checks: recording/editing, real muted audio processing and five import formats, clips, scenes/cues/registers/scripts, follow modes, linked-score conversion and notation, backend changes/recovery and external MIDI routing.
+- External MIDI desktop checks: audition, live and sequenced notes, shared note/pedal ownership, original held destinations, channel change, stop cancellation, reconnect, saved YAML, 40 px picker controls, and 1920/1280 viewports. Real MIDI ports were replaced before app code.
+- Copied Expedition score: all 967 engraved attacks matched the unrolled MIDI pitches/ticks through the end. Original scores were not modified.
+- Permissioned, muted PipeWire comparison: Built-in readouts and FluidSynth PipeWire startup at quantum 1024 and 256; original 1024 restored and independently read back. No test Electron/FluidSynth processes remained. See [latency observations](latency.md).
+- Production license allowlist: passed; 82 dependencies plus the application, with font/runtime notices considered separately.
+
+The latest live-input and portable-path regressions are unit verified. Fresh native switching/recovery checks also passed after fixing preset selection across engine choices. The initial fresh native run caught that regression and timed out; it was corrected and the complete rerun passed.
+
+`CHOKIDAR_USEPOLLING=1 npm run dist:linux -- --publish never` built the AppImage. Its own executable passed hardware-disabled smoke with a fresh temporary profile and the normal sandbox. Packaged ASAR flows passed external MIDI routing and portable settings load/save beside an AppImage path containing spaces; packaged notation/audio flows passed recording, edits, follow highlights, copied-score conversion, embedded notation font, mixed-axis alignment, playback/page/center, cache limits, click seeking, scale and themes. MIDI was simulated and output muted.
+
+The package contains no private sketch/instruction files. Both unpacked Verovio modules match the npm originals byte-for-byte. Electron/Chromium notices are present. Workflow YAML and configured portable-only targets passed local structural checks. The final trace audit and push status are recorded at the end of validation; the tag-triggered workflow remains unexecuted.
+
+## Performance checklist
+
+| Check | Software evidence | Still required |
+| --- | --- | --- |
+| New project, splits/layers, held scene changes | Routing tests and isolated desktop checks; earlier physical KeyLab split/sustain confirmation | Full current-build keyboard/listening pass |
+| Multi-track MIDI, instruments, staff/roll, page/center, reorder, zoom | Import/timing/notation tests and desktop checks | Physical packaged-build interaction pass |
+| Four-bar audio loop at 50%, knob speed, filter/isolation, grid/taps, click/cue | Real muted processing and synthetic control checks | Listen for pitch/timing; physical knob and alternate output checks |
+| Reduced-speed recording, undo/redo, edits, quantize, updated staves | Desktop recording/editing/notation checks | Physical playing/pen comfort and listening |
+| Transport/DAW, Learn, conditions, beat chase, register LEDs/display, hot-plug | Profile/binding/feedback simulations and no-SysEx smoke | Press/release/sweep actual controls; confirm colours/display and hot-plug |
+| Reprise scenes/registers/scripts, exclusive groups, wait cue, live YAML/conflict | State/routing/script tests and desktop checks | Perform the arrangement on real hardware |
+| Wait any/all, tempo tracking, wrong notes and skip | Synthetic performance and muted audio checks | Tune matching with the performer |
+| Clips: all launches/sweeps, groups, speed, pressure, LEDs, WAV/MP3/OGG/M4A/FLAC | Decoder/processing/controller simulations and desktop checks | Actual pad/fader use, sound and LEDs |
+| MuseScore save/re-sync, ahead protection, export/discard, repeats | Copied-score headless exports and file watching; notation matches to end | Actual MuseScore GUI Ctrl+S, associations; MuseScore 4 |
+| Built-in/FluidSynth switching and readouts | Muted built-in signal, native file audio, recovery and quantum comparison | Audible native output and timing under full arrangement load |
+| Save/quit/reopen; copied project and missing-font lookup | Folder IO and desktop persistence checks | Copied-project move/missing-font and clean-account checks |
+| AppImage and portable settings | AppImage startup and packaged portable data read/write passed; launcher-path precedence unit tests | Test a separate clean OS account; Windows launcher remains untested |
+
+## Windows 11: user-run
+
+No Windows operation is verified yet. Check the portable EXE and ZIP, output/input names, controller capture, all audio formats, 40 px touch targets and actual Wacom pen/eraser/pressure behavior. Verify WASAPI shared/exclusive operation, readouts and audible timing, FluidSynth and MuseScore detection/path quoting, project save/reopen and portable settings. Report the OS build, device/driver, artifact version, settings and failures. The build job's experimental status does not establish runtime support.
+
+## Release gates
+
+AppImage execution, packaged assets, notices, portable settings, final checks and the repository/history trace audit must be reviewed before requesting a tag. Physical checks cannot be replaced by simulated ports. Tag creation and release publication require separate explicit approval. A draft release may omit Windows artifacts if that experimental job failed; inspect the workflow before publishing.

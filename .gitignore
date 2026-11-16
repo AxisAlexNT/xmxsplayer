@@ -15,5 +15,6 @@ Thumbs.db
 *.local
 /*.svg
 /scratch/
+/production-licenses.json
 src/engine/public/worklets/
 src/engine/public/notation/
