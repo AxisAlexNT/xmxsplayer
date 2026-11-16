@@ -13,7 +13,7 @@ function port(id: string, name: string) {
     onmidimessage: null as ((e: MIDIMessageEvent) => void) | null,
   }
 }
-it('groups main input/output per device, filters auxiliaries, decodes concurrent devices and closes hot-plug notes', async () => {
+it('pairs controller feedback independently of external output choices and closes hot-plug notes', async () => {
   const a = port('a', 'KL Essential 61 mk3 MIDI'),
     aux = port('aux', 'KL Essential 61 mk3 ALV'),
     b = port('b', 'Other keyboard'),
@@ -58,7 +58,8 @@ it('groups main input/output per device, filters auxiliaries, decodes concurrent
   ).toEqual(['a', 'b'])
   expect(
     ports.mock.lastCall?.[0].outputs.map((p: { id: string }) => p.id),
-  ).toEqual(['out'])
+  ).toEqual(['out', 'din'])
+  expect(manager.outputs()).toEqual([out, din])
   a.onmidimessage!({
     data: new Uint8Array([0x99, 40, 100]),
     timeStamp: 10,

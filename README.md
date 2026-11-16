@@ -12,6 +12,8 @@ The transcription workspace imports MIDI and audio, shares a transport and timel
 
 Verified on Ubuntu 24.04, including live input from an Arturia KeyLab Essential 61 mk3. Automated desktop checks cover recording at 60% speed over looping audio, take undo/redo, native pointer editing, simulated pen pressure and touch zoom. Physical Windows pen/eraser behavior, Windows audio codecs and alternate hardware outputs remain unverified. Some KeyLab pad, knob, fader and encoder messages still require physical capture; Windows port names remain unverified. M8 software provides wait-for-notes and tempo tracking, including any/all chord matching, early notes, lead controls, expected-note highlights, tempo/phase settings and live factor readouts. Synthetic performance and isolated desktop checks pass; physical performance tuning remains pending. M9 software links MuseScore scores and MIDI files, watches score saves, preserves locally edited tracks, and provides export, discard/re-sync and detach actions. MuseScore 3 conversion and watched re-sync are verified with copied scores on Ubuntu. M10 software adds MusicXML/MXL import, unrolled staff notation, mixed-lane alignment, page/center views, scale, themes and sounding/expected highlights. Copied Expedition notes match the unrolled notation through the end; isolated desktop checks cover recording, edits, scrolling, page caching and imports. M11 software adds managed FluidSynth, independent instrument overrides and live default-engine switching. File-output checks verify SF2/SF3, playback continuity, released voices and recovery; real native audio drivers remain unverified. Latency guides, portable packaging and full release QA remain; MuseScore GUI saves, desktop file associations, MuseScore 4 and Windows remain unverified. This is not a release-ready application.
 
+External MIDI instruments select an output port, channel, bank and program in the instrument picker. Live and sequenced routing, audition, note ownership, cancellation and reconnect are covered by simulated-port checks; physical receivers and Qsynth remain untested. See [External MIDI](docs/external-midi.md) for setup and shared-channel limits.
+
 ## Development
 
 Use Node.js 24 and npm.
@@ -35,6 +37,7 @@ Import MIDI or reference audio from the menu. Shift-drag the ruler to set a loop
 Link scores with **File → Link Score**. Set or detect MuseScore under **Settings → Files**. Edit the copied score under `scores/`; save in MuseScore to update synced tracks. In-app note edits and recordings protect a linked track as **modified here**. See [MuseScore link](docs/musescore-link.md) for export, discard and detach.
 
 Choose the default synth in **Settings → Audio**, or override it per instrument in the preset picker. The native engine requires an installed FluidSynth executable. See [FluidSynth](docs/fluidsynth.md) for drivers, configured latency, recovery and its aftertouch limitation.
+
 
 Packaging configuration and release validation follow in the release milestone.
 

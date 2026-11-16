@@ -31,6 +31,7 @@ import type { CommandMap, RuntimeState } from '../shared/protocol'
 import { AudioGraph } from './audio/graph'
 import { WebSynthBackend } from './synth/web-synth'
 import { FluidSynthBackend } from './synth/fluid-synth'
+import { MidiOutSynthBackend } from './synth/midi-out-synth'
 import type { SynthBackend } from './synth/backend'
 import type { MidiMessage } from './midi/midi-io'
 import { DeviceManager } from './midi/device-manager'
@@ -44,6 +45,7 @@ let settings: Settings | undefined
 let graph: AudioGraph | undefined
 let backend: WebSynthBackend | undefined
 let fluidBackend: FluidSynthBackend | undefined
+let midiBackend: MidiOutSynthBackend | undefined
 let rack: InstrumentRack | undefined
 let router: Router | undefined
 let midi: DeviceManager | undefined
@@ -411,7 +413,13 @@ function selectBackend(instrument: Instrument): SynthBackend {
       ? (settings?.audio.defaultSynth ?? 'web')
       : instrument.backend
   const selected =
-    target === 'fluid' ? fluidBackend : target === 'web' ? backend : undefined
+    target === 'fluid'
+      ? fluidBackend
+      : target === 'web'
+        ? backend
+        : target === 'midi'
+          ? midiBackend
+          : undefined
   if (!selected)
     throw Error(`${instrument.name}: ${target} backend is not available`)
   return selected
@@ -422,7 +430,11 @@ function reportSynthReady(): void {
     readyIds: (project?.instruments ?? [])
       .filter((instrument) => {
         const slot = rack?.get(instrument.id)
-        return slot && (slot.backend !== fluidBackend || fluidBackend.available)
+        return (
+          slot &&
+          (slot.backend !== fluidBackend || fluidBackend.available) &&
+          (slot.backend !== midiBackend || midiBackend.available(instrument))
+        )
       })
       .map((instrument) => instrument.id),
   })
@@ -477,6 +489,11 @@ async function initialize(value: Settings): Promise<void> {
     )
     await graph.apply(value.audio)
     backend = await WebSynthBackend.create(graph.context, graph.main)
+    midiBackend = new MidiOutSynthBackend(
+      () => midi?.outputs() ?? [],
+      () => graph!.context.currentTime,
+      (message) => log('warn', 'midi', message),
+    )
     fluidBackend = new FluidSynthBackend(
       window.xm.fluid,
       () => graph!.context.currentTime,
@@ -736,7 +753,14 @@ async function initialize(value: Settings): Promise<void> {
       settings?.devices ?? value.devices,
       receiveMidi,
       receiveControl,
-      (ports) => bus?.send('midi:ports', ports),
+      (ports) => {
+        bus?.send('midi:ports', ports)
+        midiBackend?.refresh()
+        if (project && !engineClosing)
+          void initialization
+            ?.then(() => synchronize())
+            .catch((error) => log('warn', 'midi', String(error)))
+      },
       (source) => {
         noteHooks?.disconnect(source)
         bindings?.disconnect(source)
@@ -826,6 +850,8 @@ async function initialize(value: Settings): Promise<void> {
     graph = undefined
     backend?.destroy()
     await fluidBackend?.destroy()
+    midiBackend?.destroy()
+    midiBackend = undefined
     fluidBackend = undefined
     backend = undefined
     initialization = undefined
@@ -895,7 +921,7 @@ function previewNote(
   const token = {}
   previews.set(owner, { token, key })
   const font = project.soundfonts.find((sf) => sf.id === preset.soundfontId)
-  if (!font) {
+  if (!font && preset.backend !== 'midi') {
     previews.delete(owner)
     return
   }
@@ -905,6 +931,7 @@ function previewNote(
       name: 'Audition',
       color: '#4cc2ff',
       backend: preset.backend ?? 'default',
+      midiOut: preset.midiOut,
       soundfontId: preset.soundfontId,
       bank: preset.bank,
       program: preset.program,
@@ -916,7 +943,7 @@ function previewNote(
       transpose: 0,
     }
     const target = selectBackend(instrument)
-    await load(font, target)
+    if (font && target.id !== 'midi') await load(font, target)
     const slot = await target.allocate(instrument)
     if (previews.get(owner)?.token !== token) {
       target.release(slot)
@@ -1263,4 +1290,5 @@ window.engineHost.onShutdown(async () => {
   await leds?.close()
   activity?.close()
   await fluidBackend?.destroy()
+  midiBackend?.destroy()
 })

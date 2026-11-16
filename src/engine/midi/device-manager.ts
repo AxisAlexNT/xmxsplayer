@@ -77,6 +77,12 @@ export class DeviceManager {
   output(id: string): MIDIOutput | undefined {
     return this.io.output(id)
   }
+  outputs(): MIDIOutput[] {
+    return this.ports.outputs.flatMap((port) => {
+      const output = this.io.output(port.id)
+      return output ? [output] : []
+    })
+  }
   receive(source: string, data: Uint8Array, timestamp: number): void {
     const device = this.connected.find((d) => d.id === source)
     if (!device) return
@@ -142,7 +148,7 @@ export class DeviceManager {
     this.connected = devices
     this.reportPorts({
       inputs: devices.map(({ id, name }) => ({ id, name })),
-      outputs,
+      outputs: this.ports.outputs,
       devices: devices.map(({ id, name, profile }) => ({
         id,
         name,

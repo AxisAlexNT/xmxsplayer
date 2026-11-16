@@ -103,7 +103,12 @@ export class SequenceOutput implements SchedulerOutput {
     )
     // A routing change releases the pedal, while key-down voices retain their slots.
     for (const slot of this.reachable)
-      if (!reachable.has(slot)) slot.backend.cc(slot.slot, 64, 0)
+      if (!reachable.has(slot)) {
+        slot.backend.cc(slot.slot, 64, 0)
+        this.rack.release(slot)
+      }
+    for (const slot of reachable)
+      if (!this.reachable.has(slot)) this.rack.retain(slot)
     this.reachable = reachable
   }
   private destinations(trackId: string, tick: number): RackSlot[] {
@@ -283,6 +288,8 @@ export class SequenceOutput implements SchedulerOutput {
   }
   close(): void {
     this.reset(false)
+    for (const slot of this.reachable) this.rack.release(slot)
+    this.reachable.clear()
     this.rack.close()
   }
 }
