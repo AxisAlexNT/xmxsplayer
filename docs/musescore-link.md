@@ -41,3 +41,5 @@ A real MuseScore 3.2.3 GUI save was verified on Ubuntu: Ctrl+A/Up changed pitche
 The GUI test used temporary settings, disabled MIDI input, a process-local silent ALSA configuration and disabled first-use tours. Earlier isolated launches with synthesis disabled crashed with exit 139; the successful setup kept the internal synthesizer available without hardware audio I/O. This does not verify MuseScore audio playback or a normal desktop audio configuration.
 
 An installed MIDI-file association is needed for exported MIDI to open in MuseScore. OS launch requests and exported contents are tested separately; actual desktop association behavior, MuseScore 4 and Windows still require a user check.
+
+Read-only checks on the verification computer identified saved MIDI as `audio/midi` and reported `vlc.desktop` as its default handler. Automatic opening in MuseScore is therefore not configured there. Import the exported file from MuseScore, or choose MuseScore as the desktop MIDI handler. No association was changed, and the default application was not launched by this check.

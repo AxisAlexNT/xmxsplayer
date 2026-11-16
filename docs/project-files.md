@@ -10,3 +10,5 @@ Settings live in the Electron user-data directory. Set `XMXS_DATA_DIR`, or creat
 
 
 On Windows the normal settings path is `%APPDATA%\xmxsplayer\settings.json`; on Linux it is normally `~/.config/xmxsplayer/settings.json`. `XMXS_DATA_DIR` takes precedence over a portable data folder. Settings contain computer-specific devices, executable paths and script trust; they are separate from the project. Projects keep soundfont filenames and MIDI destination names so each studio can resolve its own installations.
+
+Portability verification opened a saved project from two copied folders with spaces in their paths, restored all three tracks and the edited linked notes, and resolved a renamed SF2 by filename in another configured directory. A fresh instance with that directory absent showed the missing-font state; Locate restored muted synthesis and saved the directory in computer settings. Another fresh instance reopened without asking again. These checks used packaged code, simulated MIDI and muted output; they do not establish operation on another OS account or studio computer.

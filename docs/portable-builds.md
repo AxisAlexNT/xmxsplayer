@@ -4,7 +4,7 @@ The configured targets are Linux x64 AppImage and Windows x64 portable EXE plus 
 
 ## Run
 
-1. Use an artifact from a verified release when one is available. No release has been tagged or published during current validation. Windows builds are experimental and untested.
+1. Use an artifact from a verified release when one is available. No release has been tagged or published during current validation. Windows runtime support is experimental and untested. Cross-builds completed on Linux; portable EXE distribution is on hold for the launcher-license decision described below.
 2. On Linux, make the AppImage executable and launch it. AppImage startup passed on Ubuntu Studio 24.04 with a fresh temporary profile and the normal sandbox; a separate clean OS account remains untested. Do not assume the development checkout's system dependencies are present on another computer.
 3. On Windows, launch the portable EXE, or extract the ZIP and launch `xmxsplayer.exe`. Keep the extracted ZIP directory together. No installer is configured. Executables are unsigned; Windows signing and operation remain untested.
 4. To keep settings portable, create `xmxsplayer-data` beside the AppImage or portable launcher before starting it. For the ZIP, create it beside `xmxsplayer.exe`. If absent, settings use the normal per-user directory. `XMXS_DATA_DIR` overrides both. AppImage and portable EXE launchers extract internally; settings lookup uses the outer launcher's directory rather than the temporary extraction path.
@@ -26,9 +26,13 @@ On Windows, replace the last command with:
 npm run dist:win -- --publish never
 ```
 
-Artifacts go into `release/`. Linux has only the AppImage target; Windows has only portable EXE and ZIP, all x64. Building is separate from publishing. Linux AppImage startup and packaged asset flows passed on the verification computer; Windows packaging has not been run on Windows.
+Artifacts go into `release/`. Linux has only the AppImage target; Windows has only portable EXE and ZIP, all x64. Building is separate from publishing. Linux AppImage startup and packaged asset flows passed on the verification computer; Unsigned Windows EXE and ZIP cross-builds succeeded on Linux; packaging on Windows and all Windows runtime behavior remain untested. Archive decompression and x64 payload checks passed. The portable EXE uses a 32-bit extraction stub around the x64 application.
 
 The original icon's SVG and export assets are in `build/`. Worklets and the unmodified Verovio modules are unpacked under `resources/app.asar.unpacked/out/renderer/`. Electron/Chromium and dependency notices accompany the packaged application; [Third-party notices](../THIRD_PARTY_NOTICES.md) explains source access and library replacement.
+
+## Portable EXE license gate
+
+The required portable EXE embeds NSIS launcher components, including `StdUtils.dll` and `nsis7z.dll`. Their upstream documentation identifies LGPL terms, in addition to NSIS's zlib licensing. Those are outside the current Verovio-only LGPL exception. EXE distribution is on hold pending approval of those launcher components with notices/source references, or a decision to use ZIP only. The configured targets have not been changed, and no release tag has been created. The ZIP does not embed the NSIS launcher. See [StdUtils licensing](https://nsis.sourceforge.io/StdUtils_plug-in#License), [Nsis7z licensing](https://nsis.sourceforge.io/Nsis7z_plug-in#License) and [NSIS licensing](https://nsis.sourceforge.io/License).
 
 ## License audit and notices
 

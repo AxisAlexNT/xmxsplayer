@@ -12,13 +12,16 @@ Current validation: 0.1.0, Ubuntu Studio 24.04, 2026-11-16. This document separa
 - Actual MuseScore 3.2.3 GUI Ctrl+A/Up/Ctrl+S: copied score saved, first imported pitch changed from 59 to 60, packaged-player playback continued, original score hash unchanged and GUI closed cleanly. Temporary settings disabled MIDI input and first-use tours, with process-local silent ALSA routing. Earlier synthesis-disabled launches crashed with exit 139; normal desktop audio remains untested.
 - Copied Expedition score: all 967 engraved attacks matched the unrolled MIDI pitches/ticks through the end. Original scores were not modified.
 - Permissioned, muted PipeWire comparison: Built-in readouts and FluidSynth PipeWire startup at quantum 1024 and 256; original 1024 restored and independently read back. No test Electron/FluidSynth processes remained. See [latency observations](latency.md).
-- Production license allowlist: passed; 82 dependencies plus the application, with font/runtime notices considered separately.
+- Copied-project portability: two destination folders with spaces restored all three tracks and saved linked notes. Filename-based font lookup, missing-font Locate recovery and persisted lookup in another fresh profile passed with a real muted synthesis signal.
+- Production npm license allowlist: passed; 82 dependencies plus the application, with font/runtime notices considered separately.
 
 The latest live-input and portable-path regressions are unit verified. Fresh native switching/recovery checks also passed after fixing preset selection across engine choices. The initial fresh native run caught that regression and timed out; it was corrected and the complete rerun passed.
 
 `CHOKIDAR_USEPOLLING=1 npm run dist:linux -- --publish never` built the AppImage. Its own executable passed hardware-disabled smoke with a fresh temporary profile and the normal sandbox. Packaged ASAR flows passed external MIDI routing and portable settings load/save beside an AppImage path containing spaces; packaged notation/audio flows passed recording, edits, follow highlights, copied-score conversion, embedded notation font, mixed-axis alignment, playback/page/center, cache limits, click seeking, scale and themes. MIDI was simulated and output muted.
 
-The package contains no private sketch/instruction files. Both unpacked Verovio modules match the npm originals byte-for-byte. Electron/Chromium notices are present. Workflow YAML and configured portable-only targets passed local structural checks. The final trace audit and push status are recorded at the end of validation; the tag-triggered workflow remains unexecuted.
+Windows x64 portable EXE and ZIP cross-builds also completed on Linux with signing and publication disabled. Both archives passed decompression checks; the application payload is PE32+ x64. The portable EXE has a 32-bit extraction stub with an x64 payload. Neither was executed on Windows. Its NSIS launcher embeds StdUtils/Nsis7z helpers with additional LGPL licensing, so EXE distribution is on hold pending a license-policy decision. The ZIP has no NSIS launcher. This component check is separate from the npm allowlist audit.
+
+The Linux and Windows packages contain no private sketch/instruction files. Both unpacked Verovio modules match the npm originals byte-for-byte on both platforms; inspected executable fuse settings leave embedded ASAR validation disabled. Electron/Chromium notices are present. Workflow YAML and configured portable-only targets passed local structural checks. The final trace audit and push status are recorded at the end of validation; the tag-triggered workflow remains unexecuted.
 
 ## Performance checklist
 
@@ -32,15 +35,15 @@ The package contains no private sketch/instruction files. Both unpacked Verovio 
 | Reprise scenes/registers/scripts, exclusive groups, wait cue, live YAML/conflict | State/routing/script tests and desktop checks | Perform the arrangement on real hardware |
 | Wait any/all, tempo tracking, wrong notes and skip | Synthetic performance and muted audio checks | Tune matching with the performer |
 | Clips: all launches/sweeps, groups, speed, pressure, LEDs, WAV/MP3/OGG/M4A/FLAC | Decoder/processing/controller simulations and desktop checks | Actual pad/fader use, sound and LEDs |
-| MuseScore save/re-sync, ahead protection, export/discard, repeats | Copied-score headless exports, real GUI Ctrl+S during playback and file watching; notation matches to end | Desktop associations; MuseScore 4 |
+| MuseScore save/re-sync, ahead protection, export/discard, repeats | Copied-score headless exports, real GUI Ctrl+S during playback and file watching; notation matches to end | MIDI defaults to VLC on this PC; manual import/association setup; MuseScore 4 |
 | Built-in/FluidSynth switching and readouts | Muted built-in signal, native file audio, recovery and quantum comparison | Audible native output and timing under full arrangement load |
-| Save/quit/reopen; copied project and missing-font lookup | Folder IO and desktop persistence checks | Copied-project move/missing-font and clean-account checks |
+| Save/quit/reopen; copied project and missing-font lookup | Folder IO, moved project, filename font lookup, Locate recovery and fresh-profile reopening passed | Separate clean OS account |
 | AppImage and portable settings | AppImage startup and packaged portable data read/write passed; launcher-path precedence unit tests | Test a separate clean OS account; Windows launcher remains untested |
 
 ## Windows 11: user-run
 
-No Windows operation is verified yet. Check the portable EXE and ZIP, output/input names, controller capture, all audio formats, 40 px touch targets and actual Wacom pen/eraser/pressure behavior. Verify WASAPI shared/exclusive operation, readouts and audible timing, FluidSynth and MuseScore detection/path quoting, project save/reopen and portable settings. Report the OS build, device/driver, artifact version, settings and failures. The build job's experimental status does not establish runtime support.
+Unsigned Windows artifacts cross-built successfully on Linux; no Windows runtime operation is verified yet. Portable EXE distribution awaits the launcher-license decision; the ZIP remains available for runtime testing. Check the portable EXE and ZIP, output/input names, controller capture, all audio formats, 40 px touch targets and actual Wacom pen/eraser/pressure behavior. Verify WASAPI shared/exclusive operation, readouts and audible timing, FluidSynth and MuseScore detection/path quoting, project save/reopen and portable settings. Report the OS build, device/driver, artifact version, settings and failures. The build job's experimental status does not establish runtime support.
 
 ## Release gates
 
-AppImage execution, packaged assets, notices, portable settings, final checks and the repository/history trace audit must be reviewed before requesting a tag. Physical checks cannot be replaced by simulated ports. Tag creation and release publication require separate explicit approval. A draft release may omit Windows artifacts if that experimental job failed; inspect the workflow before publishing.
+AppImage execution, packaged assets, notices, portable settings, final checks and the repository/history trace audit must be reviewed before requesting a tag. Physical checks cannot be replaced by simulated ports. The additional NSIS launcher licenses require a policy decision before distributing the portable EXE. Tag creation and release publication require separate explicit approval. A draft release may omit Windows artifacts if that experimental job failed; inspect the workflow before publishing.
