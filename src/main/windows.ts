@@ -21,6 +21,7 @@ export function createWindows(preloadRoot: string): Windows {
     nodeIntegration: false,
   }
   const ui = new BrowserWindow({
+    icon: join(app.getAppPath(), 'build', 'icon.png'),
     width: 1920,
     height: 1080,
     minWidth: 1280,

@@ -1,0 +1,38 @@
+appId: io.github.AxisAlexNT.xmxsplayer
+productName: xmxsplayer
+directories:
+  buildResources: build
+  output: release
+files:
+  - out/**/*
+  - resources/**/*
+  - docs/**/*
+  - build/icon.png
+  - LICENSE
+  - README.md
+  - THIRD_PARTY_NOTICES.md
+  - package.json
+asar: true
+asarUnpack:
+  - out/renderer/worklets/**/*
+  - out/renderer/notation/**/*
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+  category: AudioVideo
+  icon: build/icon.png
+  artifactName: xmxsplayer-${version}-linux-${arch}.${ext}
+win:
+  target:
+    - target: portable
+      arch: [x64]
+    - target: zip
+      arch: [x64]
+  icon: build/icon.ico
+  artifactName: xmxsplayer-${version}-windows-${arch}.${ext}
+publish:
+  provider: github
+  owner: AxisAlexNT
+  repo: xmxsplayer
+  releaseType: draft
