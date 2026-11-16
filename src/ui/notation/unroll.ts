@@ -141,8 +141,20 @@ export function unrollScore(musicxml: string): UnrolledScore {
       if (n === 0 || index !== sequence[n - 1] + 1) {
         for (const a of children(clone, 'attributes')) clone.removeChild(a)
         const attrs = doc.createElementNS(clone.namespaceURI, 'attributes')
-        for (const el of snapshots[index]) attrs.appendChild(el.cloneNode(true))
-        clone.insertBefore(attrs, clone.firstChild)
+        const previous = new Map(
+          (n ? snapshots[sequence[n - 1]] : []).map((el) => [
+            `${el.localName}:${el.getAttribute('number') ?? ''}`,
+            serializeXml(el),
+          ]),
+        )
+        for (const el of snapshots[index])
+          if (
+            previous.get(
+              `${el.localName}:${el.getAttribute('number') ?? ''}`,
+            ) !== serializeXml(el)
+          )
+            attrs.appendChild(el.cloneNode(true))
+        if (children(attrs).length) clone.insertBefore(attrs, clone.firstChild)
       }
       for (const el of [
         clone,
@@ -150,6 +162,26 @@ export function unrollScore(musicxml: string): UnrolledScore {
       ]) {
         el.removeAttribute('id')
         el.removeAttribute('xml:id')
+      }
+      for (const bar of children(clone, 'barline'))
+        if (children(bar, 'repeat').length || children(bar, 'ending').length)
+          for (const style of children(bar, 'bar-style'))
+            if (
+              /^(heavy-light|light-heavy|heavy-heavy)$/.test(
+                style.textContent ?? '',
+              )
+            )
+              bar.removeChild(style)
+      for (const direction of children(clone, 'direction')) {
+        const words = descendants(direction, 'words')
+        if (
+          words.length === 1 &&
+          /^repeat\s+\d+\s+times?[.!]?$/i.test(
+            words[0].textContent?.trim() ?? '',
+          ) &&
+          frames.some((frame) => frame.end === index)
+        )
+          clone.removeChild(direction)
       }
       for (const name of ['repeat', 'ending'])
         for (const el of descendants(clone, name))

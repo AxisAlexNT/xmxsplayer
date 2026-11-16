@@ -117,9 +117,9 @@ function draw(): void {
       }
       const [start, end] = axis.pageRange(page),
         map = new TimeMap(doc.project)
-      for (const measure of map.measures(start, end))
+      for (const measure of (axis.measures?.(page)??map.measures(start, end)))
         for (let i = 0; i < measure.beats.length; i++) {
-          const x = axis.xInPage(measure.beats[i], page)
+          const x = (i===0 ? axis.measureX?.(measure.start,page)??axis.xInPage(measure.start,page) : axis.xInPage(measure.beats[i],page))
           c.strokeStyle = i === 0 ? '#34434f' : '#21323e'
           c.beginPath()
           c.moveTo(x, 0)

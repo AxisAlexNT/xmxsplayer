@@ -26,6 +26,7 @@ export interface ScoreData {
 }
 export interface DesktopApi {
   scores: {
+    readXml: (file: string) => Promise<string>
     detect: (path?: string) => Promise<{ path: string; version: string }>
     convert: (source: Source) => Promise<ScoreData>
     open: (file: string) => Promise<void>

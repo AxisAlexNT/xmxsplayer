@@ -103,22 +103,24 @@ function lead(id: string): void {
         :disabled="!runtime.connected"
         @click="toggle"
       >
-        {{ label }}
+        <span>{{ label }}</span>
+        <small
+          v-if="runtime.transport.holding"
+          class="xm-follow-hint"
+          role="status"
+        >{{
+          runtime.state.followHolding && expected
+            ? `Waiting for ${expected}`
+            : runtime.state.armedCueId
+              ? 'Waiting for cue'
+              : 'Waiting for release'
+        }}</small>
+        <small
+          v-else-if="runtime.transport.countInBeat"
+          class="xm-follow-hint"
+        >Count-in {{ runtime.transport.countInBeat }}</small>
       </button>
     </div>
-    <small
-      v-if="runtime.transport.holding"
-      class="xm-follow-hint"
-      role="status"
-    >{{
-      runtime.state.followHolding && expected
-        ? `Waiting for ${expected}`
-        : 'Waiting for cue or release'
-    }}</small>
-    <small
-      v-else-if="runtime.transport.countInBeat"
-      class="xm-follow-hint"
-    >Count-in {{ runtime.transport.countInBeat }}</small>
   </div>
   <EditorPopover
     v-if="open"

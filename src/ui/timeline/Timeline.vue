@@ -1,5 +1,8 @@
 <script setup lang="ts">
 defineOptions({ name: 'TrackTimeline' })
+import StaffLane from '../lanes/StaffLane.vue'
+import { NotationService, notationKey } from '../notation/notation-service'
+import { useSourcesStore } from '../stores/sources'
 import TrackSourceMenu from '../components/TrackSourceMenu.vue'
 import {
   computed,
@@ -17,6 +20,7 @@ import { useProjectStore } from '../stores/project'
 import { useEditorStore } from '../stores/editor'
 import { useRuntimeStore } from '../stores/runtime'
 import { timelineKey } from './context'
+import type { TimeAxis } from './time-axis'
 import { LinearAxis } from './linear-axis'
 import { transportTick, Viewport, type TimelineFrame } from './viewport'
 import Ruler from '../lanes/Ruler.vue'
@@ -32,6 +36,9 @@ const emit = defineEmits<{
   error: [error: unknown]
 }>()
 const rig = usePerformanceStore()
+const notation = new NotationService(),
+  sources = useSourcesStore()
+provide(notationKey, notation)
 const doc = useProjectStore(),
   runtime = useRuntimeStore(),
   editor = useEditorStore(),
@@ -45,19 +52,77 @@ const doc = useProjectStore(),
   heights = ref<Record<string, number>>({}),
   loopPreview = ref<import('../../shared/model').Project['loop'] | null>(null)
 const map = computed(() => new TimeMap(doc.project)),
-  axis = computed(
-    () =>
-      new LinearAxis(
-        editor.activeTrackId
-          ? new TimeMap({
-              ...doc.project,
-              lengthTicks: map.value.nextBar(doc.project.lengthTicks),
-            })
-          : map.value,
-        width.value,
-        timePreview.value ?? doc.project.view.pxPerQuarter,
-      ),
+  axis = computed<TimeAxis>(() =>
+    hasStaves.value && notation.axis.value
+      ? notation.axis.value
+      : new LinearAxis(
+          editor.activeTrackId
+            ? new TimeMap({
+                ...doc.project,
+                lengthTicks: map.value.nextBar(doc.project.lengthTicks),
+              })
+            : map.value,
+          width.value,
+          timePreview.value ?? doc.project.view.pxPerQuarter,
+        ),
   )
+function wantsStaff(track: Track): boolean {
+  return (
+    track.kind === 'midi' &&
+    (doc.project.view.lanes === 'staff' ||
+      (doc.project.view.lanes === 'per-track' && track.view === 'staff'))
+  )
+}
+const hasStaves = computed(() =>
+  doc.project.tracks.some(
+    (t) => wantsStaff(t) && notation.merged.value?.staffTrackIds.includes(t.id),
+  ),
+)
+function isStaff(track: Track): boolean {
+  return (
+    wantsStaff(track) &&
+    !!notation.info.value &&
+    !!notation.merged.value?.staffTrackIds.includes(track.id)
+  )
+}
+watch(
+  () =>
+    JSON.stringify([
+      width.value,
+      doc.loadRevision,
+      doc.project.view.staffScale,
+      doc.project.view.lanes,
+      doc.project.mapOwner,
+      doc.project.sources.map((s) => [s.id, s.durationTicks]),
+      doc.project.tempos,
+      doc.project.timeSigs,
+      doc.project.keySigs,
+      doc.project.lengthTicks,
+      sources.musicxml[doc.project.mapOwner ?? ''],
+      doc.project.tracks
+        .filter((t) => t.kind === 'midi')
+        .map((t) => [
+          t.id,
+          t.name,
+          t.notes,
+          t.link,
+          t.clef,
+          t.quantGrid,
+          t.view,
+        ]),
+      doc.project.base.patch.map((p) => [p.trackId, p.instrumentId]),
+      doc.project.instruments.map((i) => [i.id, i.isDrum]),
+    ]),
+  () => {
+    if (doc.project.tracks.some(wantsStaff))
+      notation.schedule(
+        doc.project,
+        sources.musicxml[doc.project.mapOwner ?? ''],
+        { pageWidth: width.value, scale: doc.project.view.staffScale },
+      )
+  },
+  { immediate: true },
+)
 const frame = shallowRef<TimelineFrame>({
     tick: 0,
     offset: 0,
@@ -144,13 +209,20 @@ const loops = computed(() => {
       ? [
           {
             page,
-            left: page * a.pageWidth + a.xInPage(lo, page) - frame.value.offset,
-            width: a.xInPage(hi, page) - a.xInPage(lo, page),
+            left:
+              page * a.pageWidth +
+              (a.measureX?.(lo, page) ?? a.xInPage(lo, page)) -
+              frame.value.offset,
+            width:
+              (a.measureX?.(hi, page) ?? a.xInPage(hi, page)) -
+              (a.measureX?.(lo, page) ?? a.xInPage(lo, page)),
           },
         ]
       : []
   })
 })
+let requestedInfo: unknown,
+  requestedPage = -1
 let animation = 0,
   observer: ResizeObserver | undefined
 function update(): void {
@@ -160,6 +232,22 @@ function update(): void {
     doc.project.loop,
     performance.timeOrigin + performance.now(),
   )
+  if (hasStaves.value && notation.info.value) {
+    const page = axis.value.pageOfTick(tick)
+    if (requestedPage !== page || requestedInfo !== notation.info.value) {
+      requestedPage = page
+      requestedInfo = notation.info.value
+      void notation.ensure(page)
+    }
+    notation.highlight(
+      doc.project,
+      tick,
+      runtime.transport.playing,
+      runtime.heldKeys,
+      runtime.state.expectedNext?.notes ?? [],
+      displayedMode,
+    )
+  }
   frame.value = viewport.frame(
     axis.value,
     tick,
@@ -213,7 +301,10 @@ function mode(track: Track): void {
   )
 }
 function height(track: Track): number {
-  return Math.max(track.kind === 'midi' && track.link ? 196 : 0, heights.value[track.id] ?? track.height * doc.project.view.laneZoom)
+  return Math.max(
+    track.kind === 'midi' && track.link ? 196 : 0,
+    heights.value[track.id] ?? track.height * doc.project.view.laneZoom,
+  )
 }
 function reorder(event: PointerEvent, id: string): void {
   if (event.button !== 0) return
@@ -398,6 +489,7 @@ onMounted(() => {
   animation = requestAnimationFrame(update)
 })
 onUnmounted(() => {
+  notation.destroy()
   cancelAnimationFrame(animation)
   observer?.disconnect()
 })
@@ -409,7 +501,18 @@ onUnmounted(() => {
     @wheel="zoom"
     @pointerdown="selectLoop"
   >
-    <ConflictBanner @error="emit('error', $event)" />
+    <div class="xm-timeline-banners">
+      <ConflictBanner @error="emit('error', $event)" />
+      <div
+        v-if="notation.error.value || notation.merged.value?.warnings.length"
+        class="xm-notation-warning"
+        role="alert"
+      >
+        {{
+          notation.error.value || notation.merged.value?.warnings.join(' · ')
+        }}
+      </div>
+    </div>
     <Ruler />
     <CueLane @error="emit('error', $event)" />
     <div
@@ -626,8 +729,13 @@ onUnmounted(() => {
             >
           </div>
         </div>
+        <StaffLane
+          v-if="track.kind === 'midi' && isStaff(track)"
+          :track="track"
+          :height="height(track)"
+        />
         <PianoRollLane
-          v-if="track.kind === 'midi'"
+          v-else-if="track.kind === 'midi'"
           :track="track"
           :height="height(track)"
         />
@@ -641,6 +749,41 @@ onUnmounted(() => {
           title="Drag to resize lane"
           @pointerdown="resize($event, track)"
         />
+      </div>
+      <div
+        v-if="hasStaves"
+        class="xm-staff-tools"
+      >
+        <label>Staff scale
+          <input
+            type="range"
+            min="20"
+            max="100"
+            step="1"
+            :value="doc.project.view.staffScale"
+            aria-label="Staff scale"
+            @input="
+              doc.update((d) => {
+                d.view.staffScale = Number(
+                  ($event.target as HTMLInputElement).value,
+                )
+              })
+            "
+          ></label>
+        <div class="xm-seg">
+          <button
+            v-for="theme in ['dark', 'paper'] as const"
+            :key="theme"
+            :class="{ 'is-on': doc.project.view.staffTheme === theme }"
+            @click="
+              doc.update((d) => {
+                d.view.staffTheme = theme
+              })
+            "
+          >
+            {{ theme === 'dark' ? 'Dark' : 'Paper' }}
+          </button>
+        </div>
       </div>
       <div
         v-if="tracks.length"

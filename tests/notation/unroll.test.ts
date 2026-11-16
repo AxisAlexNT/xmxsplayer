@@ -74,4 +74,23 @@ describe('repeat unrolling', () => {
     expect(r.warning).toMatch(/Repeat\/jump/)
     expect(r.sequence).toEqual([0, 1])
   })
+  it('omits unchanged attributes and obsolete repeat engraving after expansion', () => {
+    const r = unrollScore(
+      score(
+        measure(
+          '<attributes><divisions>480</divisions><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes><barline location="left"><bar-style>heavy-light</bar-style><repeat direction="forward"/></barline>',
+        ) +
+          measure(
+            '<direction><direction-type><words>repeat 3 times</words></direction-type></direction><barline><bar-style>light-heavy</bar-style><repeat direction="backward" times="3"/></barline>',
+          ) +
+          measure('<barline><bar-style>light-heavy</bar-style></barline>'),
+      ),
+    )
+    const doc = parseXml(r.musicxml)
+    expect(r.sequence).toEqual([0, 1, 0, 1, 0, 1, 2])
+    expect(descendants(doc, 'clef')).toHaveLength(1)
+    expect(descendants(doc, 'time')).toHaveLength(1)
+    expect(descendants(doc, 'words')).toHaveLength(0)
+    expect(descendants(doc, 'bar-style')).toHaveLength(1)
+  })
 })

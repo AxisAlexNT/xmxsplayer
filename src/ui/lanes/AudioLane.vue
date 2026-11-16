@@ -8,15 +8,16 @@ import { useProjectStore } from '../stores/project'
 import { useRuntimeStore } from '../stores/runtime'
 const props=defineProps<{track:AudioTrack;height:number}>(),doc=useProjectStore(),runtime=useRuntimeStore(),timeline=inject(timelineKey)!,canvas=ref<HTMLCanvasElement>(),previewOffset=ref<number|null>(null)
 const offset=computed(()=>previewOffset.value??props.track.offsetSec),error=computed(()=>runtime.audioStates[props.track.id]?.error)
+let previousAxis:unknown
 let visible=true,observer:IntersectionObserver|undefined,cache=new Map<number,HTMLCanvasElement>(),key=''
 function draw():void{
  if(!visible||!canvas.value)return
  const axis=timeline.axis.value,frame=timeline.frame.value,w=axis.pageWidth,h=props.height,dpr=devicePixelRatio||1,el=canvas.value,data=runtime.audioPeaks[props.track.id],map=new TimeMap(doc.project)
  if(el.width!==Math.round(w*dpr)||el.height!==Math.round(h*dpr)){el.width=Math.round(w*dpr);el.height=Math.round(h*dpr)}
- const nextKey=JSON.stringify([data?.key,w,h,offset.value,doc.project.tempos,doc.project.beatAnchors,doc.project.timeSigs,doc.project.view.pxPerQuarter]);if(key!==nextKey){key=nextKey;cache.clear()}
+ const nextKey=JSON.stringify([data?.key,w,h,offset.value,doc.project.tempos,doc.project.beatAnchors,doc.project.timeSigs,doc.project.view.pxPerQuarter]);if(key!==nextKey||previousAxis!==axis){key=nextKey;previousAxis=axis;cache.clear()}
  const ctx=el.getContext('2d')!;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h)
  for(const page of frame.pages){let image=cache.get(page);if(!image){image=document.createElement('canvas');image.width=Math.round(w*dpr);image.height=Math.round(h*dpr);const c=image.getContext('2d')!;c.scale(dpr,dpr);c.fillStyle='#13212c';c.fillRect(0,0,w,h)
-  const[start,end]=axis.pageRange(page);for(const measure of map.measures(start,end)){const x=axis.xInPage(measure.start,page);c.strokeStyle='#34434f';c.beginPath();c.moveTo(x,0);c.lineTo(x,h);c.stroke()}
+  const[start,end]=axis.pageRange(page);for(const measure of (axis.measures?.(page)??map.measures(start,end))){const x=(axis.measureX?.(measure.start,page)??axis.xInPage(measure.start,page));c.strokeStyle='#34434f';c.beginPath();c.moveTo(x,0);c.lineTo(x,h);c.stroke()}
   if(data){c.fillStyle=props.track.color;c.globalAlpha=.55;for(let x=96;x<w;x++){const from=(map.tickToSec(axis.tickAt(page,x))-offset.value)*data.sampleRate/PEAK_FRAMES,to=(map.tickToSec(axis.tickAt(page,x+1))-offset.value)*data.sampleRate/PEAK_FRAMES;if(to<0||from>=data.peaks.length)continue;let amplitude=0;for(let i=Math.max(0,Math.floor(from));i<=Math.min(data.peaks.length-1,Math.ceil(to));i++)amplitude=Math.max(amplitude,data.peaks[i]);const a=Math.max(.5,amplitude*(h/2-6));c.fillRect(x,h/2-a,1,a*2)}}cache.set(page,image);for(const old of cache.keys())if(!frame.pages.includes(old))cache.delete(old)}ctx.drawImage(image,page*w-frame.offset,0,w,h)}
 }
 function tickAt(event:PointerEvent):number{const a=timeline.axis.value,x=event.clientX-canvas.value!.getBoundingClientRect().left+timeline.frame.value.offset,page=Math.max(0,Math.min(a.pageCount-1,Math.floor(x/a.pageWidth)));return a.tickAt(page,x-page*a.pageWidth)}

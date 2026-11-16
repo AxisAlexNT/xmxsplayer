@@ -15,20 +15,24 @@ const measures = computed(() => {
   const axis = context.axis.value
   const map = new TimeMap(doc.project)
   return context.frame.value.pages.flatMap((page) =>
-    map.measures(...axis.pageRange(page)).map((m) => ({
-      ...m,
-      page,
-      x:
-        page * axis.pageWidth +
-        axis.xInPage(m.start, page) -
-        context.frame.value.offset,
-      beats: m.beats.map(
-        (t) =>
+    (axis.measures?.(page) ?? map.measures(...axis.pageRange(page))).map(
+      (m) => ({
+        ...m,
+        page,
+        x:
           page * axis.pageWidth +
-          axis.xInPage(t, page) -
+          (axis.measureX?.(m.start, page) ?? axis.xInPage(m.start, page)) -
           context.frame.value.offset,
-      ),
-    })),
+        beats: m.beats.map(
+          (t, i) =>
+            page * axis.pageWidth +
+            (i === 0
+              ? (axis.measureX?.(t, page) ?? axis.xInPage(t, page))
+              : axis.xInPage(t, page)) -
+            context.frame.value.offset,
+        ),
+      }),
+    ),
   )
 })
 function at(event: PointerEvent): number {
@@ -41,7 +45,16 @@ function at(event: PointerEvent): number {
       0,
       Math.min(axis.pageCount - 1, Math.floor(x / axis.pageWidth)),
     )
-  return Math.round(axis.tickAt(page, x - page * axis.pageWidth))
+  const local = x - page * axis.pageWidth
+  for (const m of axis.measures?.(page) ?? [])
+    for (const tick of [m.start, m.end])
+      if (
+        Math.abs(
+          (axis.measureX?.(tick, page) ?? axis.xInPage(tick, page)) - local,
+        ) <= 3
+      )
+        return tick
+  return Math.round(axis.tickAt(page, local))
 }
 function drag(event: PointerEvent): void {
   if (event.button !== 0) return

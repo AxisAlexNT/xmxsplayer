@@ -1,3 +1,4 @@
+import { readScoreXml } from './score-xml'
 import { convertScore, detectMuseScore } from './musescore'
 import { atomicWrite } from './project-io'
 import type { Source } from '../shared/model'
@@ -50,6 +51,10 @@ export function installIpc(windows: Windows): () => Promise<void> {
       },
     )
   }
+  handle('scores:xml', (file: string) => {
+    if (!io.folder) throw Error('Open a project first')
+    return readScoreXml(io.folder, file)
+  })
   handle('scores:detect', (path?: string) =>
     detectMuseScore(path ?? loadSettings().musescorePath),
   )

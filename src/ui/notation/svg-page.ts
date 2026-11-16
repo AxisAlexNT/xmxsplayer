@@ -3,6 +3,7 @@ import { PPQ } from '../../shared/model'
 import type { NotationInfo } from './protocol'
 import type { AxisPoint } from './protocol'
 export interface StaffClip {
+  center: number
   top: number
   bottom: number
 }
@@ -128,6 +129,30 @@ export function measurePage(
       r.height * units,
     )
   }
+  const first = info.timemap
+    .filter((n) => n.page === page + 1)
+    .sort((a, b) => a.qstamp - b.qstamp)
+  const earliest = first[0]?.qstamp
+  const heads = first
+    .filter((n) => n.qstamp === earliest)
+    .flatMap((n) => {
+      const el = [
+        ...svg.querySelectorAll<SVGGraphicsElement>('[data-vrv-id]'),
+      ].find((e) => e.getAttribute('data-vrv-id') === n.id)
+      if (!el) return []
+      const r = rect(el.querySelector<SVGGraphicsElement>('.notehead') ?? el)
+      return [r.x + r.width / 2]
+    })
+  const lead = Math.min(...heads)
+  if (lead < 96 && width > 96) {
+    const scale = (width - 96) / (width - lead),
+      shift = 96 - scale * lead
+    const content = document.createElementNS(svg.namespaceURI, 'g')
+    content.setAttribute('transform', `translate(${shift} 0) scale(${scale} 1)`)
+    for (const node of [...svg.children])
+      if (node.localName !== 'defs') content.appendChild(node)
+    svg.appendChild(content)
+  }
   const byId = new Map(
       [...svg.querySelectorAll<SVGGraphicsElement>('[data-vrv-id]')].map(
         (el) => [el.getAttribute('data-vrv-id')!, el],
@@ -149,20 +174,27 @@ export function measurePage(
   for (const entry of info.measures.filter((m) => m.page === page + 1)) {
     const el = byId.get(entry.id)
     if (!el) continue
-    const r = rect(el),
-      tick = entry.qstamp * PPQ
-    // Bar boundaries take precedence when a note follows a barline at the same tick.
-    for (let i = points.length - 1; i >= 0; i--)
-      if (points[i].tick === tick) points.splice(i, 1)
+    const staff = el.querySelector<SVGGraphicsElement>('g.staff')
+    const lines = staff
+      ? [...staff.children].filter(
+          (n): n is SVGGraphicsElement =>
+            n.localName === 'path' &&
+            (n as SVGGraphicsElement).getBBox().height < 1,
+        )
+      : []
+    const r = lines.map(rect).sort((a, b) => b.width - a.width)[0] ?? rect(el)
+    const tick = entry.qstamp * PPQ
     points.push({
       tick,
+      bar: true,
       x:
         entry === info.measures.find((m) => m.page === page + 1)
           ? Math.max(96, r.x)
           : r.x,
     })
-    points.push({ tick: entry.end * PPQ, x: r.x + r.width })
+    points.push({ tick: entry.end * PPQ, bar: true, x: r.x + r.width })
   }
+
   const staves = [
       ...(measureElements[0]?.querySelectorAll<SVGGraphicsElement>('g.staff') ??
         []),
@@ -181,6 +213,7 @@ export function measurePage(
       )
     }),
     clips = centres.map((center, i) => ({
+      center,
       top: i ? (centres[i - 1] + center) / 2 : 0,
       bottom: i + 1 < centres.length ? (center + centres[i + 1]) / 2 : height,
     }))

@@ -24,6 +24,16 @@ Use the track's **…** menu:
 
 ## Current limits
 
-MusicXML and compressed MusicXML note import report **needs staves milestone** until the notation milestone is implemented. MuseScore scores play as piano-roll tracks for now. Their exported MIDI expands repeats; the cached MusicXML retains written repeats. Staff rendering and repeat alignment follow in the notation milestone.
+MusicXML (`.musicxml`) and compressed MusicXML (`.mxl`) import directly, without an installed MuseScore executable. The score must use MusicXML partwise format. Archives must declare their root score in `META-INF/container.xml`; score XML is limited to 64 MiB. Invalid saves retain the previous notes and show an error in Sources.
+
+## Reading staves
+
+Choose **Staff**, **Roll** or **Per track** in the transport. In Per track, each MIDI header has its own view switch. Staff lanes share one engraved system and one time axis with the ruler, piano rolls and audio. Page view advances by system; Center view keeps the playhead fixed. Click notation to seek. Staff scale and Dark/Paper controls sit below the lanes; Ctrl+Shift+wheel also changes staff scale.
+
+The map owner's score supplies the notation. Forward/backward repeats and first/second endings are written out in playback order. Other linked scores and drum tracks use piano roll. A staff-count mismatch disables notation for that source and shows a warning. D.C., D.S., Coda and segno remain written as supplied, with a warning; expand those structures in MuseScore before performing. An unrolled score whose duration differs from its MIDI by more than one bar also warns about alignment.
+
+Unlinked and locally modified tracks generate notation from their notes. Generation quantizes to the track grid, groups equal-onset/equal-length notes as chords, uses one voice, cuts overlaps at the next onset, and ties notes across barlines. This is a reading view: use the piano roll or MuseScore for editing. Complex independent voices are preserved only on synced score staves. Sounding notes use track colours; follow modes outline the expected notes in amber.
+
+## Remaining verification
 
 An installed MIDI-file association is needed for the exported MIDI to open in MuseScore. OS launch requests and exported MIDI contents are tested separately; desktop association behavior and an actual MuseScore GUI Ctrl+S workflow still need a user check. The automated desktop check edits a private copied score on disk, then verifies watched conversion during playback, protected in-app edits and undoable discard.

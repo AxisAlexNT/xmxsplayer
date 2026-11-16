@@ -46,6 +46,7 @@ export interface NotationResponse {
 }
 
 export interface AxisPoint {
+  bar?: boolean
   tick: number
   x: number
 }

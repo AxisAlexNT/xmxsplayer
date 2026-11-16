@@ -1,5 +1,6 @@
+import { NotationClient } from '../notation/client'
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { ref, shallowRef, watch } from 'vue'
 import { useProjectStore } from './project'
 import { useRuntimeStore } from './runtime'
 import { uniqueId, slugify } from '../../shared/ids'
@@ -11,6 +12,7 @@ export const useSourcesStore = defineStore('sources', () => {
     runtime = useRuntimeStore()
   const busy = ref<Record<string, boolean>>({}),
     notice = ref<{ text: string } | null>(null)
+  const musicxml = shallowRef<Record<string, string>>({})
   const pending = new Set<string>()
   let initialized = false,
     generation = 0
@@ -34,7 +36,26 @@ export const useSourcesStore = defineStore('sources', () => {
       : undefined
     busy.value[id] = true
     try {
-      const data = await window.xm.scores.convert({ ...source })
+      const data =
+        source.kind === 'musicxml'
+          ? await (async () => {
+              const xml = await window.xm.scores.readXml(source.file),
+                parser = new NotationClient()
+              try {
+                await parser.request('load', {
+                  musicxml: xml,
+                  options: { pageWidth: 1200, scale: 40 },
+                })
+                const midi = await parser.request('midi', undefined)
+                return {
+                  musicxml: xml,
+                  midi: Uint8Array.from(atob(midi), (c) => c.charCodeAt(0)),
+                }
+              } finally {
+                parser.destroy()
+              }
+            })()
+          : await window.xm.scores.convert({ ...source })
       if (
         folder !== doc.folder ||
         generation !== token ||
@@ -60,6 +81,8 @@ export const useSourcesStore = defineStore('sources', () => {
         throw Error(
           'This staff is no longer in the score; detach it to keep its notes',
         )
+      if (data.musicxml)
+        musicxml.value = { ...musicxml.value, [id]: data.musicxml }
       const merged = mergeScore(doc.project, source, parsed, discardId)
       doc.update((draft) => Object.assign(draft, merged.project))
       message(
@@ -88,6 +111,7 @@ export const useSourcesStore = defineStore('sources', () => {
       () => {
         generation++
         busy.value = {}
+        musicxml.value = {}
         pending.clear()
       },
       { flush: 'sync' },
@@ -153,5 +177,15 @@ export const useSourcesStore = defineStore('sources', () => {
     await window.xm.scores.exportMidi(file, exportMidi(doc.project, trackId))
     message(`Exported ${file}; merge it into the score in MuseScore`)
   }
-  return { busy, notice, init, sync, link, unlink, detach, exportForScore }
+  return {
+    musicxml,
+    busy,
+    notice,
+    init,
+    sync,
+    link,
+    unlink,
+    detach,
+    exportForScore,
+  }
 })

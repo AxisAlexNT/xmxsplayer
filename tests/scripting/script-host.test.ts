@@ -100,7 +100,7 @@ it('replaces hooks and state on reload, unsubscribes, bounds reentry and warns a
   expect(host.running).toBe(false)
 })
 it('reports syntax and root failures and rejects expressions as named actions', () => {
-  const { host, logs } = rig()
+  const { host, logs } = rig(() => 0)
   expect(host.load('const broken: = 1')).toBe(false)
   expect(host.running).toBe(false)
   expect(host.load("throw new Error('root')")).toBe(false)

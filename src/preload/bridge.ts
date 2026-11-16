@@ -24,6 +24,7 @@ export function installBridge(ui: boolean): void {
   if (!ui) return
   const api: DesktopApi = {
     scores: {
+      readXml: (file) => ipcRenderer.invoke('scores:xml', file),
       detect: (path) => ipcRenderer.invoke('scores:detect', path),
       convert: (source) => ipcRenderer.invoke('scores:convert', source),
       open: (file) => ipcRenderer.invoke('scores:open', file),
