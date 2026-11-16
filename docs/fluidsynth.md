@@ -25,3 +25,5 @@ The app manages a separate FluidSynth child with hardware MIDI input disabled. I
 The stdin interface in FluidSynth 2.3.4 has no channel or polyphonic aftertouch commands. Native instruments report this limitation once; use Built-in for pressure-sensitive synth parts. Pad pressure controlling clips remains independent of the synth engine.
 
 Ubuntu verification used FluidSynth 2.3.4 with file audio output and disabled hardware MIDI. It covered SF2/SF3 loading, simultaneous live/sequenced slots, engine switches during playback, held-note/sustain release, preset overrides, process restart and zero remaining synthesis voices after release. Real PipeWire/JACK/ALSA/PulseAudio output, hardware timing and Windows drivers still require performance checks.
+
+A later muted comparison opened the PipeWire driver with gain zero at graph quantum 1024 and 256, loaded an SF2 font and closed the managed process successfully. Its configured latency remained 10.7 ms for 256 × 2 at 48 kHz. This verifies startup, not audible output or physical timing. See [Audio latency](latency.md) for the observations and restoration procedure.
