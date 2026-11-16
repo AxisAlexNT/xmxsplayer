@@ -66,6 +66,10 @@ Inter and Fira Code are bundled under the SIL Open Font License 1.1, as specifie
 
 Electron and Chromium carry additional component notices supplied by the Electron distribution, including LICENSE.electron.txt and LICENSES.chromium.html in packaged output. FluidSynth and MuseScore are independently installed programs; their binaries and soundfonts are not bundled. No third-party recordings or scores are included.
 
+## Windows portable launcher
+
+The portable EXE includes NSIS 3.0.4.1 (zlib/libpng for the used core/System/elevate and Deflate components), StdUtils 1.14 (LGPL-2.1-or-later with its NSIS clarification), and Nsis7z 19.00 (upstream LGPL notice, with public-domain LZMA SDK code). The DLLs are unmodified. Full notices, exact source archives shipped with the application, hashes and replacement/rebuild instructions are in [Windows launcher components](docs/windows-launcher.md). These components retain their licenses; the application remains MIT-licensed. The Windows ZIP has no NSIS launcher.
+
 ## Production packages
 
 | Package | License | Upstream |

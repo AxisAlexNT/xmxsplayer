@@ -23,7 +23,7 @@ npm run dev
 
 Choose **New project**, select an empty folder, and locate a soundfont in **Soundfonts** if needed. Play the keyboard, import a MIDI/reference audio file, set a loop and reduce Speed. Arm a LIVE track to record, or set it to AUTO for computer playback. Save with Ctrl+S. Follow [First project](docs/quick-start.md) for the complete flow.
 
-Portable targets are Linux x64 AppImage and Windows x64 portable EXE/ZIP. Linux startup and packaged flows are verified on the development computer; see [Portable builds](docs/portable-builds.md). Windows cross-builds passed, but runtime support is experimental. Portable EXE distribution awaits approval of additional NSIS launcher licenses; the ZIP has no NSIS launcher. The tag-triggered workflow creates drafts only and has not been run for a release.
+Portable targets are Linux x64 AppImage and Windows x64 portable EXE/ZIP. Linux startup and packaged flows are verified on the development computer; see [Portable builds](docs/portable-builds.md). Windows cross-builds passed, but runtime support is experimental. The portable EXE includes approved LGPL launcher helpers with bundled sources and [replacement instructions](docs/windows-launcher.md); the ZIP has no NSIS launcher. The tag-triggered workflow creates drafts only and has not been run for a release.
 
 ## Controllers
 
