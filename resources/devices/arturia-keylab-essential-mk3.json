@@ -192,7 +192,14 @@
         "type": "note",
         "channel": 9,
         "number": 48
-      }
+      },
+      "aliases": [
+        {
+          "type": "note",
+          "channel": 10,
+          "number": 48
+        }
+      ]
     },
     {
       "id": "pad.10",
@@ -233,7 +240,14 @@
         "type": "note",
         "channel": 9,
         "number": 50
-      }
+      },
+      "aliases": [
+        {
+          "type": "note",
+          "channel": 10,
+          "number": 50
+        }
+      ]
     },
     {
       "id": "pad.12",
@@ -250,7 +264,14 @@
         "type": "note",
         "channel": 9,
         "number": 51
-      }
+      },
+      "aliases": [
+        {
+          "type": "note",
+          "channel": 10,
+          "number": 51
+        }
+      ]
     },
     {
       "id": "pad.13",
@@ -267,7 +288,14 @@
         "type": "note",
         "channel": 9,
         "number": 44
-      }
+      },
+      "aliases": [
+        {
+          "type": "note",
+          "channel": 10,
+          "number": 44
+        }
+      ]
     },
     {
       "id": "pad.14",
@@ -284,7 +312,14 @@
         "type": "note",
         "channel": 9,
         "number": 45
-      }
+      },
+      "aliases": [
+        {
+          "type": "note",
+          "channel": 10,
+          "number": 45
+        }
+      ]
     },
     {
       "id": "pad.15",
@@ -301,7 +336,14 @@
         "type": "note",
         "channel": 9,
         "number": 46
-      }
+      },
+      "aliases": [
+        {
+          "type": "note",
+          "channel": 10,
+          "number": 46
+        }
+      ]
     },
     {
       "id": "pad.16",
@@ -318,7 +360,14 @@
         "type": "note",
         "channel": 9,
         "number": 47
-      }
+      },
+      "aliases": [
+        {
+          "type": "note",
+          "channel": 10,
+          "number": 47
+        }
+      ]
     },
     {
       "id": "knob.1",

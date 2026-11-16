@@ -17,7 +17,7 @@ The profile accepts the verified addresses below as the same logical controls. B
 | Controls | Arturia program | DAWs program |
 | --- | --- | --- |
 | Bank A pads, top row then bottom | Pads 1, 2, 8: notes 40, 41, 39 on channel 10; others need Learn | Notes 40–43, 36–39 on channel 11 |
-| Bank B pads, top row then bottom | Notes 48–51, 44–47 on channel 10 | Only pad 2 captured: note 49 on channel 11; other seven need Learn |
+| Bank B pads, top row then bottom | Notes 48–51, 44–47 on channel 10 | Notes 48–51, 44–47 on channel 11 |
 | Knobs 1–9 | Knobs 1, 2, 9: CC74, CC71, CC17; others need Learn | CC96–104 |
 | Sliders 1–9 | Sliders 1, 9: CC73, CC85; others need Learn | CC105–113 |
 | Main encoder / press | CC114 / CC115 | CC116 / CC117 |
@@ -25,7 +25,7 @@ The profile accepts the verified addresses below as the same logical controls. B
 | Four display buttons | CC30, CC31, CC86, CC87 | CC44–47 |
 | Play, Stop, Rewind, Forward, Loop, Metronome | CC21, CC20, CC25, CC26, CC24, CC27 | Same six CC numbers |
 
-The encoder uses values above/below 64 for clockwise/counterclockwise movement; 64 is neutral. DAWs captures also included accelerated values 66/62. Absolute knobs/sliders report 0–127. Buttons send 127/0 for press/release; pads also send poly pressure. Bank A pad 3–7 Arturia addresses and seven DAWs bank B addresses have not been inferred from neighbouring pads.
+The encoder uses values above/below 64 for clockwise/counterclockwise movement; 64 is neutral. DAWs captures also included accelerated values 66/62. Absolute knobs/sliders report 0–127. Buttons send 127/0 for press/release; pads also send poly pressure. Arturia bank A pad 3–7 addresses have not been inferred from neighbouring pads. All eight DAWs bank B addresses were subsequently captured in order; the owner confirmed that pad 2 toggles on-screen Register 2 and that bank B pads stay silent rather than playing keyboard instruments.
 
 Unmatched notes in the reserved KeyLab pad range (36–51 on channels 10–11) are suppressed, including pressure and releases, so an unlearned pad cannot unexpectedly play a keyboard instrument. Keep the keyboard itself on another MIDI channel when using those reserved pad addresses. Learned messages override that suppression.
 

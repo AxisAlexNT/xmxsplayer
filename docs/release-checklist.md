@@ -4,7 +4,7 @@ Current validation: 0.1.0, Ubuntu Studio 24.04, 2026-11-16. This document separa
 
 ## Completed checks
 
-- `CHOKIDAR_USEPOLLING=1 npm run check`: typecheck and lint passed; 320 tests passed, one optional native test skipped.
+- `CHOKIDAR_USEPOLLING=1 npm run check`: typecheck and lint passed; 327 tests passed, one optional native test skipped.
 - `XM_FLUID_FILE_TEST=1 CHOKIDAR_USEPOLLING=1 npx vitest run tests/main/fluidsynth-native.test.ts`: passed again with real FluidSynth 2.3.4, SF2/SF3 and file output. No hardware MIDI.
 - `npm run smoke`: UI mount and engine handshake passed before packaging; real MIDI disabled.
 - Isolated desktop checks: recording/editing, real muted audio processing and five import formats, clips, scenes/cues/registers/scripts, follow modes, linked-score conversion and notation, backend changes/recovery and external MIDI routing.
@@ -13,7 +13,7 @@ Current validation: 0.1.0, Ubuntu Studio 24.04, 2026-11-16. This document separa
 - Copied Expedition score: all 967 engraved attacks matched the unrolled MIDI pitches/ticks through the end. Original scores were not modified.
 - Permissioned, muted PipeWire comparison: Built-in readouts and FluidSynth PipeWire startup at quantum 1024 and 256; original 1024 restored and independently read back. No test Electron/FluidSynth processes remained. See [latency observations](latency.md).
 - Copied-project portability: two destination folders with spaces restored all three tracks and saved linked notes. Filename-based font lookup, missing-font Locate recovery and persisted lookup in another fresh profile passed with a real muted synthesis signal.
-- Physical KeyLab session: piano/strings split, pitch/modulation, chords and sustain release passed. In DAWs mode the owner confirmed project/transport text, pale pad colours, top-row beat chase, uninterrupted chase after pad presses and Stop. Arturia showed no visible feedback. Captured addresses differ between modes; the corrected decoder is regression tested with both address sets, but the new alias routing still needs a physical recheck. See [captured controls](controllers.md#captured-keylab-addresses).
+- Physical KeyLab session: piano/strings split, pitch/modulation, chords and sustain release passed. In DAWs mode the owner confirmed project/transport text, pale pad colours, top-row beat chase, uninterrupted chase after pad presses and Stop. Arturia showed no visible feedback. Captured addresses differ between modes; the corrected decoder is regression tested with both address sets. A second physical session captured all eight DAWs bank B addresses and confirmed pad 2/Register 2 sync with no piano-note leakage. See [captured controls](controllers.md#captured-keylab-addresses).
 - Production npm license allowlist: passed; 82 dependencies plus the application, with font/runtime notices considered separately.
 
 The latest live-input and portable-path regressions are unit verified. Fresh native switching/recovery checks also passed after fixing preset selection across engine choices. The initial fresh native run caught that regression and timed out; it was corrected and the complete rerun passed.
@@ -32,7 +32,7 @@ The Linux and Windows packages contain no private sketch/instruction files. Both
 | Multi-track MIDI, instruments, staff/roll, page/center, reorder, zoom | Import/timing/notation tests and desktop checks | Physical packaged-build interaction pass |
 | Four-bar audio loop at 50%, knob speed, filter/isolation, grid/taps, click/cue | Real muted processing and synthetic control checks | Listen for pitch/timing; physical knob and alternate output checks |
 | Reduced-speed recording, undo/redo, edits, quantize, updated staves | Desktop recording/editing/notation checks | Physical playing/pen comfort and listening |
-| Transport/DAW, Learn, conditions, beat chase, register LEDs/display, hot-plug | Profile/binding/feedback simulations plus physical DAWs display, colours, beat chase and control captures | Recheck corrected mode aliases; seven DAWs bank B pads and Arturia-only gaps; hot-plug and exact timing |
+| Transport/DAW, Learn, conditions, beat chase, register LEDs/display, hot-plug | Profile/binding/feedback simulations plus physical DAWs display, colours, beat chase and control captures | Full bank B/register/LED performance; remaining Arturia-only variants; hot-plug and exact timing |
 | Reprise scenes/registers/scripts, exclusive groups, wait cue, live YAML/conflict | State/routing/script tests and desktop checks | Perform the arrangement on real hardware |
 | Wait any/all, tempo tracking, wrong notes and skip | Synthetic performance and muted audio checks | Tune matching with the performer |
 | Clips: all launches/sweeps, groups, speed, pressure, LEDs, WAV/MP3/OGG/M4A/FLAC | Decoder/processing/controller simulations and desktop checks | Actual pad/fader use, sound and LEDs |

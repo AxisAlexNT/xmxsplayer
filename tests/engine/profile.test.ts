@@ -26,9 +26,9 @@ it('validates captured addresses without guessing unobserved mode variants', () 
     channel: 9,
     number: 48,
   })
-  expect(
-    arturia.controls.find((c) => c.id === 'pad.9')?.aliases,
-  ).toBeUndefined()
+  expect(arturia.controls.find((c) => c.id === 'pad.9')?.aliases).toEqual([
+    { type: 'note', channel: 10, number: 48 },
+  ])
   expect(arturia.controls.find((c) => c.id === 'pad.16')?.ledId).toBe(0x2b)
   expect(
     builtinProfiles
@@ -180,9 +180,9 @@ it('routes captured DAWs pads as controls and suppresses unknown pad variants', 
     kind: 'control',
     event: { controlId: 'pad.2', edge: 'release' },
   })
-  expect(decode([0x9a, 48, 127])).toBeNull()
-  expect(decode([0xaa, 48, 63])).toBeNull()
-  expect(decode([0x8a, 48, 0])).toBeNull()
+  expect(decode([0x99, 42, 127])).toBeNull()
+  expect(decode([0xa9, 42, 63])).toBeNull()
+  expect(decode([0x89, 42, 0])).toBeNull()
   expect(decode([0x92, 48, 100])).toMatchObject({ kind: 'key' })
   expect(decode([0x82, 48, 0])).toMatchObject({ kind: 'key' })
 })
@@ -257,4 +257,33 @@ it('keeps alias release ownership when a learned address changes', () => {
       decodeMidi('keylab', new Uint8Array([0xb0, 40, 0]), 2)!,
     ),
   ).toMatchObject({ event: { controlId: 'daw.save', edge: 'release' } })
+})
+
+it('decodes all physically captured bank B pads in both programs without note leakage', () => {
+  for (const channel of [9, 10]) {
+    const decoder = new ProfileDecoder('keylab')
+    for (const [index, note] of [48, 49, 50, 51, 44, 45, 46, 47].entries()) {
+      const decode = (status: number, value: number) =>
+        decoder.decode(
+          arturia,
+          decodeMidi(
+            'keylab',
+            new Uint8Array([status | channel, note, value]),
+            1,
+          )!,
+        )
+      expect(decode(0x90, 127)).toMatchObject({
+        kind: 'control',
+        event: { controlId: `pad.${index + 9}`, edge: 'press' },
+      })
+      expect(decode(0xa0, 63)).toMatchObject({
+        kind: 'control',
+        event: { controlId: `pad.${index + 9}`, pressed: true },
+      })
+      expect(decode(0x80, 0)).toMatchObject({
+        kind: 'control',
+        event: { controlId: `pad.${index + 9}`, edge: 'release' },
+      })
+    }
+  }
 })
