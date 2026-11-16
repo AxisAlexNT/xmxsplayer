@@ -1,5 +1,7 @@
 appId: io.github.AxisAlexNT.xmxsplayer
 productName: xmxsplayer
+extraMetadata:
+  desktopName: xmxsplayer
 directories:
   buildResources: build
   output: release
@@ -21,6 +23,7 @@ linux:
     - target: AppImage
       arch: [x64]
   category: AudioVideo
+  syncDesktopName: true
   icon: build/icon.png
   artifactName: xmxsplayer-${version}-linux-${arch}.${ext}
 win:

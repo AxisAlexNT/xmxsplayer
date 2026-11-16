@@ -120,8 +120,12 @@ async function load(): Promise<void> {
 watch(fontId, () => {
   void load()
 })
-watch(backendChoice, () => {
-  void load()
+watch(backendChoice, (value, previous) => {
+  if (value === 'midi') {
+    generation++
+    loading.value = false
+    error.value = ''
+  } else if (previous === 'midi') void load()
 })
 watch(choice, (value) => engineBus.value?.send('audition:select', value), { immediate: true })
 
