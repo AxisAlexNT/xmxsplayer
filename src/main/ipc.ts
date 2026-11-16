@@ -1,4 +1,5 @@
 import { readScoreXml } from './score-xml'
+import { FluidSynthProcess, detectFluid } from './fluidsynth'
 import { convertScore, detectMuseScore } from './musescore'
 import { atomicWrite } from './project-io'
 import type { Source } from '../shared/model'
@@ -6,7 +7,7 @@ import { isWindowSender } from './window-sender'
 import { AudioCache } from './audio-cache'
 import { audioExtension, audioFormats, type AudioPeaks } from '../shared/audio'
 import { relaunchArgs } from './relaunch'
-import { app, dialog, ipcMain, shell } from 'electron'
+import { app, dialog, ipcMain, shell, type BrowserWindow } from 'electron'
 import { basename, dirname, join } from 'node:path'
 import type { FileMap } from '../shared/api'
 import { ProjectIO, confined } from './project-io'
@@ -26,6 +27,62 @@ export function installIpc(windows: Windows): () => Promise<void> {
   const io = new ProjectIO()
   const audioCache = new AudioCache(() => io.folder)
   const watcher = new ProjectWatcher()
+  const fluid = new FluidSynthProcess((event) => {
+    for (const window of [ui, windows.getEngine()])
+      if (!window.isDestroyed()) window.webContents.send('fluid:event', event)
+  })
+  const watchEngine = (
+    _event: Electron.Event | undefined,
+    window: BrowserWindow,
+  ): void => {
+    if (window === ui) return
+    window.webContents.once('render-process-gone', () => {
+      void fluid.stop()
+    })
+    window.once('closed', () => {
+      void fluid.stop()
+    })
+  }
+  watchEngine(undefined, windows.getEngine())
+  app.on('browser-window-created', watchEngine)
+  function fluidHandle(
+    name: string,
+    engineOnly: boolean,
+    fn: (...args: never[]) => unknown,
+  ): void {
+    ipcMain.handle(name, (event, ...args) => {
+      if (
+        !(
+          isWindowSender(windows.getEngine(), event) ||
+          (!engineOnly && isWindowSender(ui, event))
+        ) ||
+        !event.senderFrame?.url.startsWith('app://xmxsplayer/')
+      )
+        throw Error('Forbidden')
+      return fn(...(args as never[]))
+    })
+  }
+  fluidHandle('fluid:detect', false, (path?: string) =>
+    detectFluid(path ?? loadSettings().fluid.path),
+  )
+  fluidHandle('fluid:start', true, () => {
+    if (process.env.XM_SMOKE === '1')
+      throw Error('FluidSynth is disabled during smoke checks')
+    const settings = loadSettings()
+    return fluid.start({
+      ...settings.fluid,
+      sampleRate: settings.audio.sampleRate,
+    })
+  })
+  fluidHandle('fluid:stop', true, () => fluid.stop())
+  fluidHandle('fluid:load', true, async (url: string) => {
+    const path = await fileTokens.pathFor(url)
+    if (!/\.sf[23]$/i.test(path)) throw Error('Choose an SF2 or SF3 soundfont')
+    return fluid.load(path)
+  })
+  fluidHandle('fluid:presets', true, (font: number) => fluid.presets(font))
+  fluidHandle('fluid:unload', true, (font: number) => fluid.unload(font))
+  fluidHandle('fluid:send', true, (lines: string[]) => fluid.send(lines))
   let operations = Promise.resolve<unknown>(undefined)
   function handle(name: string, fn: (...args: never[]) => unknown): void {
     ipcMain.handle(name, (event, ...args) => {
@@ -226,5 +283,8 @@ export function installIpc(windows: Windows): () => Promise<void> {
   })
   handle('settings:get', () => loadSettings())
   handle('settings:set', (value) => saveSettings(value))
-  return () => watcher.close()
+  return async () => {
+    app.removeListener('browser-window-created', watchEngine)
+    await Promise.all([watcher.close(), fluid.stop()])
+  }
 }

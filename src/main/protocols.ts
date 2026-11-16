@@ -35,6 +35,16 @@ export class FileTokens {
   clear(): void {
     this.paths.clear()
   }
+  async pathFor(url: string): Promise<string> {
+    const parsed = new URL(url)
+    const file =
+      parsed.protocol === 'xmfile:' && parsed.host === 'f'
+        ? this.paths.get(parsed.pathname.slice(1))
+        : undefined
+    if (!file || (await realpath(file)) !== file)
+      throw Error('File capability is invalid or expired')
+    return file
+  }
   async issue(file: string, roots: string[]): Promise<string> {
     const canonical = await realpath(file)
     const allowed = await Promise.all(

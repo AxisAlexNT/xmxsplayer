@@ -686,3 +686,10 @@ button:disabled {
   width: 146px;
   min-height: 40px;
 }
+
+.xm-settings-dialog[open] { display: flex; flex-direction: column; }
+.xm-settings-dialog > .xm-dialog-h, .xm-settings-dialog > .xm-dialog-f { flex-shrink: 0; }
+.xm-settings-body { min-height: 0; overflow: hidden; }
+.xm-settings-dialog .btn, .xm-settings-dialog .xm-seg button, .xm-settings-dialog select, .xm-settings-dialog input:not([type=checkbox]):not([type=range]) { min-height: var(--xm-hit); }
+.xm-instrument-dialog .xm-seg button { min-height: var(--xm-hit); }
+.xm-configured-latency { display: block; font-size: 10px; line-height: 1.1; color: var(--xm-text-muted); }

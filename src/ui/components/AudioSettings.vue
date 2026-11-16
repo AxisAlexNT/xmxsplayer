@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import FilesSettings from './FilesSettings.vue'
+import FluidSettings from './FluidSettings.vue'
+import { fluidArgs } from '../../shared/fluid'
 import { computed, onMounted, ref } from 'vue'
 import { useSettingsStore } from '../stores/settings'
 import { useRuntimeStore } from '../stores/runtime'
@@ -16,6 +18,8 @@ const audio = ref<Settings['audio']>(
   JSON.parse(JSON.stringify(settings.value.audio)),
 )
 const outputs = ref<{ id: string; label: string }[]>([])
+const fluid = ref<Settings['fluid']>(JSON.parse(JSON.stringify(settings.value.fluid)))
+const configuredMs = computed(()=>fluid.value.periodSize*fluid.value.periods/audio.value.sampleRate*1000)
 const error = ref('')
 const busy = ref(false)
 const dialog = ref<HTMLDialogElement>()
@@ -30,9 +34,13 @@ async function save(close = true): Promise<boolean> {
   busy.value = true
   error.value = ''
   try {
+    fluidArgs({...fluid.value,sampleRate:audio.value.sampleRate},/Windows/i.test(navigator.userAgent)?'win32':'linux')
+    if (audio.value.defaultSynth === 'fluid')
+      fluid.value.path = (await window.xm.fluid.detect(fluid.value.path)).path
     await settings.save({
       ...settings.value,
       audio: audio.value,
+      fluid: fluid.value,
       musescorePath: files.value?.path ?? settings.value.musescorePath,
     })
     if (close) emit('close')
@@ -110,30 +118,44 @@ onMounted(() => {
           <label class="form-label">Synth engine</label>
           <div class="xm-seg">
             <button
-              class="is-on"
-              disabled
+              :class="{'is-on':audio.defaultSynth==='web'}"
+              :aria-pressed="audio.defaultSynth==='web'"
+              @click="audio.defaultSynth='web'"
             >
               Built-in
-            </button><button disabled>
+            </button><button
+              :class="{'is-on':audio.defaultSynth==='fluid'}"
+              :aria-pressed="audio.defaultSynth==='fluid'"
+              @click="audio.defaultSynth='fluid'"
+            >
               FluidSynth (native)
             </button>
           </div>
-          <div class="xm-status mt-2">
-            <span class="xm-dot" /><span
-              v-if="runtime.latency"
-              class="xm-mono"
-            >{{
-              (runtime.latency.baseMs + runtime.latency.outputMs).toFixed(1)
-            }}
-              ms</span><span v-else>Measuring…</span>
+          <div class="mt-2">
+            <div class="xm-status">
+              <span class="xm-dot" /><span
+                v-if="audio.defaultSynth==='fluid'"
+                class="xm-mono"
+              >FluidSynth · configured {{ configuredMs.toFixed(1) }} ms</span><span
+                v-else-if="runtime.latency"
+                class="xm-mono"
+              >Built-in · measured {{
+                (runtime.latency.baseMs + runtime.latency.outputMs).toFixed(1)
+              }}
+                ms</span><span v-else>Measuring…</span>
+            </div>
           </div>
           <p
-            v-if="runtime.latency"
+            v-if="runtime.latency && audio.defaultSynth==='web'"
             class="xm-faint mt-1"
           >
             Buffer {{ runtime.latency.baseMs.toFixed(1) }} + output
             {{ runtime.latency.outputMs.toFixed(1) }} ms
           </p>
+          <FluidSettings
+            v-if="audio.defaultSynth==='fluid'"
+            v-model="fluid"
+          />
           <div class="xm-settings-fields">
             <label class="form-label">Main output<select
               v-model="audio.mainDeviceId"

@@ -10,13 +10,14 @@ import {
   matchesCondition,
   type ConditionContext,
 } from '../../shared/conditions'
-import type { SynthBackend } from '../synth/backend'
+import type { SynthBackend, SynthSelector, SynthTiming } from '../synth/backend'
 import { InstrumentRack, type RackSlot } from '../synth/rack'
 import type { ScheduledNote, SchedulerOutput } from './scheduler'
 interface Voice {
   slot: RackSlot
   key: number
   on: number
+  offset: number
   trackId: string
   instrumentId: string
   off?: number
@@ -33,8 +34,8 @@ export class SequenceOutput implements SchedulerOutput {
     { trackId: string; on: number; off?: number }
   >()
   constructor(
-    private backend: SynthBackend,
-    load: (font: SoundFontRef) => Promise<void>,
+    backend: SynthBackend,
+    load: (font: SoundFontRef, backend?: SynthBackend) => Promise<void>,
     private now: () => number,
     warn: (message: string) => void,
     readonly beat: (tick: number, when: number) => void,
@@ -47,8 +48,10 @@ export class SequenceOutput implements SchedulerOutput {
     }),
     private activityPulse: (route: ActivityRoute, when: number) => void = () =>
       undefined,
+    choose?: SynthSelector,
+    private timing: SynthTiming = () => 0,
   ) {
-    this.rack = new InstrumentRack(backend, load, warn)
+    this.rack = new InstrumentRack(backend, load, warn, false, choose)
   }
   async synchronize(
     project: Project,
@@ -126,13 +129,22 @@ export class SequenceOutput implements SchedulerOutput {
     for (const slot of this.destinations(note.track.id, note.start)) {
       const key = note.note[2] + slot.instrument.transpose
       if (key < 0 || key > 127) continue
-      slot.backend.noteOn(slot.slot, key, note.note[3], when)
+      const offset = this.timing(slot.backend),
+        at = Math.max(this.now(), when + offset)
+      slot.backend.noteOn(slot.slot, key, note.note[3], at)
       this.rack.retain(slot)
       const instrumentId = this.identities.get(slot)!
-      voices.push({ slot, key, on: when, trackId: note.track.id, instrumentId })
+      voices.push({
+        slot,
+        key,
+        on: at,
+        offset,
+        trackId: note.track.id,
+        instrumentId,
+      })
       this.activityPulse(
         { sourceId: 'sequencer', trackId: note.track.id, instrumentId },
-        when,
+        at,
       )
     }
     this.voices.set(note.id, voices)
@@ -141,19 +153,20 @@ export class SequenceOutput implements SchedulerOutput {
     const activity = this.noteActivity.get(note.id)
     if (activity) activity.off = when
     for (const voice of this.voices.get(note.id) ?? []) {
-      voice.off = when
+      const at = Math.max(this.now(), when + voice.offset)
+      voice.off = at
       const overlapping = [...this.voices.values()].some((voices) =>
         voices.some(
           (other) =>
             other !== voice &&
             other.slot === voice.slot &&
             other.key === voice.key &&
-            other.on <= when &&
-            (other.off === undefined || other.off > when),
+            other.on <= at &&
+            (other.off === undefined || other.off > at),
         ),
       )
       if (!overlapping)
-        voice.slot.backend.noteOff(voice.slot.slot, voice.key, when)
+        voice.slot.backend.noteOff(voice.slot.slot, voice.key, at)
     }
   }
   event(
@@ -170,8 +183,9 @@ export class SequenceOutput implements SchedulerOutput {
         )
           slots.add(voice.slot)
     for (const slot of slots) {
+      const at = Math.max(this.now(), when + this.timing(slot.backend))
       if (event.type === 'bend')
-        slot.backend.pitchBend(slot.slot, event.value, when)
+        slot.backend.pitchBend(slot.slot, event.value, at)
       else {
         let value = event.value
         if (event.num === 7) value = Math.round(value * slot.instrument.volume)
@@ -179,7 +193,7 @@ export class SequenceOutput implements SchedulerOutput {
           value = Math.round(
             Math.max(0, Math.min(127, value + slot.instrument.pan * 63.5)),
           )
-        slot.backend.cc(slot.slot, event.num, value, when)
+        slot.backend.cc(slot.slot, event.num, value, at)
       }
     }
   }
@@ -204,22 +218,24 @@ export class SequenceOutput implements SchedulerOutput {
     for (const note of this.noteActivity.values())
       if (note.off === undefined || note.off > when) note.off = when
     for (const slot of this.allSlots()) {
-      slot.backend.cc(slot.slot, 64, 0, when)
-      slot.backend.cc(slot.slot, 123, 0, when)
+      const at = Math.max(this.now(), when + this.timing(slot.backend))
+      slot.backend.cc(slot.slot, 64, 0, at)
+      slot.backend.cc(slot.slot, 123, 0, at)
     }
     for (const voices of this.voices.values())
       for (const voice of voices)
-        if (voice.off === undefined || voice.off > when) voice.off = when
+        if (voice.off === undefined || voice.off > when + voice.offset)
+          voice.off = Math.max(this.now(), when + voice.offset)
   }
   reset(keepHeld: boolean): void {
     this.onReset(keepHeld)
     const now = this.now()
     this.collect(now)
     for (const slot of this.allSlots()) {
-      this.backend.clearScheduled(slot.slot)
+      slot.backend.clearScheduled(slot.slot)
       if (!keepHeld) {
-        this.backend.cc(slot.slot, 64, 0)
-        this.backend.cc(slot.slot, 120, 0)
+        slot.backend.cc(slot.slot, 64, 0)
+        slot.backend.cc(slot.slot, 120, 0)
       }
     }
     for (const [id, note] of this.noteActivity) {

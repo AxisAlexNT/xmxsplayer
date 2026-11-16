@@ -2,12 +2,14 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useProjectStore } from '../stores/project'
 import { useRuntimeStore } from '../stores/runtime'
+import { useSettingsStore } from '../stores/settings'
 import { engineBus } from '../bus'
 import type { Preset } from '../../engine/synth/backend'
 const props = defineProps<{ instrumentId: string }>()
 const emit = defineEmits<{ close: [] }>()
 const doc = useProjectStore()
 const runtime = useRuntimeStore()
+const settings = useSettingsStore()
 const instrument = doc.project.instruments.find(
   (i) => i.id === props.instrumentId,
 )!
@@ -19,7 +21,7 @@ const selected = ref<Preset | null>(null)
 const query = ref('')
 const loading = ref(false)
 const error = ref('')
-const backendChoice = ref<'default' | 'web'>(instrument.backend === 'web' ? 'web' : 'default')
+const backendChoice = ref<'default' | 'web' | 'fluid'>(instrument.backend === 'fluid' ? 'fluid' : instrument.backend === 'web' ? 'web' : 'default')
 const volume = ref(instrument.volume)
 const pan = ref(instrument.pan)
 const reverb = ref(instrument.reverb)
@@ -66,12 +68,13 @@ async function load(): Promise<void> {
 watch(fontId, () => {
   void load()
 })
-watch(selected, (value) =>
+watch([selected,backendChoice], ([value]) =>
   engineBus.value?.send(
     'audition:select',
     value
       ? {
           soundfontId: fontId.value,
+          backend: backendChoice.value,
           bank: value.bank,
           program: value.program,
           isDrum: value.isDrum,
@@ -81,7 +84,7 @@ watch(selected, (value) =>
 )
 function audition(): void {
   if (!selected.value) return
-  const payload = { ...selected.value, soundfontId: fontId.value, key: 60 }
+  const payload = { ...selected.value, soundfontId: fontId.value, key: 60, backend:backendChoice.value }
   engineBus.value?.send('audition:preset', { ...payload, on: true })
   clearTimeout(releaseTimer)
   releaseTimer = setTimeout(
@@ -225,15 +228,21 @@ onUnmounted(() => {
       <label class="form-label mt-3">Engine</label><div class="xm-seg">
         <button
           :class="{'is-on':backendChoice==='default'}"
+          :aria-pressed="backendChoice==='default'"
           @click="backendChoice='default'"
         >
-          Default (Built-in)
+          Default ({{ settings.value.audio.defaultSynth === 'fluid' ? 'FluidSynth' : 'Built-in' }})
         </button><button
           :class="{'is-on':backendChoice==='web'}"
+          :aria-pressed="backendChoice==='web'"
           @click="backendChoice='web'"
         >
           Built-in
-        </button><button disabled>
+        </button><button
+          :class="{'is-on':backendChoice==='fluid'}"
+          :aria-pressed="backendChoice==='fluid'"
+          @click="backendChoice='fluid'"
+        >
           FluidSynth
         </button>
       </div>

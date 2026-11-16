@@ -30,6 +30,8 @@ import type {
 import type { CommandMap, RuntimeState } from '../shared/protocol'
 import { AudioGraph } from './audio/graph'
 import { WebSynthBackend } from './synth/web-synth'
+import { FluidSynthBackend } from './synth/fluid-synth'
+import type { SynthBackend } from './synth/backend'
 import type { MidiMessage } from './midi/midi-io'
 import { DeviceManager } from './midi/device-manager'
 import { Router } from './router/router'
@@ -41,6 +43,7 @@ let project: Project | undefined
 let settings: Settings | undefined
 let graph: AudioGraph | undefined
 let backend: WebSynthBackend | undefined
+let fluidBackend: FluidSynthBackend | undefined
 let rack: InstrumentRack | undefined
 let router: Router | undefined
 let midi: DeviceManager | undefined
@@ -152,7 +155,7 @@ let initialization: Promise<void> | undefined
 let audition: CommandMap['audition:select'] = null
 const previews = new Map<
   string,
-  { token: object; slot?: string; key: number }
+  { token: object; slot?: string; key: number; backend?: SynthBackend }
 >()
 const log = (
   level: 'info' | 'warn' | 'error' | 'ok',
@@ -402,9 +405,35 @@ function receiveControl(event: ControlEvent): void {
   }
 }
 const fontLoads = new Map<string, { file: string; loading: Promise<void> }>()
-async function load(font: SoundFontRef): Promise<void> {
-  if (!backend || !bus) throw new Error('Audio engine is not initialized')
-  const previous = fontLoads.get(font.id)
+function selectBackend(instrument: Instrument): SynthBackend {
+  const target =
+    instrument.backend === 'default'
+      ? (settings?.audio.defaultSynth ?? 'web')
+      : instrument.backend
+  const selected =
+    target === 'fluid' ? fluidBackend : target === 'web' ? backend : undefined
+  if (!selected)
+    throw Error(`${instrument.name}: ${target} backend is not available`)
+  return selected
+}
+function reportSynthReady(): void {
+  bus?.send('synth:state', {
+    loading: false,
+    readyIds: (project?.instruments ?? [])
+      .filter((instrument) => {
+        const slot = rack?.get(instrument.id)
+        return slot && (slot.backend !== fluidBackend || fluidBackend.available)
+      })
+      .map((instrument) => instrument.id),
+  })
+}
+async function load(
+  font: SoundFontRef,
+  target: SynthBackend | undefined = backend,
+): Promise<void> {
+  if (!target || !bus) throw new Error('Audio engine is not initialized')
+  const key = `${target.id}:${font.id}`
+  const previous = fontLoads.get(key)
   if (previous?.file === font.file) return previous.loading
   const loading = (async () => {
     const url = await bus!.request('soundfont:resolve', font)
@@ -412,13 +441,13 @@ async function load(font: SoundFontRef): Promise<void> {
       throw new Error(
         `${font.file}: missing soundfont. Use Locate in Soundfonts.`,
       )
-    await backend!.loadSoundFont(font, url)
+    await target.loadSoundFont(font, url)
   })()
-  fontLoads.set(font.id, { file: font.file, loading })
+  fontLoads.set(key, { file: font.file, loading })
   try {
     await loading
   } catch (error) {
-    if (fontLoads.get(font.id)?.loading === loading) fontLoads.delete(font.id)
+    if (fontLoads.get(key)?.loading === loading) fontLoads.delete(key)
     throw error
   }
 }
@@ -426,6 +455,10 @@ async function initialize(value: Settings): Promise<void> {
   if (initialization) {
     await initialization
     await graph!.apply(value.audio)
+    await fluidBackend?.reconfigure({
+      ...value.fluid,
+      sampleRate: value.audio.sampleRate,
+    })
     if (transport) transport.inputLatencyMs = value.audio.inputLatencyMs
     if (project)
       await transport?.audio.synchronize(performanceProject() ?? project)
@@ -434,16 +467,40 @@ async function initialize(value: Settings): Promise<void> {
   initialization = (async () => {
     graph = new AudioGraph(
       value.audio,
-      (latency) => bus?.send('latency', latency),
+      (latency) =>
+        bus?.send('latency', {
+          ...latency,
+          backend: settings?.audio.defaultSynth ?? 'web',
+          fluidMs: fluidBackend ? fluidBackend.latencySec() * 1000 : 0,
+        }),
       (message) => log('warn', 'audio', message),
     )
     await graph.apply(value.audio)
     backend = await WebSynthBackend.create(graph.context, graph.main)
+    fluidBackend = new FluidSynthBackend(
+      window.xm.fluid,
+      () => graph!.context.currentTime,
+      { ...value.fluid, sampleRate: value.audio.sampleRate },
+      (message) => log('warn', 'fluid', message),
+      (font) => bus!.request('soundfont:resolve', font),
+      () => {
+        if (!engineClosing) {
+          router?.panic()
+          void synchronize(false, true).catch((error) =>
+            log('error', 'fluid', String(error)),
+          )
+        }
+      },
+      () => {
+        if (!engineClosing) reportSynthReady()
+      },
+    )
     rack = new InstrumentRack(
       backend,
       load,
       (message) => log('warn', 'synth', message),
       true,
+      selectBackend,
     )
     activity = new Activity(
       () => performance.now(),
@@ -463,6 +520,8 @@ async function initialize(value: Settings): Promise<void> {
       load,
       () => bus,
       (message) => log('warn', 'transport', message),
+      selectBackend,
+      (target) => (settings?.audio.compensationMs[target.id] ?? 0) / 1000,
     )
     clipActions = new ClipActions(transport.clips, () => project)
     transport.onClipPreview = (state, error) =>
@@ -766,20 +825,30 @@ async function initialize(value: Settings): Promise<void> {
     await graph?.close()
     graph = undefined
     backend?.destroy()
+    await fluidBackend?.destroy()
+    fluidBackend = undefined
     backend = undefined
     initialization = undefined
     throw error
   }
 }
-async function synchronize(forceScript = false): Promise<void> {
+async function synchronize(
+  forceScript = false,
+  forceSynth = false,
+): Promise<void> {
   if (!rack || !project) return
   const revision = ++syncRevision
   const commandRevision = scriptCommandRevision
   bus?.send('synth:state', { loading: true, readyIds: [] })
+  if (forceSynth) {
+    router?.panic()
+    for (const owner of previews.keys()) previewNote(owner, 0, 0, false)
+    reportKeys()
+  }
   router?.setProject(performanceProject() ?? project)
   await Promise.all([
     rack.synchronize(project),
-    transport?.synchronize(project),
+    transport?.synchronize(project, forceSynth),
   ])
   if (revision !== syncRevision) return
   cues?.configure(project.cues)
@@ -792,15 +861,18 @@ async function synchronize(forceScript = false): Promise<void> {
   if (revision !== syncRevision) return
   router?.setProject(performanceProject() ?? project)
   publishRuntime()
-  bus?.send('synth:state', {
-    loading: false,
-    readyIds: project.instruments
-      .filter((i) => rack?.get(i.id))
-      .map((i) => i.id),
-  })
-  for (const id of fontLoads.keys())
-    if (!project.soundfonts.some((sf) => sf.id === id)) fontLoads.delete(id)
-  backend?.prune(new Set(project.soundfonts.map((sf) => sf.id)))
+  reportSynthReady()
+  for (const key of fontLoads.keys())
+    if (
+      !project.soundfonts.some(
+        (sf) => key === `web:${sf.id}` || key === `fluid:${sf.id}`,
+      )
+    )
+      fontLoads.delete(key)
+  const ids = new Set(project.soundfonts.map((sf) => sf.id))
+  backend?.prune(ids)
+  fluidBackend?.prune(ids)
+  graph?.latency()
 }
 function previewNote(
   owner: string,
@@ -813,9 +885,9 @@ function previewNote(
   const previous = previews.get(owner)
   if (previous) {
     if (previous.slot) {
-      backend?.noteOff(previous.slot, previous.key)
+      previous.backend?.noteOff(previous.slot, previous.key)
       const old = previous.slot
-      setTimeout(() => backend?.release(old), 1500)
+      setTimeout(() => previous.backend?.release(old), 1500)
     }
     previews.delete(owner)
   }
@@ -828,12 +900,11 @@ function previewNote(
     return
   }
   void (async () => {
-    await load(font)
     const instrument: Instrument = {
       id: 'audition',
       name: 'Audition',
       color: '#4cc2ff',
-      backend: 'web',
+      backend: preset.backend ?? 'default',
       soundfontId: preset.soundfontId,
       bank: preset.bank,
       program: preset.program,
@@ -844,13 +915,15 @@ function previewNote(
       chorus: 0,
       transpose: 0,
     }
-    const slot = await backend!.allocate(instrument)
+    const target = selectBackend(instrument)
+    await load(font, target)
+    const slot = await target.allocate(instrument)
     if (previews.get(owner)?.token !== token) {
-      backend!.release(slot)
+      target.release(slot)
       return
     }
-    previews.set(owner, { token, key, slot })
-    backend!.noteOn(slot, key, velocity)
+    previews.set(owner, { token, key, slot, backend: target })
+    target.noteOn(slot, key, velocity)
   })().catch((error) => {
     if (previews.get(owner)?.token === token) previews.delete(owner)
     log('error', 'audition', String(error))
@@ -872,12 +945,18 @@ window.addEventListener('message', (event) => {
     const trustChanged =
       JSON.stringify(settings?.trustedScripts) !==
       JSON.stringify(value.trustedScripts)
+    const synthChanged =
+      !!settings &&
+      (settings.audio.defaultSynth !== value.audio.defaultSynth ||
+        JSON.stringify(settings.audio.compensationMs) !==
+          JSON.stringify(value.audio.compensationMs) ||
+        JSON.stringify(settings.fluid) !== JSON.stringify(value.fluid))
     settings = value
     if (trustChanged) scriptSession?.suspend()
     if (cues) cues.chaseOnSeek = value.chaseCuesOnSeek ?? true
     midi?.configure(value.devices)
     void initialize(value)
-      .then(() => synchronize())
+      .then(() => synchronize(false, synthChanged))
       .catch((error) => log('error', 'audio', String(error)))
   })
   bus.on('ping', () => {
@@ -1156,7 +1235,7 @@ window.addEventListener('message', (event) => {
     bindings?.clear()
     transport?.stop()
     previews.forEach((entry) => {
-      if (entry.slot) backend?.release(entry.slot)
+      if (entry.slot) entry.backend?.release(entry.slot)
     })
     previews.clear()
     router?.panic()
@@ -1183,4 +1262,5 @@ window.engineHost.onShutdown(async () => {
   router?.panic()
   await leds?.close()
   activity?.close()
+  await fluidBackend?.destroy()
 })

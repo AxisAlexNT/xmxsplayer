@@ -17,7 +17,7 @@ import type { Project, SoundFontRef, Timing } from '../../shared/model'
 import type { Bus } from '../../shared/bus'
 import { TimeMap } from '../../shared/time-map'
 import { newProject } from '../../shared/defaults'
-import type { SynthBackend } from '../synth/backend'
+import type { SynthBackend, SynthSelector, SynthTiming } from '../synth/backend'
 import { Actions } from '../router/actions'
 import { TransportClock } from './clock'
 import { Scheduler } from './scheduler'
@@ -73,9 +73,11 @@ export class Transport {
   constructor(
     graph: AudioGraph,
     backend: SynthBackend,
-    load: (font: SoundFontRef) => Promise<void>,
+    load: (font: SoundFontRef, backend?: SynthBackend) => Promise<void>,
     private bus: () => Bus | undefined,
     private warn: (message: string) => void,
+    choose?: SynthSelector,
+    timing?: SynthTiming,
   ) {
     this.context = graph.context
     const context = this.context
@@ -119,6 +121,8 @@ export class Transport {
       },
       (tick) => this.conditionContext(tick),
       (route, when) => this.onNoteActivity(route, when),
+      choose,
+      timing,
     )
     this.scheduler = new Scheduler(this.clock, this.output)
     this.waitNotes = new WaitNotes({
@@ -218,7 +222,7 @@ export class Transport {
       this.armDeadline()
     }
   }
-  synchronize(project: Project): Promise<void> {
+  synchronize(project: Project, forceSynth = false): Promise<void> {
     const available = allPatches(project)
     project = this.resolveProject(project)
     if (
@@ -230,7 +234,7 @@ export class Transport {
     this.clips.configure(project.clips)
     const followChanged = this.waitNotes.configure(project)
     const signature = sequenceSignature(project)
-    if (signature === this.signature) {
+    if (!forceSynth && signature === this.signature) {
       const seek = this.gridSeek
       this.gridSeek = undefined
       const work = this.serial.then(async () => {
@@ -255,7 +259,7 @@ export class Transport {
     }
     this.signature = signature
     const events = eventSignature(project)
-    const keepHeld = events === this.eventsSignature
+    const keepHeld = !forceSynth && events === this.eventsSignature
     this.eventsSignature = events
     const epoch = ++this.epoch
     this.scheduler.invalidate(keepHeld)

@@ -1,5 +1,16 @@
 import type { AudioPeaks, AudioSource } from './audio'
 import type { Source, Settings } from './model'
+import type { FluidEvent, FluidPreset } from './fluid'
+export interface FluidApi {
+  detect(path?: string): Promise<{ path: string; version: string }>
+  start(): Promise<{ generation: number }>
+  stop(): Promise<void>
+  load(url: string): Promise<number>
+  unload(font: number): Promise<void>
+  presets(font: number): Promise<FluidPreset[]>
+  send(lines: string[]): Promise<void>
+  onEvent(handler: (event: FluidEvent) => void): () => void
+}
 export interface SoundFontFile {
   file: string
   bytes: number
@@ -25,6 +36,7 @@ export interface ScoreData {
   musicxml?: string
 }
 export interface DesktopApi {
+  fluid: FluidApi
   scores: {
     readXml: (file: string) => Promise<string>
     detect: (path?: string) => Promise<{ path: string; version: string }>

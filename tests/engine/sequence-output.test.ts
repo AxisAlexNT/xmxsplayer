@@ -1,8 +1,97 @@
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { liveProject } from '../../src/shared/template'
 import { SequenceOutput } from '../../src/engine/transport/sequence-output'
 import type { ScheduledNote } from '../../src/engine/transport/scheduler'
 import { FakeBackend } from './fake-backend'
+it('applies sequencer timing offsets and retains a note lease until its compensated release', async () => {
+  const project = liveProject('Timing'),
+    backend = new FakeBackend()
+  let now = 0,
+    offset = 0.04
+  const on = vi.spyOn(backend, 'noteOn'),
+    off = vi.spyOn(backend, 'noteOff'),
+    cc = vi.spyOn(backend, 'cc')
+  const output = new SequenceOutput(
+    backend,
+    async () => undefined,
+    () => now,
+    () => undefined,
+    () => undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    () => offset,
+  )
+  await output.synchronize(project)
+  const track = project.tracks[0]
+  if (track.kind !== 'midi') throw Error('Expected MIDI')
+  const note: ScheduledNote = {
+    id: 'shifted',
+    track,
+    note: [0, 960, 60, 100],
+    start: 0,
+    end: 960,
+    cycle: 0,
+  }
+  output.noteOn(note, 1)
+  const slot = on.mock.calls[0][0]
+  expect(on).toHaveBeenCalledWith(slot, 60, 100, 1.04)
+  offset = -0.05
+  output.noteOff(note, 2)
+  expect(off).toHaveBeenCalledWith(slot, 60, 2.04)
+  output.event(track, { tick: 480, type: 'cc', num: 64, value: 0 }, 1.5)
+  expect(cc).toHaveBeenLastCalledWith(slot, 64, 0, 1.45)
+  now = 2.01
+  output.collect(now)
+  expect(output.hasNote('shifted')).toBe(true)
+  now = 2.05
+  output.collect(now)
+  expect(output.hasNote('shifted')).toBe(false)
+  output.noteOn({ ...note, id: 'late' }, 0)
+  expect(on).toHaveBeenLastCalledWith(slot, 60, 100, now)
+  output.close()
+})
+it('sends notes, cancellation and release to the selected backend', async () => {
+  const project = liveProject('Native'),
+    web = new FakeBackend(),
+    fluid = new FakeBackend()
+  project.instruments[0].backend = 'fluid'
+  const output = new SequenceOutput(
+    web,
+    async () => undefined,
+    () => 0,
+    () => undefined,
+    () => undefined,
+    undefined,
+    undefined,
+    undefined,
+    (instrument) => (instrument.backend === 'fluid' ? fluid : web),
+  )
+  await output.synchronize(project)
+  const track = project.tracks[0]
+  if (track.kind !== 'midi') throw Error('Expected MIDI')
+  output.noteOn(
+    {
+      id: 'note',
+      track,
+      note: [0, 480, 60, 100],
+      start: 0,
+      end: 480,
+      cycle: 0,
+    },
+    0,
+  )
+  output.reset(false)
+  expect(fluid.events.some((event) => event.type === 'on')).toBe(true)
+  expect(fluid.events.some((event) => event.type === 'clear')).toBe(true)
+  expect(
+    fluid.events.some((event) => event.type === 'cc' && event.cc === 120),
+  ).toBe(true)
+  expect(web.events).toEqual([])
+  output.close()
+  expect(fluid.events.at(-1)!.type).toBe('release')
+})
 it('isolates tracks, chases controllers and preserves only started voices when retiming', async () => {
   const project = liveProject('Sequence')
   const track = project.tracks[0]

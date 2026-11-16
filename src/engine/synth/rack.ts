@@ -1,6 +1,6 @@
 import { allPatches } from '../../shared/patches'
 import type { Instrument, Project, SoundFontRef } from '../../shared/model'
-import type { SlotId, SynthBackend } from './backend'
+import type { SlotId, SynthBackend, SynthSelector } from './backend'
 
 export interface RackSlot {
   backend: SynthBackend
@@ -18,9 +18,16 @@ export class InstrumentRack {
   private aliases = new Map<string, string>()
   constructor(
     private backend: SynthBackend,
-    private load: (font: SoundFontRef) => Promise<void>,
+    private load: (font: SoundFontRef, backend?: SynthBackend) => Promise<void>,
     private warn: (message: string) => void,
     private perTrack = false,
+    private choose: SynthSelector = (instrument) => {
+      if (instrument.backend === 'web' || instrument.backend === 'default')
+        return backend
+      throw Error(
+        `${instrument.name}: ${instrument.backend} backend is not available`,
+      )
+    },
   ) {}
   synchronize(project: Project): Promise<void> {
     if (this.perTrack) {
@@ -67,16 +74,6 @@ export class InstrumentRack {
       for (const instrument of project.instruments) {
         if (revision !== this.revision) return
         const old = this.active.get(instrument.id)
-        if (instrument.backend !== 'web' && instrument.backend !== 'default') {
-          if (old) {
-            this.active.delete(instrument.id)
-            this.retire(old)
-          }
-          this.warn(
-            `${instrument.name}: ${instrument.backend} backend is not available yet`,
-          )
-          continue
-        }
         const font = project.soundfonts.find(
           (sf) => sf.id === instrument.soundfontId,
         )
@@ -88,29 +85,31 @@ export class InstrumentRack {
           this.warn(`${instrument.name}: no soundfont selected`)
           continue
         }
-        const samePatch =
-          old &&
-          old.fontFile === font.file &&
-          old.instrument.soundfontId === instrument.soundfontId &&
-          old.instrument.bank === instrument.bank &&
-          old.instrument.program === instrument.program &&
-          old.instrument.isDrum === instrument.isDrum
         try {
-          await this.load(font)
+          const target = this.choose(instrument)
+          const samePatch =
+            old &&
+            old.backend === target &&
+            old.fontFile === font.file &&
+            old.instrument.soundfontId === instrument.soundfontId &&
+            old.instrument.bank === instrument.bank &&
+            old.instrument.program === instrument.program &&
+            old.instrument.isDrum === instrument.isDrum
+          await this.load(font, target)
           if (revision !== this.revision) return
           if (samePatch) {
-            this.backend.configure(old.slot, instrument)
+            target.configure(old.slot, instrument)
             old.instrument = instrument
             continue
           }
-          const slot = await this.backend.allocate(instrument)
+          const slot = await target.allocate(instrument)
           if (revision !== this.revision) {
-            this.backend.release(slot)
+            target.release(slot)
             return
           }
           if (old) this.retire(old)
           this.active.set(instrument.id, {
-            backend: this.backend,
+            backend: target,
             slot,
             instrument,
             fontFile: font.file,
@@ -157,12 +156,16 @@ export class InstrumentRack {
     else this.retired.add(slot)
   }
   panic(): void {
-    this.backend.allNotesOff()
+    for (const backend of new Set([
+      this.backend,
+      ...[...this.active.values(), ...this.retired].map((slot) => slot.backend),
+    ]))
+      backend.allNotesOff()
   }
   close(): void {
     this.revision++
-    this.active.forEach((slot) => this.backend.release(slot.slot))
-    this.retired.forEach((slot) => this.backend.release(slot.slot))
+    this.active.forEach((slot) => slot.backend.release(slot.slot))
+    this.retired.forEach((slot) => slot.backend.release(slot.slot))
     this.active.clear()
     this.retired.clear()
   }

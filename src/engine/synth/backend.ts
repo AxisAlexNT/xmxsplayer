@@ -1,5 +1,7 @@
 import type { Instrument, SoundFontRef } from '../../shared/model'
 export type SlotId = string
+export type SynthSelector = (instrument: Instrument) => SynthBackend
+export type SynthTiming = (backend: SynthBackend) => number
 export interface Preset {
   bank: number
   program: number

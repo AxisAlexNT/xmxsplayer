@@ -32,8 +32,21 @@ void app
     const windows = createWindows(join(root, 'preload'))
     const close = installIpc(windows)
     installMenu(windows.ui)
-    app.on('before-quit', () => {
-      void close()
+    let cleaned = false
+    let cleanup: Promise<void> | undefined
+    app.on('before-quit', (event) => {
+      if (cleaned || !windows.ui.isDestroyed()) return
+      event.preventDefault()
+      cleanup ??= windows
+        .stopEngine()
+        .then(close)
+        .catch((error) => {
+          console.error(error)
+        })
+        .finally(() => {
+          cleaned = true
+          app.quit()
+        })
     })
     let mounted = false
     let ready = false

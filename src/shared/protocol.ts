@@ -62,12 +62,14 @@ export interface CommandMap {
   'control:capture': { active: boolean }
   'device:assign': { portName: string; profileId: string }
   'audition:select': {
+    backend?: 'default' | 'web' | 'fluid'
     soundfontId: Id
     bank: number
     program: number
     isDrum: boolean
   } | null
   'audition:preset': {
+    backend?: 'default' | 'web' | 'fluid'
     soundfontId: Id
     bank: number
     program: number

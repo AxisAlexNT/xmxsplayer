@@ -762,7 +762,13 @@ onUnmounted(() => {
             runtime.synthLoading ||
             (p.instruments.length > 0 && !runtime.readyInstruments.length),
         }"
-      /><span class="xm-engine-label">{{
+      /><span
+        v-if="runtime.connected && !runtime.synthLoading && runtime.latency?.backend==='fluid'"
+        class="xm-engine-label"
+      >FluidSynth<small class="xm-configured-latency">Configured {{ runtime.latency.fluidMs.toFixed(1) }} ms</small></span><span
+        v-else
+        class="xm-engine-label"
+      >{{
         runtime.connected
           ? runtime.synthLoading
             ? 'Loading sounds…'

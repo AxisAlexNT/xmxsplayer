@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
-import type { DesktopApi } from '../shared/api'
+import type { DesktopApi, FluidApi } from '../shared/api'
 
 function subscribe<T>(
   channel: string,
@@ -22,7 +22,18 @@ export function installBridge(ui: boolean): void {
     { once: true },
   )
   if (!ui) return
+  const fluid: FluidApi = {
+    detect: (path) => ipcRenderer.invoke('fluid:detect', path),
+    start: () => ipcRenderer.invoke('fluid:start'),
+    stop: () => ipcRenderer.invoke('fluid:stop'),
+    load: (url) => ipcRenderer.invoke('fluid:load', url),
+    unload: (font) => ipcRenderer.invoke('fluid:unload', font),
+    presets: (font) => ipcRenderer.invoke('fluid:presets', font),
+    send: (lines) => ipcRenderer.invoke('fluid:send', lines),
+    onEvent: (handler) => subscribe('fluid:event', handler),
+  }
   const api: DesktopApi = {
+    fluid,
     scores: {
       readXml: (file) => ipcRenderer.invoke('scores:xml', file),
       detect: (path) => ipcRenderer.invoke('scores:detect', path),
