@@ -3,6 +3,7 @@ import type { Project } from '../../shared/model'
 export class TransportClock {
   playing = false
   holding = false
+  punchRaw = 0
   recording = false
   rate = 1
   followFactor = 1

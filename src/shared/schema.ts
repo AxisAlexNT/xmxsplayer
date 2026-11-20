@@ -75,6 +75,7 @@ export const actionSchema = z.discriminatedUnion('type', [
       'pause',
       'stop',
       'record',
+      'recordMode',
       'rewind',
       'forward',
       'toStart',
@@ -312,6 +313,12 @@ export const trackSchema = z.discriminatedUnion('kind', [
 ])
 export const projectSchema = z
   .strictObject({
+    record: z
+      .strictObject({
+        mode: enums(['overdub', 'replace']),
+        preRollBars: int.min(0).max(4),
+      })
+      .default({ mode: 'overdub', preRollBars: 0 }),
     version: z.literal(1),
     name: z.string().min(1),
     tempos: z.strictObject({ tick, bpm: num.positive() }).array().min(1),

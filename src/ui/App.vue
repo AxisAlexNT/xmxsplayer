@@ -296,7 +296,7 @@ function shortcut(event: KeyboardEvent): void {
     return
   if (key === ' ') cmd = 'toggle'
   else if (key === 'enter') cmd = 'stop'
-  else if (key === 'r') cmd = 'record'
+  else if (key === 'r') cmd = event.shiftKey ? 'recordMode' : 'record'
   else if (key === 'l') cmd = 'loopToggle'
   else if (key === '[') cmd = 'loopStartHere'
   else if (key === ']') cmd = 'loopEndHere'
@@ -651,6 +651,27 @@ onUnmounted(() => {
           />
         </button>
       </div>
+      <details>
+        <summary title="Recording settings">
+          {{ p.record?.mode === 'replace' ? 'Replace' : 'Overdub' }}
+        </summary>
+        <div class="xm-grid-popover">
+          <button
+            :disabled="runtime.transport.recording"
+            @click="transport('recordMode')"
+          >
+            Switch to {{ p.record?.mode === 'replace' ? 'Overdub' : 'Replace' }}
+          </button>
+          <label>Pre-roll bars <select
+            :value="p.record?.preRollBars ?? 0"
+            :disabled="runtime.transport.recording"
+            @change="doc.update(d=>{d.record={mode:d.record?.mode ?? 'overdub',preRollBars:Number(($event.target as HTMLSelectElement).value)}})"
+          ><option
+            v-for="n in [0,1,2,3,4]"
+            :key="n"
+          >{{ n }}</option></select></label>
+        </div>
+      </details>
       <div class="xm-pos">
         <b>{{ String(position.bar).padStart(3, '0') }}.{{ position.beat }}.{{
           position.sixteenth

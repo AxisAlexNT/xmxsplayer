@@ -1,3 +1,4 @@
+import { replaceRange } from '../shared/recording'
 import { parameterPatch } from '../shared/parameters'
 import { syncProject } from '../shared/project-sync'
 import { createApp, watch } from 'vue'
@@ -154,10 +155,13 @@ watch(engineBus, (bus) => {
         for (const data of tracks) {
           const track = d.tracks.find((t) => t.id === data.trackId)
           if (track?.kind !== 'midi') continue
-          track.notes = [...track.notes, ...data.notes].sort(
+          const kept = data.covered
+            ? replaceRange(track.notes, track.events, data.covered)
+            : track
+          track.notes = [...kept.notes, ...data.notes].sort(
             (a, b) => a[0] - b[0] || a[2] - b[2],
           )
-          track.events = [...track.events, ...data.events].sort(
+          track.events = [...kept.events, ...data.events].sort(
             (a, b) => a.tick - b.tick,
           )
           if (track.link) track.link.state = 'ahead'

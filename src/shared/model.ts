@@ -4,6 +4,7 @@ export type Note = [tick: number, dur: number, key: number, vel: number]
 export type Timing = 'now' | 'beat' | 'bar'
 
 export interface Project {
+  record?: { mode: 'overdub' | 'replace'; preRollBars: number }
   version: 1
   name: string
   tempos: { tick: number; bpm: number }[]
@@ -193,6 +194,7 @@ export type Action =
         | 'pause'
         | 'stop'
         | 'record'
+        | 'recordMode'
         | 'rewind'
         | 'forward'
         | 'toStart'

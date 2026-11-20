@@ -1,3 +1,4 @@
+import { replaceRange } from '../../shared/recording'
 import type { Project } from '../../shared/model'
 import type {
   RecordedTake,
@@ -39,6 +40,9 @@ export class Recorder {
   private loop: Project['loop'] = { enabled: false, startTick: 0, endTick: 1 }
   private map: TimeMap
   private nextWrap = Infinity
+  private passStart = 0
+  private replace = false
+  private collected = new Map<string, RecordedTrack>()
   private serial = 0
   private startContext = 0
   constructor(
@@ -151,12 +155,22 @@ export class Recorder {
     if (wants && !this.enabled) {
       this.enabled = true
       this.startContext = Math.max(now, this.clock.contextAt(this.clock.raw))
+      if (jumped) this.clock.punchRaw = this.clock.raw
       this.setup(this.corrected())
+      this.passStart = this.tickAt(
+        Math.max(this.corrected(), this.clock.punchRaw),
+      )
+      this.replace = this.project()?.record?.mode === 'replace'
+      this.collected.clear()
     }
     if (this.enabled) this.tick()
   }
   private ready(when: number): boolean {
-    return this.enabled && when >= this.startContext - 1e-6
+    return (
+      this.enabled &&
+      this.corrected(when) >= this.clock.punchRaw &&
+      when >= this.startContext - 1e-6
+    )
   }
   private take(trackId: string): Take {
     let take = this.takes.get(trackId)
@@ -255,7 +269,36 @@ export class Recorder {
           if (take) take.events.push({ tick, type: 'cc', num: 64, value: 0 })
         }
   }
-  private send(): void {
+  private send(end: number, final: boolean): void {
+    if (this.replace) {
+      if (end > this.passStart) {
+        const covered: [number, number][] = [[this.passStart, end]]
+        for (const track of this.project()?.tracks ?? []) {
+          if (track.kind !== 'midi' || !track.armed) continue
+          const prev = this.collected.get(track.id)
+          const kept = replaceRange(
+            prev?.notes ?? [],
+            prev?.events ?? [],
+            covered,
+          )
+          const take = this.takes.get(track.id)
+          this.collected.set(track.id, {
+            trackId: track.id,
+            covered: [...(prev?.covered ?? []), ...covered],
+            notes: [...kept.notes, ...(take?.notes ?? [])],
+            events: [...kept.events, ...(take?.events ?? [])],
+          })
+        }
+      }
+      this.takes.clear()
+      if (final && this.collected.size)
+        this.emit({
+          takeId: `take-${++this.serial}`,
+          scope: this.scope,
+          tracks: [...this.collected.values()],
+        })
+      return
+    }
     const tracks = [...this.takes.values()]
       .filter((t) => t.changed)
       .map(({ trackId, notes, events }) => ({
@@ -274,7 +317,8 @@ export class Recorder {
     while (this.enabled && this.loop.enabled && raw >= this.nextWrap - 1e-9) {
       for (const held of this.held.values()) this.close(held, this.loop.endTick)
       this.releasePedals(this.loop.endTick)
-      this.send()
+      this.send(this.loop.endTick, false)
+      this.passStart = this.loop.startTick
       for (const held of this.held.values()) {
         held.tick = this.loop.startTick
         this.seed(
@@ -286,6 +330,13 @@ export class Recorder {
       this.nextWrap += length
     }
   }
+  coverage(): [number, number][] | undefined {
+    if (!this.replace || !this.enabled) return undefined
+    const raw = this.corrected()
+    if (raw < this.clock.punchRaw) return []
+    const prior = this.collected.values().next().value?.covered ?? []
+    return [...prior, [this.passStart, this.tickAt(raw)]]
+  }
   tick(): void {
     if (this.enabled) this.advance(this.corrected())
   }
@@ -295,7 +346,7 @@ export class Recorder {
     for (const held of this.held.values()) this.close(held, tick)
     this.held.clear()
     this.releasePedals(tick)
-    this.send()
+    this.send(tick, true)
   }
   disconnect(source: string): void {
     if (!this.enabled) return

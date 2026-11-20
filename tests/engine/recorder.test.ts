@@ -204,3 +204,37 @@ it('groups armed tracks in the same take', () => {
   expect(r.takes).toHaveLength(1)
   expect(r.takes[0].tracks).toHaveLength(2)
 })
+it('replaces through silence at half speed and keeps the last loop pass', () => {
+  const r = rig()
+  r.p.record = { mode: 'replace', preRollBars: 0 }
+  r.clock.setLoop({ enabled: true, startTick: 0, endTick: 960 })
+  r.start(0.5)
+  r.set(0.25)
+  r.note(true)
+  r.set(0.5)
+  r.note(false)
+  r.set(2.5)
+  r.stop()
+  expect(r.takes).toHaveLength(1)
+  expect(r.takes[0].tracks[0]).toMatchObject({
+    covered: [
+      [0, 960],
+      [0, 240],
+    ],
+    notes: [],
+  })
+})
+it('starts coverage and accepts notes only from the punch tick', () => {
+  const r = rig()
+  r.p.record = { mode: 'replace', preRollBars: 1 }
+  r.clock.punchRaw = 1
+  r.start()
+  r.set(0.5)
+  r.note(true)
+  r.set(1.5)
+  r.stop()
+  expect(r.takes[0].tracks[0]).toMatchObject({
+    covered: [[960, 1440]],
+    notes: [],
+  })
+})

@@ -425,6 +425,7 @@ export class Transport {
       playing: c.playing,
       holding: c.holding,
       recording: c.recording,
+      covered: this.recorder.coverage(),
       tick: c.tick,
       rate: c.rate,
       followFactor: c.followFactor,

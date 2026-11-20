@@ -6,6 +6,8 @@ A desktop workspace for transcribing music by ear and performing arrangements wi
 
 Right-click or long-press the timeline ruler to insert or delete measures or change the tempo or signature from a bar. Use **+ Bars** below the tracks to extend the project. Each edit supports Undo.
 
+Choose Replace in the transport to re-record from the playhead through Stop, including silence. Shift+R switches between Replace and Overdub. Recording settings also offer up to four bars of pre-roll.
+
 Version 0.1.0 is in release validation. The software is implemented; it is not yet a fully verified release. Ubuntu 24.04 checks cover built-in SF2/SF3 synthesis, MIDI/audio import, recording/editing, shared staff/roll/audio timing, clips, scenes/registers/cues, scripted routing, follow modes, linked MuseScore 3 conversion, FluidSynth recovery and external MIDI routing. Tests use muted audio and simulated ports where physical interaction is unnecessary.
 
 The approved PipeWire comparison reduced the Built-in buffer-128 median estimate from 82.7 ms at quantum 1024 to 18.7 ms at 256; the original 1024 setting was restored. FluidSynth's muted PipeWire driver started at both sizes and displayed configured 10.7 ms. These are different kinds of readouts, not physical latency measurements. See [latency observations](docs/latency.md).

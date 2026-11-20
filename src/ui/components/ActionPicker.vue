@@ -31,6 +31,7 @@ const commands = computed(() =>
         'pause',
         'stop',
         'record',
+        'recordMode',
         'rewind',
         'forward',
         'toStart',

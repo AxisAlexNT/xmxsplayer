@@ -96,9 +96,15 @@ export class Scheduler {
     this.events.sort((a, b) => a.sec - b.sec || a.order - b.order)
     this.invalidate(keepHeld)
   }
-  private plays(track: MidiTrack): boolean {
+  private plays(track: MidiTrack, raw = this.clock.raw): boolean {
     return (
       track.mode === 'auto' &&
+      !(
+        track.armed &&
+        this.clock.recording &&
+        this.project?.record?.mode === 'replace' &&
+        raw >= this.clock.punchRaw
+      ) &&
       (!this.project?.tracks.some((t) => t.solo) || track.solo)
     )
   }
@@ -175,7 +181,7 @@ export class Scheduler {
       cycle = this.cycle(raw)
     const tracks = new Set(this.events.map((e) => e.track))
     for (const track of tracks) {
-      if (!this.plays(track)) continue
+      if (!this.plays(track, raw)) continue
       this.output.chase(track, tick, when)
       track.notes.forEach((note, index) => {
         const id = `${cycle}:${track.id}:${index}`
@@ -275,12 +281,15 @@ export class Scheduler {
         if (event.sec >= endSong - 1e-9) break
         const when = this.clock.contextAt(cursor + event.sec - startSong)
         if (event.event) {
-          if (this.plays(event.track))
+          if (this.plays(event.track, cursor + event.sec - startSong))
             this.output.event(event.track, event.event, when)
         } else {
           const note = this.descriptor(event, cycle)
           if (event.on) {
-            if (this.plays(event.track) && !this.output.hasNote(note.id))
+            if (
+              this.plays(event.track, cursor + event.sec - startSong) &&
+              !this.output.hasNote(note.id)
+            )
               this.output.noteOn(note, when)
           } else if (this.output.hasNote(note.id))
             this.output.noteOff(note, when)

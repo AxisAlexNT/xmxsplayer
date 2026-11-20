@@ -76,6 +76,15 @@ export class Actions {
         this.stopped = true
         h.scheduler.clearActions()
         break
+      case 'recordMode':
+        if (!c.recording)
+          h.patch({
+            record: {
+              mode: p.record?.mode === 'replace' ? 'overdub' : 'replace',
+              preRollBars: p.record?.preRollBars ?? 0,
+            },
+          })
+        return
       case 'record':
         if (
           !c.recording &&
@@ -83,6 +92,22 @@ export class Actions {
         ) {
           h.app('record:armRequired')
           return
+        }
+        if (!c.recording) {
+          const bars = p.record?.preRollBars ?? 0
+          c.punchRaw = c.raw
+          if (!c.playing && bars && c.tick < p.lengthTicks) {
+            const punch = c.tick
+            const pos = c.map.tickToBarBeat(punch)
+            seek(
+              pos.bar <= bars
+                ? 0
+                : c.map.barToTick(pos.bar - bars) +
+                    punch -
+                    c.map.barToTick(pos.bar),
+            )
+            c.punchRaw = c.map.tickToSec(punch)
+          } else if (!c.playing && c.tick >= p.lengthTicks) c.punchRaw = 0
         }
         c.recording = !c.recording
         if (c.recording && !c.playing) void h.play()

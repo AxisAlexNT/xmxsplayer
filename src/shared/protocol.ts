@@ -83,6 +83,7 @@ export interface CommandMap {
   panic: undefined
 }
 export interface TransportState {
+  covered?: [number, number][]
   playing: boolean
   recording: boolean
   holding: boolean

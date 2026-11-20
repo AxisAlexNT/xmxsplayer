@@ -70,6 +70,7 @@ function draw(): void {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
   ctx.clearRect(0, 0, w, h)
   if (
+    (props.track.armed && !!runtime.transport.covered) ||
     previousAxis !== axis ||
     previousTrack !== props.track ||
     previousHeight !== h ||
@@ -135,7 +136,7 @@ function draw(): void {
         const x = axis.xInPage(Math.max(start, note[0]), page),
           right = axis.xInPage(Math.min(end, note[0] + note[1]), page),
           y = (hi - note[2]) * row + 1
-        c.globalAlpha = 0.75
+        c.globalAlpha = props.track.armed && runtime.transport.covered?.some(([start,end]) => note[0]>=start && note[0]<end) ? 0.25 : 0.75
         c.fillStyle = props.track.color
         c.strokeStyle = props.track.color
         if (props.track.mode === 'live')
@@ -143,7 +144,7 @@ function draw(): void {
         else c.fillRect(x, y, Math.max(2, right - x - 1), Math.max(2, row - 2))
       }
       c.restore()
-      backgrounds.set(page, image)
+      if (!(props.track.armed && runtime.transport.covered)) backgrounds.set(page, image)
       for (const cached of backgrounds.keys())
         if (!frame.pages.includes(cached)) backgrounds.delete(cached)
     }
