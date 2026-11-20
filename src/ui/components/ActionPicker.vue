@@ -13,6 +13,7 @@ const a = computed(() => props.modelValue),
   types = [
     'transport',
     'scene',
+    'orchestra',
     'register',
     'note',
     'param',
@@ -46,7 +47,7 @@ const commands = computed(() =>
       ]
     : a.value.type === 'scene'
       ? ['activate', 'next', 'prev', 'clear']
-      : a.value.type === 'register'
+      : a.value.type === 'orchestra' ? ['select','next','prev'] : a.value.type === 'register'
         ? ['toggle', 'set', 'momentary']
         : a.value.type === 'cue'
           ? ['fireNext', 'fire', 'prev', 'next']
@@ -91,7 +92,7 @@ function choose(type: Action['type'] | ''): void {
       ? { type, cmd: 'toggle' }
       : type === 'scene'
         ? { type, cmd: 'next' }
-        : type === 'register'
+        : type === 'orchestra' ? {type,cmd:'select',orchestraId:p.orchestras?.[0]?.id} : type === 'register'
           ? { type, cmd: 'toggle', index: 0 }
           : type === 'note'
             ? {
@@ -116,7 +117,8 @@ function choose(type: Action['type'] | ''): void {
   )
 }
 function command(cmd: string): void {
-  if (a.value.type === 'scene')
+  if(a.value.type==='orchestra')emit('update:modelValue',{type:'orchestra',cmd:cmd as 'select'|'next'|'prev',...(cmd==='select'?{orchestraId:props.project.orchestras?.[0]?.id}:{})})
+  else if (a.value.type === 'scene')
     emit('update:modelValue', {
       type: 'scene',
       cmd: cmd as 'activate' | 'next' | 'prev' | 'clear',
@@ -191,6 +193,14 @@ const targets: ParamTarget[] = [
 ]
 </script>
 <template>
+  <label v-if="a.type==='orchestra' && a.cmd==='select'">Orchestra <select
+    :value="a.orchestraId"
+    @change="patch({orchestraId:($event.target as HTMLSelectElement).value})"
+  ><option
+    v-for="o in project.orchestras"
+    :key="o.id"
+    :value="o.id"
+  >{{ o.name }}</option></select></label>
   <div class="xm-action-picker">
     <div class="row g-2">
       <div class="col-6">

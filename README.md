@@ -4,6 +4,8 @@ A desktop workspace for transcribing music by ear and performing arrangements wi
 
 ## Status
 
+The Orchestra panel provides four range-aware presets, section registers and configurable layers. See [Orchestral sets](docs/orchestra.md).
+
 Right-click or long-press the timeline ruler to insert or delete measures or change the tempo or signature from a bar. Use **+ Bars** below the tracks to extend the project. Each edit supports Undo.
 
 Choose Replace in the transport to re-record from the playhead through Stop, including silence. Shift+R switches between Replace and Overdub. Recording settings also offer up to four bars of pre-roll.

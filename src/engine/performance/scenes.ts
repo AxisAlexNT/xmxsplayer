@@ -19,6 +19,35 @@ export interface SceneHost {
   context(): Pick<ConditionContext, 'bar' | 'playing'>
 }
 export class Scenes {
+  orchestras: Record<string, string> = {}
+  selectOrchestra(
+    action: Extract<Action, { type: 'orchestra' }>,
+    at: Timing = 'now',
+  ) {
+    this.host.queue(at, () => {
+      const project = this.project
+      const track = action.trackId
+        ? project?.tracks.find((t) => t.id === action.trackId)
+        : project?.tracks.find((t) => t.kind === 'midi' && t.orchestraId)
+      const list = project?.orchestras ?? []
+      if (track?.kind !== 'midi' || !list.length) return
+      const current = this.orchestras[track.id] ?? track.orchestraId
+      const index = list.findIndex((o) => o.id === current)
+      const orchestra =
+        action.cmd === 'select'
+          ? list.find((o) => o.id === action.orchestraId)
+          : list[
+              (index + (action.cmd === 'next' ? 1 : -1) + list.length) %
+                list.length
+            ]
+      if (!orchestra) return
+      this.orchestras[track.id] = orchestra.id
+      for (const section of orchestra.sections)
+        if (section.register !== null)
+          this.registers.set(section.register, section.startOn)
+      this.host.changed()
+    })
+  }
   readonly registers = new Registers()
   activeId: string | null = null
   private project?: Project
@@ -82,6 +111,19 @@ export class Scenes {
     }
     this.project = project
     this.registers.configure(project.registers)
+    for (const track of project.tracks) {
+      if (track.kind !== 'midi' || !track.orchestraId) continue
+      if (project.orchestras?.some((o) => o.id === this.orchestras[track.id]))
+        continue
+      const orchestra = project.orchestras?.find(
+        (o) => o.id === track.orchestraId,
+      )
+      if (!orchestra) continue
+      this.orchestras[track.id] = orchestra.id
+      for (const section of orchestra.sections)
+        if (section.register !== null)
+          this.registers.set(section.register, section.startOn)
+    }
     if (!project.scenes.some((scene) => scene.id === this.activeId))
       this.activeId = null
   }
@@ -199,11 +241,15 @@ export class Scenes {
       },
       tracks: this.project.tracks.map((track) => ({
         ...track,
+        ...(this.orchestras[track.id]
+          ? { orchestraId: this.orchestras[track.id] }
+          : {}),
         mode: setup.trackModes[track.id] ?? track.mode,
       })),
     }
   }
   reset(notify = true): void {
+    this.orchestras = {}
     this.activeId = null
     this.clearScript(false)
     this.modes = {}

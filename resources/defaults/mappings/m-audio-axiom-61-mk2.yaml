@@ -26,26 +26,26 @@ bindings:
   - control: button.5
     edge: press
     action:
-      type: register
-      cmd: toggle
-      index: 4
+      type: orchestra
+      cmd: select
+      orchestraId: symphonic
   - control: button.6
     edge: press
     action:
-      type: register
-      cmd: toggle
-      index: 5
+      type: orchestra
+      cmd: select
+      orchestraId: new-age
   - control: button.7
     edge: press
     action:
-      type: register
-      cmd: toggle
-      index: 6
+      type: orchestra
+      cmd: select
+      orchestraId: edm-trance
   - control: button.8
     edge: press
     action:
-      type: register
-      cmd: toggle
-      index: 7
+      type: orchestra
+      cmd: select
+      orchestraId: tuned-percussion
 padColors: {}
 scenes: {}

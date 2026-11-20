@@ -54,7 +54,7 @@ export function noteName(key: number): string {
 }
 const timing = enums(['now', 'beat', 'bar'])
 const mode = enums(['auto', 'live', 'mute'])
-const beatChase = enums(['off', 'top', 'bottom', 'all'])
+const beatChase = enums(['off', 'top', 'bottom', 'all', 'bankB', 'bankBPhrase'])
 export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
   z.union([
     z.strictObject({ reg: int.min(0).max(7), on: z.boolean() }),
@@ -67,6 +67,12 @@ export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
   ]),
 )
 export const actionSchema = z.discriminatedUnion('type', [
+  z.strictObject({
+    type: z.literal('orchestra'),
+    cmd: enums(['select', 'next', 'prev']),
+    orchestraId: id.optional(),
+    trackId: id.optional(),
+  }),
   z.strictObject({
     type: z.literal('transport'),
     cmd: enums([
@@ -270,6 +276,7 @@ export const trackSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     ...trackBase,
     kind: z.literal('midi'),
+    orchestraId: id.optional(),
     notes: noteSchema.array(),
     events: z
       .strictObject({
@@ -319,6 +326,43 @@ export const projectSchema = z
         preRollBars: int.min(0).max(4),
       })
       .default({ mode: 'overdub', preRollBars: 0 }),
+    orchestras: z
+      .array(
+        z.strictObject({
+          id,
+          name: z.string().min(1),
+          color,
+          maxLayers: int.min(0).max(8),
+          outOfRange: enums(['silent', 'nearest']),
+          sections: z.array(
+            z.strictObject({
+              name: z.string(),
+              register: int.min(0).max(7).nullable(),
+              startOn: z.boolean(),
+              members: z.array(
+                z
+                  .strictObject({
+                    instrumentId: id,
+                    lo: keySchema,
+                    hi: keySchema,
+                    comfortLo: keySchema,
+                    comfortHi: keySchema,
+                    enabled: z.boolean(),
+                    octave: int.min(-10).max(10),
+                    gain: num.min(0).max(2),
+                  })
+                  .refine(
+                    (m) =>
+                      m.lo <= m.comfortLo &&
+                      m.comfortLo <= m.comfortHi &&
+                      m.comfortHi <= m.hi,
+                  ),
+              ),
+            }),
+          ),
+        }),
+      )
+      .default([]),
     version: z.literal(1),
     name: z.string().min(1),
     tempos: z.strictObject({ tick, bpm: num.positive() }).array().min(1),

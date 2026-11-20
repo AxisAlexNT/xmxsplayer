@@ -76,12 +76,12 @@ it('replaces zones and patches, merges keyed fields and resolves controller/scen
 it('creates controller mappings in new projects from validated default files', () => {
   const p = newProject()
   expect(p.mappings['arturia-keylab-essential-mk3'].bindings[0]).toMatchObject({
-    control: 'pad.9',
+    control: 'pad.1',
     action: { type: 'register', index: 0 },
   })
   expect(p.mappings['m-audio-axiom-61-mk2'].bindings[7]).toMatchObject({
     control: 'button.8',
-    action: { index: 7 },
+    action: { type: 'orchestra', orchestraId: 'tuned-percussion' },
   })
   expect(
     p.base.bindings.find((b) => b.control === 'fader.9')?.action,

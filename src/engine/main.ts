@@ -130,6 +130,7 @@ function publishRuntime(): void {
   runtimeState.armedCueId = cues?.armedId ?? null
   runtimeState.queuedCueIds = cues?.queuedIds ?? []
   runtimeState.pendingActions = cues?.pendingActions ?? []
+  runtimeState.orchestras = { ...scenes.orchestras }
   runtimeState.activeSceneId = scenes.activeId
   runtimeState.registers = scenes.registers.values
   runtimeState.effective = { zones: setup.zones, patch: setup.patch }
@@ -310,6 +311,10 @@ function runAction(
         : action.mode,
       'action',
     )
+    return
+  }
+  if (action.type === 'orchestra') {
+    scenes.selectOrchestra(action)
     return
   }
   if (action.type === 'trackMode') {
@@ -573,6 +578,12 @@ async function initialize(value: Settings): Promise<void> {
                 transport!.scheduler.releaseHold()
               transport!.changed()
             },
+            orchestra: () => Object.values(scenes.orchestras)[0] ?? null,
+            selectOrchestra: (id, at) =>
+              scenes.selectOrchestra(
+                { type: 'orchestra', cmd: 'select', orchestraId: id },
+                at,
+              ),
             scene: () => scenes.activeId,
             activate: (id, at) => {
               scenes.activate(id, at)

@@ -11,6 +11,7 @@ import type { FlowSelection } from './flow/model'
 import { usePerformanceStore } from './stores/performance'
 import PatchPanel from './components/PatchPanel.vue'
 import ScenesPanel from './components/ScenesPanel.vue'
+import OrchestraPanel from './components/OrchestraPanel.vue'
 import RegistersPanel from './components/RegistersPanel.vue'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useProjectStore } from './stores/project'
@@ -150,6 +151,7 @@ let toastTimer: ReturnType<typeof setTimeout>
 const sections = [
   'Scenes',
   'Registers',
+  'Orchestra',
   'Patch',
   'Clips',
   'Controls',
@@ -876,6 +878,7 @@ onUnmounted(() => {
           class="xm-sec-b"
         >
           <ScenesPanel v-if="section === 'Scenes'" />
+          <OrchestraPanel v-else-if="section === 'Orchestra'" />
           <RegistersPanel v-else-if="section === 'Registers'" />
           <ControlsPanel
             v-else-if="section === 'Controls'"

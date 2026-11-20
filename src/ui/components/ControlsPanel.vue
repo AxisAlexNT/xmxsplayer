@@ -9,6 +9,7 @@ import { useRuntimeStore } from '../stores/runtime'
 import { useSettingsStore } from '../stores/settings'
 import { engineBus } from '../bus'
 import { CLIP_DRAG_TYPE, bindClip } from '../clips/model'
+import {defaultMappings} from '../../shared/default-bindings'
 import BindingEditor from './BindingEditor.vue'
 import LearnWizard from './LearnWizard.vue'
 const doc = useProjectStore(),
@@ -64,6 +65,17 @@ const groups = computed(() => {
     strip: controls.every((c) => c.kind === 'fader' || c.kind === 'knob'),
   }))
 })
+function orchestraLayout(){
+  const id=profile.value?.id as keyof typeof defaultMappings
+  const defaults=defaultMappings[id]
+  if(!defaults) return
+  doc.update(p=>{
+    const mapping=p.mappings[id] ??= {bindings:[],padColors:{},scenes:{}}
+    const pad=id.startsWith('arturia') ? /^pad\.(?:[1-9]|1[0-6])$/ : /^button\.[1-8]$/
+    mapping.bindings=[...mapping.bindings.filter(b=>!pad.test(b.control)),...structuredClone(defaults.bindings)]
+    if(defaults.beatChase) mapping.beatChase=defaults.beatChase
+  })
+}
 async function refresh(): Promise<void> {
   if (!runtime.connected) return
   try {
@@ -209,6 +221,13 @@ function relearn(): void {
 }
 </script>
 <template>
+  <button
+    v-if="profile && profile.id in defaultMappings"
+    class="btn btn-sm btn-ghost"
+    @click="orchestraLayout"
+  >
+    Use orchestra pad layout
+  </button>
   <template v-if="device && profile">
     <div class="xm-controls-heading">
       <select

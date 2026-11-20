@@ -1,52 +1,52 @@
 bindings:
-  - control: pad.9
+  - control: pad.1
     edge: press
     action:
       type: register
       cmd: toggle
       index: 0
-  - control: pad.10
+  - control: pad.2
     edge: press
     action:
       type: register
       cmd: toggle
       index: 1
-  - control: pad.11
+  - control: pad.3
     edge: press
     action:
       type: register
       cmd: toggle
       index: 2
-  - control: pad.12
+  - control: pad.4
     edge: press
     action:
       type: register
       cmd: toggle
       index: 3
-  - control: pad.13
+  - control: pad.5
     edge: press
     action:
-      type: register
-      cmd: toggle
-      index: 4
-  - control: pad.14
+      type: orchestra
+      cmd: select
+      orchestraId: symphonic
+  - control: pad.6
     edge: press
     action:
-      type: register
-      cmd: toggle
-      index: 5
-  - control: pad.15
+      type: orchestra
+      cmd: select
+      orchestraId: new-age
+  - control: pad.7
     edge: press
     action:
-      type: register
-      cmd: toggle
-      index: 6
-  - control: pad.16
+      type: orchestra
+      cmd: select
+      orchestraId: edm-trance
+  - control: pad.8
     edge: press
     action:
-      type: register
-      cmd: toggle
-      index: 7
+      type: orchestra
+      cmd: select
+      orchestraId: tuned-percussion
 padColors: {}
 scenes: {}
-beatChase: top
+beatChase: bankBPhrase

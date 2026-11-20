@@ -24,6 +24,10 @@ const groups = computed(() => {
   })
   return result
 })
+function label(index:number) {
+  const orchestra=doc.project.orchestras?.find(o=>Object.values(runtime.state.orchestras ?? {}).includes(o.id))
+  return orchestra?.sections.find(s=>s.register===index)?.name ?? doc.project.registers[index].name
+}
 function edit(index: number, element: HTMLElement): void {
   anchor.value = element.getBoundingClientRect()
   selected.value = index
@@ -88,7 +92,7 @@ onUnmounted(stop)
       >
         {{ index + 1 }}
       </button>
-      <span :title="reg.name">{{ reg.name }}</span>
+      <span :title="label(index)">{{ label(index) }}</span>
     </div>
     <div
       v-for="group in groups"
@@ -151,3 +155,7 @@ onUnmounted(stop)
     </p>
   </EditorPopover>
 </template>
+
+<style scoped>
+.xm-reg > span { white-space: normal; overflow-wrap:anywhere; text-align:center }
+</style>

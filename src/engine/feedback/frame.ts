@@ -41,6 +41,15 @@ function bindingState(
   s: FeedbackState,
   setup: Setup,
 ): { color: string; on: boolean; queued?: boolean } {
+  if (action.type === 'orchestra') {
+    const orchestra = p.orchestras?.find((o) => o.id === action.orchestraId)
+    return {
+      color: orchestra?.color ?? blue,
+      on:
+        !!orchestra &&
+        Object.values(s.runtime.orchestras ?? {}).includes(orchestra.id),
+    }
+  }
   if (action.type === 'register') {
     return {
       color: registerColor(p, action.index),
@@ -161,6 +170,24 @@ export function controlFrame(
           : active?.on
             ? undefined
             : { color, level: Math.max(0.08, base.level), state: 'idle' }
+    }
+    if (
+      p.metronome.visualPads &&
+      state.playing &&
+      !state.holding &&
+      (setup.beatChase === 'bankB' || setup.beatChase === 'bankBPhrase') &&
+      n >= 9 &&
+      n <= 16
+    ) {
+      const on =
+        n <= 12
+          ? options.beat !== undefined && n === 9 + ((options.beat - 1) % 4)
+          : setup.beatChase === 'bankBPhrase' && n === 13 + ((pos.bar - 1) % 4)
+      beat = {
+        color: on && pos.beat === 1 ? amber : blue,
+        level: on ? 1 : 0.08,
+        state: on ? 'on' : 'idle',
+      }
     }
     const flash =
         (options.flashes?.get(control.id) ?? 0) > options.time

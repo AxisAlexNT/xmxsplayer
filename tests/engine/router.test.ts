@@ -433,3 +433,55 @@ it('keeps transformed notes from different physical keys independent across rout
   router.disconnect('keys')
   expect(router.keys().held).toEqual([])
 })
+it('releases the original orchestra layers after a preset switch and section toggle', async () => {
+  const { project, backend, rack } = await rig()
+  const track = project.tracks[0]
+  if (track.kind !== 'midi') throw Error('Expected MIDI track')
+  track.orchestraId = 'first'
+  project.base.patch = []
+  const registers = [true]
+  project.orchestras = ['first', 'second'].map((id, i) => ({
+    id,
+    name: id,
+    color: '#ffffff',
+    maxLayers: 1,
+    outOfRange: 'silent',
+    sections: [
+      {
+        name: 'Section',
+        register: 0,
+        startOn: true,
+        members: [
+          {
+            instrumentId: i ? 'strings' : 'piano',
+            lo: 0,
+            hi: 127,
+            comfortLo: 48,
+            comfortHi: 72,
+            enabled: true,
+            octave: i,
+            gain: 1,
+          },
+        ],
+      },
+    ],
+  }))
+  const router = new Router(
+    rack,
+    () => undefined,
+    () => undefined,
+    () => ({ registers, bar: 1, activeSceneId: null, playing: false }),
+  )
+  router.setProject(project)
+  router.note('keys', 0, 60, 90, true)
+  track.orchestraId = 'second'
+  router.note('keys', 0, 62, 90, true)
+  registers[0] = false
+  router.note('keys', 0, 60, 0, false)
+  router.note('keys', 0, 62, 0, false)
+  expect(
+    backend.events.filter((e) => e.type === 'off').map((e) => e.key),
+  ).toEqual([60, 74])
+  router.close()
+  rack.close()
+})

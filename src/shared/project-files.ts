@@ -118,7 +118,17 @@ export function decodeTrack(
 }
 export function toFiles(project: Project): FileMap {
   const p = projectSchema.parse(project)
-  const { registers, base, scenes, cues, clips, mappings, script, ...meta } = p
+  const {
+    registers,
+    base,
+    scenes,
+    cues,
+    clips,
+    orchestras,
+    mappings,
+    script,
+    ...meta
+  } = p
   const files: FileMap = {}
   const tracks = meta.tracks.map((track) => {
     if (track.kind !== 'midi') return track
@@ -150,6 +160,7 @@ export function toFiles(project: Project): FileMap {
     cues,
   })
   files['bindings.yaml'] = text({ bindings })
+  files['orchestras.yaml'] = text({ orchestras })
   files['clips.yaml'] = text({ clips })
   files['script.ts'] = script
   for (const [id, mapping] of Object.entries(mappings))
@@ -193,6 +204,7 @@ export function fromFiles(files: FileMap, previous?: Project): Project {
           'scenes',
           'cues',
           'clips',
+          'orchestras',
           'mappings',
           'script',
         ].includes(k),
@@ -235,6 +247,10 @@ export function fromFiles(files: FileMap, previous?: Project): Project {
     tracks: Array.isArray(meta.tracks) ? tracks : meta.tracks,
     ...setup,
     base: { ...(setup.base as object), bindings: shared.bindings },
+    orchestras:
+      files['orchestras.yaml'] === undefined
+        ? []
+        : obj('orchestras.yaml').orchestras,
     clips: clips.clips,
     mappings,
     script: files['script.ts'],

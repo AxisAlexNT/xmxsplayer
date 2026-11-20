@@ -1,3 +1,4 @@
+import { pickLayers } from '../../shared/orchestra'
 import type { ActivityRoute } from '../../shared/activity'
 import type {
   MidiTrack,
@@ -23,6 +24,7 @@ interface Voice {
   off?: number
 }
 export class SequenceOutput implements SchedulerOutput {
+  private orchestras: Project['orchestras']
   private rack: InstrumentRack
   private tracks = new Map<string, { slot: RackSlot; patch: PatchConn }[]>()
   private slots = new Map<string, RackSlot>()
@@ -59,6 +61,7 @@ export class SequenceOutput implements SchedulerOutput {
     available: readonly PatchConn[] = allPatches(project),
     tick = 0,
   ): Promise<void> {
+    this.orchestras = project.orchestras
     if (!preserve) this.reset(false)
     const instruments = available.flatMap((conn) => {
       const track = project.tracks.find((t) => t.id === conn.trackId),
@@ -131,12 +134,38 @@ export class SequenceOutput implements SchedulerOutput {
     this.noteActivity.set(note.id, { trackId: note.track.id, on: when })
     this.activityPulse({ sourceId: 'sequencer', trackId: note.track.id }, when)
     const voices: Voice[] = []
-    for (const slot of this.destinations(note.track.id, note.start)) {
-      const key = note.note[2] + slot.instrument.transpose
+    const targets = this.destinations(note.track.id, note.start).map(
+      (slot) => ({ slot, pitch: note.note[2], gain: 1 }),
+    )
+    const orchestra = this.orchestras?.find(
+      (o) => o.id === note.track.orchestraId,
+    )
+    if (orchestra)
+      for (const layer of pickLayers(
+        orchestra,
+        note.note[2],
+        this.condition(note.start).registers,
+      )) {
+        const slot = this.slots.get(
+          patchKey({
+            id: '',
+            trackId: note.track.id,
+            instrumentId: layer.instrumentId,
+          }),
+        )
+        if (slot) targets.push({ slot, pitch: layer.key, gain: layer.gain })
+      }
+    for (const { slot, pitch, gain } of targets) {
+      const key = pitch + slot.instrument.transpose
       if (key < 0 || key > 127) continue
       const offset = this.timing(slot.backend),
         at = Math.max(this.now(), when + offset)
-      slot.backend.noteOn(slot.slot, key, note.note[3], at)
+      slot.backend.noteOn(
+        slot.slot,
+        key,
+        Math.max(1, Math.min(127, Math.round(note.note[3] * gain))),
+        at,
+      )
       this.rack.retain(slot)
       const instrumentId = this.identities.get(slot)!
       voices.push({

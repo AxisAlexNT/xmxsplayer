@@ -81,6 +81,7 @@ function fixture() {
         jobs.delete(id)
       },
     }
+  p.mappings['arturia-keylab-essential-mk3'].bindings=[]
   return { p, context, run, jobs, host, bindings: new Bindings(host) }
 }
 it('requires pickup, tracks crossed targets and re-arms after an external change', () => {

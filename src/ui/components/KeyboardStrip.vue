@@ -6,6 +6,7 @@ import { engineBus } from '../bus'
 import { noteName } from '../../shared/schema'
 import { usePerformanceStore } from '../stores/performance'
 import { uniqueId } from '../../shared/ids'
+import {pickLayers} from '../../shared/orchestra'
 import ZoneEditor from './ZoneEditor.vue'
 const emit = defineEmits<{ script: [] }>()
 const performance = usePerformanceStore()
@@ -36,6 +37,13 @@ const allKeys = computed(() =>
 const isBlack = (key: number): boolean => [1, 3, 6, 8, 10].includes(key % 12)
 const white = computed(() => allKeys.value.filter((k) => !isBlack(k)))
 const black = computed(() => allKeys.value.filter(isBlack))
+const layerMarks = computed(()=>{
+  const track=doc.project.tracks.find(t=>t.kind==='midi' && t.orchestraId)
+  if(track?.kind!=='midi') return []
+  const o=doc.project.orchestras?.find(o=>o.id===(runtime.state.orchestras?.[track.id] ?? track.orchestraId))
+  if(!o)return []
+  return allKeys.value.flatMap(key=>pickLayers(o,key,runtime.state.registers).map((layer,i)=>({key,i,color:doc.project.instruments.find(v=>v.id===layer.instrumentId)?.color ?? o.color})))
+})
 const active = new Map<string, number>()
 const color = (key: number): string => {
   const held = runtime.heldKeys.find((h) => h.key === key)
@@ -375,6 +383,16 @@ onUnmounted(() => {
           @keydown.enter.prevent.stop="play(`key-${key}`, key, 100)"
           @keyup.enter.prevent.stop="release(`key-${key}`)"
           @blur="release(`key-${key}`)"
+        />
+        <rect
+          v-for="mark in layerMarks"
+          :key="mark.key+'-'+mark.i"
+          :x="x(mark.key)*50+3"
+          :y="(isBlack(mark.key)?55:77)-mark.i*3"
+          :width="isBlack(mark.key)?26:44"
+          height="2"
+          :fill="mark.color"
+          pointer-events="none"
         />
       </svg>
     </div>

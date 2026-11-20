@@ -57,6 +57,10 @@ export interface XmApi {
     hold(): void
     release(): void
   }
+  orchestra: {
+    readonly current: string | null
+    select(id: string, at?: Timing): void
+  }
   scene: {
     activate(id: string | null, at?: Timing): void
     readonly current: string | null

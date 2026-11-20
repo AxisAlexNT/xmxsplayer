@@ -1,3 +1,4 @@
+import { pickLayers } from '../../shared/orchestra'
 import { activitySource, type ActivityRoute } from '../../shared/activity'
 import {
   matchesCondition,
@@ -202,6 +203,43 @@ export class Router {
               (this.project!.tracks.some((t) => t.solo) && !track.solo))
           )
             continue
+          const orchestra = this.project?.orchestras?.find(
+            (o) => o.id === track.orchestraId,
+          )
+          if (orchestra)
+            for (const layer of pickLayers(
+              orchestra,
+              postKey,
+              this.condition().registers,
+            )) {
+              const slot = this.rack.acquire(layer.instrumentId, trackId)
+              if (!slot) continue
+              const sent = layer.key + slot.instrument.transpose
+              if (sent < 0 || sent > 127) {
+                this.rack.release(slot)
+                continue
+              }
+              this.startTarget(
+                voice,
+                owner,
+                {
+                  slot,
+                  key: sent,
+                  trackId,
+                  instrumentId: layer.instrumentId,
+                  zoneId: zone.id,
+                },
+                Math.max(
+                  1,
+                  Math.min(
+                    127,
+                    Math.round(
+                      this.velocity(velocity, zone.velocity) * layer.gain,
+                    ),
+                  ),
+                ),
+              )
+            }
           for (const patch of this.project!.base.patch.filter(
             (p) =>
               p.trackId === trackId &&

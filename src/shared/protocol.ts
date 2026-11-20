@@ -94,6 +94,7 @@ export interface TransportState {
   countInBeat?: number
 }
 export interface RuntimeState {
+  orchestras?: Record<string, string>
   activeSceneId: Id | null
   registers: boolean[]
   armedCueId: Id | null

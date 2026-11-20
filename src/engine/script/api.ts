@@ -22,6 +22,8 @@ export interface ApiHost {
   setRate(rate: number): void
   hold(): void
   release(): void
+  orchestra?(): string | null
+  selectOrchestra?(id: string, at: Timing): void
   scene(): string | null
   activate(id: string | null, at: Timing): void
   registers(): readonly boolean[]
@@ -114,6 +116,14 @@ export function createApi(
         effect(() => host.setRate(number(rate, 'Rate', 0.25, 2))),
       hold: () => effect(() => host.hold()),
       release: () => effect(() => host.release()),
+    },
+    orchestra: {
+      get current() {
+        return call(() => host.orchestra?.() ?? null, null)
+      },
+      select(id, at = 'now') {
+        effect(() => host.selectOrchestra?.(id, at))
+      },
     },
     scene: {
       get current() {

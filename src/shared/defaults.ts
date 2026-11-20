@@ -4,6 +4,7 @@ import type { Project, Settings } from './model'
 export function newProject(name = 'Untitled'): Project {
   return {
     record: { mode: 'overdub', preRollBars: 0 },
+    orchestras: [],
     version: 1,
     name,
     tempos: [{ tick: 0, bpm: 120 }],

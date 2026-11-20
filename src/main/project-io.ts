@@ -18,7 +18,7 @@ import { newProject } from '../shared/defaults'
 import { fromFiles, toFiles } from '../shared/project-files'
 
 export const documentPath = (path: string): boolean =>
-  /^(project|setup|bindings|clips)\.yaml$|^script\.ts$|^mappings\/[a-z0-9]+(?:-[a-z0-9]+)*\.yaml$|^tracks\/[a-z0-9]+(?:-[a-z0-9]+)*\.mid$/.test(
+  /^(project|setup|bindings|clips|orchestras)\.yaml$|^script\.ts$|^mappings\/[a-z0-9]+(?:-[a-z0-9]+)*\.yaml$|^tracks\/[a-z0-9]+(?:-[a-z0-9]+)*\.mid$/.test(
     path,
   )
 export function hash(value: string | Uint8Array): string {

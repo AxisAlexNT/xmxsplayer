@@ -67,6 +67,7 @@ it('builds only the documented KeyLab SysEx messages with exact 7-bit payloads',
 it('merges colour layers in order with queued cues above pad-hit flashes', () => {
   const s = state()
   s.playing = true
+  s.project.mappings[profile.id].beatChase = 'top'
   s.project.base.padColors = { 'pad.1': '#ff0000' }
   let frame = controlFrame(profile, s, { time: 0, blink: true, beat: 1 })
   expect(frame['pad.1']).toMatchObject({
@@ -119,17 +120,15 @@ it('merges colour layers in order with queued cues above pad-hit flashes', () =>
     ).state,
   ).toBe('on')
 })
-it('shows bank B register state without applying bank A beat chase and shares exclusive-group colours', () => {
+it('shows section state on bank A and beat and phrase on bank B', () => {
   const s = state()
   s.playing = true
   s.runtime.registers[0] = true
-  s.project.registers[0].group = 'strings'
-  s.project.registers[1].group = 'strings'
   const frame = controlFrame(profile, s, { time: 0, blink: true, beat: 2 })
-  expect(frame['pad.2']).toMatchObject({ state: 'on', color: '#4cc2ff' })
-  expect(frame['pad.9'].state).toBe('on')
-  expect(frame['pad.10'].state).toBe('idle')
-  expect(frame['pad.9'].color).toBe(frame['pad.10'].color)
+  expect(frame['pad.1'].state).toBe('on')
+  expect(frame['pad.2'].state).toBe('idle')
+  expect(frame['pad.10'].state).toBe('on')
+  expect(frame['pad.13'].state).toBe('on')
   s.project.base.beatChase = 'bottom'
   s.project.mappings[profile.id].beatChase = 'bottom'
   expect(
@@ -245,6 +244,7 @@ it('keeps future packets cancellable inside the engine when MIDIOutput.clear is 
 })
 it('places script colours above bindings and below beat, hit and queued feedback', () => {
   const s = state()
+  s.project.mappings[profile.id].beatChase='top'
   s.scriptPads = { 'pad.2': '#b07cff' }
   s.scriptDisplay = ['Scene', 'Strings']
   expect(screenLines(s)).toEqual(['Scene', 'Strings'])
@@ -259,6 +259,7 @@ it('places script colours above bindings and below beat, hit and queued feedback
 
 it('shows clip identity and stopped, queued and playing binding feedback', () => {
   const s = state()
+  s.project.mappings[profile.id].bindings=[]
   s.project.clips = [clip('break', { color: '#ff9f43' })]
   s.project.base.bindings.push({
     control: 'pad.1',

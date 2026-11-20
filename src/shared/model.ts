@@ -3,7 +3,32 @@ export type Id = string // readable slug, see section 4
 export type Note = [tick: number, dur: number, key: number, vel: number]
 export type Timing = 'now' | 'beat' | 'bar'
 
+export interface OrchestraMember {
+  instrumentId: Id
+  lo: number
+  hi: number
+  comfortLo: number
+  comfortHi: number
+  enabled: boolean
+  octave: number
+  gain: number
+}
+export interface OrchestraSection {
+  name: string
+  register: number | null
+  startOn: boolean
+  members: OrchestraMember[]
+}
+export interface Orchestra {
+  id: Id
+  name: string
+  color: string
+  maxLayers: number
+  outOfRange: 'silent' | 'nearest'
+  sections: OrchestraSection[]
+}
 export interface Project {
+  orchestras?: Orchestra[]
   record?: { mode: 'overdub' | 'replace'; preRollBars: number }
   version: 1
   name: string
@@ -84,6 +109,7 @@ export interface TrackBase {
   height: number
 }
 export interface MidiTrack extends TrackBase {
+  orchestraId?: Id
   kind: 'midi'
   notes: Note[] // sorted; immutable arrays (replace on edit)
   events: { tick: number; type: 'cc' | 'bend'; num: number; value: number }[]
@@ -187,6 +213,12 @@ export type Condition =
 
 export type Action =
   | {
+      type: 'orchestra'
+      cmd: 'select' | 'next' | 'prev'
+      orchestraId?: Id
+      trackId?: Id
+    }
+  | {
       type: 'transport'
       cmd:
         | 'toggle'
@@ -266,7 +298,7 @@ export interface Setup {
   bindings: Binding[]
   trackModes: Record<Id, TrackMode>
   padColors: Record<string, string>
-  beatChase: 'off' | 'top' | 'bottom' | 'all'
+  beatChase: 'off' | 'top' | 'bottom' | 'all' | 'bankB' | 'bankBPhrase'
 }
 export interface Scene extends Partial<Setup> {
   id: Id

@@ -11,6 +11,11 @@ export function actionLabel(
   control = '',
 ): string {
   switch (action.type) {
+    case 'orchestra':
+      return (
+        project.orchestras?.find((o) => o.id === action.orchestraId)?.name ??
+        'Orchestra ' + action.cmd
+      )
     case 'param': {
       const names = {
         rate: 'Speed',
