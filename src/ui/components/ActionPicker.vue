@@ -69,6 +69,9 @@ const commands = computed(() =>
                   'toggleLanes',
                   'zoomIn',
                   'zoomOut',
+                  'insertBar',
+                  'deleteBar',
+                  'appendBar',
                 ]
               : [],
 )

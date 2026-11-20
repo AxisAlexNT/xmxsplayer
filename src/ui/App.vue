@@ -28,6 +28,7 @@ import AudioSettings from './components/AudioSettings.vue'
 import DevicesPanel from './components/DevicesPanel.vue'
 import ControlsPanel from './components/ControlsPanel.vue'
 import Timeline from './timeline/Timeline.vue'
+import { appendBars, deleteBars, insertBars } from '../shared/bar-edit'
 import { TimeMap } from '../shared/time-map'
 import type { Action } from '../shared/model'
 
@@ -448,7 +449,30 @@ async function command(cmd: string): Promise<void> {
         d.view.lanes = d.view.lanes === 'roll' ? 'staff' : 'roll'
       })
     else if (cmd === 'zoomIn') laneZoom(1.1)
-    else if (cmd === 'zoomOut') laneZoom(1 / 1.1)
+    else if (
+      cmd === 'insertBar' ||
+      cmd === 'deleteBar' ||
+      cmd === 'appendBar'
+    ) {
+      const bar = timeMap.value.tickToBarBeat(runtime.transport.tick).bar
+      const next =
+        cmd === 'appendBar'
+          ? appendBars(doc.project, 1)
+          : cmd === 'insertBar'
+            ? insertBars(doc.project, bar, 1)
+            : deleteBars(doc.project, bar, 1)
+      doc.update(() => next)
+      if (
+        cmd !== 'appendBar' &&
+        next.tracks.some(
+          (t) =>
+            t.kind === 'audio' &&
+            t.offsetSec + t.durationSec >
+              timeMap.value.tickToSec(timeMap.value.barToTick(bar)),
+        )
+      )
+        notify('Reference audio stays in place and may no longer line up.')
+    } else if (cmd === 'zoomOut') laneZoom(1 / 1.1)
     else if (cmd === 'quantize') {
       if (!editor.quantize())
         notify(
@@ -763,7 +787,11 @@ onUnmounted(() => {
             (p.instruments.length > 0 && !runtime.readyInstruments.length),
         }"
       /><span
-        v-if="runtime.connected && !runtime.synthLoading && runtime.latency?.backend==='fluid'"
+        v-if="
+          runtime.connected &&
+            !runtime.synthLoading &&
+            runtime.latency?.backend === 'fluid'
+        "
         class="xm-engine-label"
       >FluidSynth<small class="xm-configured-latency">Configured {{ runtime.latency.fluidMs.toFixed(1) }} ms</small></span><span
         v-else

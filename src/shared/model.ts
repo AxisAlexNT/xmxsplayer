@@ -235,6 +235,9 @@ export type Action =
         | 'toggleLanes'
         | 'zoomIn'
         | 'zoomOut'
+        | 'insertBar'
+        | 'deleteBar'
+        | 'appendBar'
     }
   | { type: 'script'; fn: string }
 export type ParamTarget =

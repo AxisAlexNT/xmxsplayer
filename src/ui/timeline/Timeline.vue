@@ -795,6 +795,12 @@ onUnmounted(() => {
         >
           <i class="bi bi-plus-lg" /> Audio track
         </button>
+        <button
+          class="btn btn-sm btn-ghost"
+          @click="emit('command', 'appendBar')"
+        >
+          <i class="bi bi-plus-lg" /> Bars
+        </button>
       </div>
       <div
         v-if="!tracks.length"
