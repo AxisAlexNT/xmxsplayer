@@ -295,6 +295,7 @@ export class Recorder {
         this.emit({
           takeId: `take-${++this.serial}`,
           scope: this.scope,
+          mode: 'replace',
           tracks: [...this.collected.values()],
         })
       return
@@ -303,6 +304,10 @@ export class Recorder {
       .filter((t) => t.changed)
       .map(({ trackId, notes, events }) => ({
         trackId,
+        covered: (end > this.passStart ? [[this.passStart, end]] : []) as [
+          number,
+          number,
+        ][],
         notes: notes.sort((a, b) => a[0] - b[0] || a[2] - b[2]),
         events: events.sort((a, b) => a.tick - b.tick),
       }))

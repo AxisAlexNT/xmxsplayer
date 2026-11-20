@@ -6,6 +6,7 @@ export interface RecordedTrack {
   events: MidiTrack['events']
 }
 export interface RecordedTake {
+  mode?: 'replace' | 'overdub'
   takeId: string
   scope: string
   tracks: RecordedTrack[]

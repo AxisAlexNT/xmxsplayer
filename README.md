@@ -16,7 +16,7 @@ Version 0.1.0 is in release validation. The software is implemented; it is not y
 
 The approved PipeWire comparison reduced the Built-in buffer-128 median estimate from 82.7 ms at quantum 1024 to 18.7 ms at 256; the original 1024 setting was restored. FluidSynth's muted PipeWire driver started at both sizes and displayed configured 10.7 ms. These are different kinds of readouts, not physical latency measurements. See [latency observations](docs/latency.md).
 
-Physical KeyLab splits, wheels, chords and sustain release passed; display text, pad colours and beat chase passed in DAWs mode. Verified mode-specific control addresses are included; all DAWs bank B addresses were captured, and pad 2/Register 2 sync passed without piano-note leakage. Arturia mode showed no visible feedback; select DAWs manually and leave automatic Arturia selection off. Some control variants, Axiom capture, audible native/external output, alternate cue devices and performance tuning remain unverified. Windows, physical pen behavior, MuseScore 4 and clean-account operation remain untested. This PC reports VLC as its MIDI handler; MuseScore import/association setup is described in its guide. A real MuseScore 3 GUI Ctrl+S save re-synced during packaged-player playback in an isolated silent setup. Linux AppImage startup, packaged notation/audio assets, external routing, moved-project/font recovery and portable settings loading/saving passed. Physical and platform gates in the [release checklist](docs/release-checklist.md) remain. No release has been tagged or published.
+On the earlier controller layout, physical KeyLab splits, wheels, chords and sustain release passed; display text, pad colours and beat chase passed in DAWs mode. Verified mode-specific control addresses are included; all DAWs bank B addresses were captured, and pad 2/Register 2 sync passed without piano-note leakage. Arturia mode showed no visible feedback; select DAWs manually and leave automatic Arturia selection off. Some control variants, Axiom capture, audible native/external output, alternate cue devices and performance tuning remain unverified. Windows, physical pen behavior, MuseScore 4 and clean-account operation remain untested. This PC reports VLC as its MIDI handler; MuseScore import/association setup is described in its guide. A real MuseScore 3 GUI Ctrl+S save re-synced during packaged-player playback in an isolated silent setup. Linux AppImage startup, packaged notation/audio assets, external routing, moved-project/font recovery and portable settings loading/saving passed. Physical and platform gates in the [release checklist](docs/release-checklist.md) remain. No release has been tagged or published.
 
 ## Start
 
@@ -52,6 +52,10 @@ Bindings can vary by controller and scene, with conditions and beat/bar timing. 
 - [Portable builds](docs/portable-builds.md), [Release verification](docs/release-checklist.md)
 
 ## Known limits
+
+- The new orchestra pad layout needs a physical KeyLab pass in DAWs mode, including bank B beat retention across bank switches. Preset ranges need listening checks on FluidR3_GM and MuseScore_General.
+- Linux Chromium may print `inotify_init failed: Too many open files` while the player still starts. It can indicate exhaustion of the per-user inotify instance limit or the process file-descriptor limit. Check `/proc/sys/fs/inotify/max_user_instances` and `ulimit -n`. Close unused watcher-heavy applications. For project file watching on a constrained workstation, launch with `CHOKIDAR_USEPOLLING=1`.
+
 
 - Recorded/edited staves use automatic single-voice notation. Polished engraving comes from the linked score. Only the map-owner score renders as staves; other linked scores use the piano roll. D.C./D.S./Coda jumps are not unrolled.
 - App-to-MuseScore transfer uses exported MIDI that you open/import in MuseScore; it does not reload an already open MuseScore document. YAML comments are lost when rewritten.

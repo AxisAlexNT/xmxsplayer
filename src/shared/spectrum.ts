@@ -41,3 +41,12 @@ export function readSpectrum(buffer: ArrayBuffer) {
     data: new Uint8Array(buffer, headerSize),
   }
 }
+
+export function spectrumFrame(
+  songSec: number,
+  offsetSec: number,
+  sampleRate: number,
+  hop = spectrumHop,
+) {
+  return Math.floor(((songSec - offsetSec) * sampleRate) / hop)
+}

@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import { analyzeSpectrum } from '../../src/engine/audio/spectrum'
-import { dbByte, readSpectrum } from '../../src/shared/spectrum'
+import { dbByte, readSpectrum, spectrumFrame } from '../../src/shared/spectrum'
 it.each([
   [440, 144],
   [55, 36],
@@ -31,4 +31,13 @@ it('rejects damaged headers and maps dB limits and stereo cancellation', () => {
       (v) => v === 0,
     ),
   ).toBe(true)
+})
+
+it('keeps the same frame at the same musical position at half speed', () => {
+  const songSec = 4,
+    offsetSec = 1
+  expect(spectrumFrame(songSec, offsetSec, 48000)).toBe(281)
+  const wallSec = songSec / 0.5
+  expect(spectrumFrame(wallSec * 0.5, offsetSec, 48000)).toBe(281)
+  expect(spectrumFrame(0, offsetSec, 48000)).toBeLessThan(0)
 })

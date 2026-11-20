@@ -9,7 +9,7 @@ import {
   watch,
 } from 'vue'
 import type { AudioTrack } from '../../shared/model'
-import { readSpectrum } from '../../shared/spectrum'
+import { readSpectrum, spectrumFrame } from '../../shared/spectrum'
 import { noteName } from '../../shared/schema'
 import { engineBus } from '../bus'
 import { PEAK_FRAMES } from '../../shared/audio'
@@ -153,11 +153,7 @@ function spectralPage(
     Math.round((hi + 0.5 - ((y + 0.5) / height) * (hi - lo + 1) - 21) * 3),
   )
   for (let x = 0; x < img.width; x++) {
-    const f = Math.floor(
-      ((map.tickToSec(axis.tickAt(page, x + 96)) - offset.value) *
-        data.sampleRate) /
-        data.hop,
-    )
+    const f=spectrumFrame(map.tickToSec(axis.tickAt(page,x+96)),offset.value,data.sampleRate,data.hop)
     if (f < 0 || f >= data.frames) continue
     for (let y = 0; y < height; y++) {
       const bin = rows[y]

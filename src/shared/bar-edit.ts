@@ -130,9 +130,21 @@ export function setTempoFrom(
   bar: number,
   bpm: number,
 ): Project {
-  const tick = check(project, 'tempo', bar).barToTick(bar)
+  const map = check(project, 'tempo', bar)
+  const tick = map.barToTick(bar)
   if (!(bpm > 0 && Number.isFinite(bpm))) throw Error('Enter a positive tempo')
-  return { ...project, tempos: uniqueTicks([...project.tempos, { tick, bpm }]) }
+  // Retain the timing of preceding taps when converting to a manual tempo map.
+  const tempos =
+    project.beatAnchors.length >= 2
+      ? map.tempos
+          .filter((t) => t.tick < tick)
+          .map(({ tick, bpm }) => ({ tick, bpm }))
+      : project.tempos
+  return {
+    ...project,
+    beatAnchors: [],
+    tempos: uniqueTicks([...tempos, { tick, bpm }]),
+  }
 }
 
 export function setTimeSigFrom(

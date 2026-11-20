@@ -14,6 +14,8 @@ import {
   watch,
 } from 'vue'
 import { usePerformanceStore } from '../stores/performance'
+import { liveProject } from '../../shared/template'
+import { uniqueId } from '../../shared/ids'
 import type { Track } from '../../shared/model'
 import { TimeMap } from '../../shared/time-map'
 import { useProjectStore } from '../stores/project'
@@ -51,6 +53,18 @@ const doc = useProjectStore(),
   dragOrder = ref<string[] | null>(null),
   heights = ref<Record<string, number>>({}),
   loopPreview = ref<import('../../shared/model').Project['loop'] | null>(null)
+function addMidiTrack(){
+  doc.update(p=>{
+    const track=liveProject('MIDI').tracks[0]
+    if(track.kind!=='midi')return
+    track.id=uniqueId('midi',p.tracks.map(t=>t.id))
+    track.name='MIDI '+(p.tracks.filter(t=>t.kind==='midi').length+1)
+    track.mode='auto'
+    p.tracks.push(track)
+    const instrument=p.instruments[0]
+    if(instrument)p.base.patch.push({id:uniqueId(track.id,p.base.patch.map(c=>c.id)),trackId:track.id,instrumentId:instrument.id})
+  })
+}
 const map = computed(() => new TimeMap(doc.project)),
   axis = computed<TimeAxis>(() =>
     hasStaves.value && notation.axis.value
@@ -789,6 +803,12 @@ onUnmounted(() => {
         v-if="tracks.length"
         class="xm-add-track"
       >
+        <button
+          class="btn btn-sm btn-ghost"
+          @click="addMidiTrack"
+        >
+          <i class="bi bi-plus-lg" /> MIDI track
+        </button>
         <button
           class="btn btn-sm btn-ghost"
           @click="emit('command', 'import:audio')"

@@ -109,6 +109,17 @@ export class Scenes {
       )
         delete this.modes[id]
     }
+    for (const [trackId, id] of Object.entries(this.orchestras)) {
+      const track = project.tracks.find((t) => t.id === trackId)
+      const old = this.project?.tracks.find((t) => t.id === trackId)
+      if (
+        track?.kind !== 'midi' ||
+        !track.orchestraId ||
+        !project.orchestras?.some((o) => o.id === id) ||
+        (old?.kind === 'midi' && old.orchestraId !== track.orchestraId)
+      )
+        delete this.orchestras[trackId]
+    }
     this.project = project
     this.registers.configure(project.registers)
     for (const track of project.tracks) {

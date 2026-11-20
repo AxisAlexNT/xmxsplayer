@@ -319,6 +319,30 @@ export class Router {
       const slot = this.rack.get(patch.instrumentId, patch.trackId)
       if (slot) slots.add(slot)
     }
+    for (const track of this.project?.tracks ?? []) {
+      if (
+        track.kind !== 'midi' ||
+        !trackIds.has(track.id) ||
+        track.mode === 'mute' ||
+        (this.project!.tracks.some((t) => t.solo) && !track.solo)
+      )
+        continue
+      const orchestra = this.project?.orchestras?.find(
+        (o) => o.id === track.orchestraId,
+      )
+      for (const section of orchestra?.sections ?? []) {
+        if (
+          section.register !== null &&
+          !this.condition().registers[section.register]
+        )
+          continue
+        for (const member of section.members)
+          if (member.enabled) {
+            const slot = this.rack.get(member.instrumentId, track.id)
+            if (slot) slots.add(slot)
+          }
+      }
+    }
     return slots
   }
   private releaseUnreachableSustain(): void {

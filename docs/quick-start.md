@@ -12,3 +12,17 @@
 Use [clips](clips.md) for independent audio fragments and pad loops, [follow modes](follow-modes.md) for accompaniment that waits or follows your tempo, and [scripts](scripting.md) for conditions beyond the binding editor.
 
 Project edits are explicit-save. External YAML changes apply live when valid; conflicts offer **Keep mine** or **Take file**. Ctrl+Z/Ctrl+Y undo and redo document edits. Log names invalid files and retains the previous working document. YAML comments are not retained after an app save.
+
+## Edit bars and record a replacement
+
+Right-click or long-press a bar number on the ruler. Choose **Insert bars before**, **Insert bars after** or **Delete bars**, enter a count and choose **Apply**. Shift-drag a loop first to make **Delete loop range bars** available. **+ Bars** below the tracks appends a measure. MIDI events and the musical grid move together. Reference audio keeps its absolute position. A linked score owns its bar grid, so edit that grid in MuseScore. Clear tapped beats before inserting, deleting or changing the signature. A manual tempo edit converts earlier taps to tempo entries.
+
+Choose **Time signature from here** or **Tempo from here** on the first affected bar. For example, choose bar 9, then 3/4 to keep bars 1–8 in their original meter. Undo restores the previous grid and track data together.
+
+Arm the part, seek to the punch-in position and choose **Replace** in the recording settings beside the transport buttons. **Shift+R** switches modes. Set **Pre-roll bars** to hear up to four preceding bars, then press Record. Stop at the end of the passage. Silence overwrites existing notes inside the passed range. On a loop the latest pass wins wherever it overlaps. Undo restores the original take.
+
+## Compare a transcription to its spectrum
+
+Import a reference and choose **Spectrum** or **Both** in the audio header. The worker builds a pitch-versus-time image and caches it in the project’s `.xmxs/` folder. Both keeps a waveform strip above the spectrum. Hover over or touch the image to read pitch and frequency. Select **Side** to inspect the difference between channels. Use **Floor** and **Gain** to bring out quieter harmonics.
+
+Select a MIDI track under **Overlay** to draw its note outlines, then choose **Match pitch range** for its automatic piano-roll range. Audio offsets, bar positions and overlays use the same time axis at every playback speed. See [Orchestral sets](orchestra.md) to play a part with range-aware layering.

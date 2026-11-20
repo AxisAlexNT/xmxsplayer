@@ -4,11 +4,20 @@ Devices lists the main MIDI ports and their assigned profiles. Use **Learn…** 
 
 Click a learned control to edit its binding. Choose its edge, action, condition and timing; edits apply immediately. Store bindings in Shared, This controller, This scene, or a controller's scene override. Unbind disables that edge in the selected scope. Absolute parameter controls use soft takeover: move to the parameter's current value before they take control. Relative encoders apply changes from the current value.
 
-New projects include transport and DAW bindings, speed on knob 1, track volumes by fader order and master volume on fader 9. The KeyLab mapping assigns bank B pads to registers 1–8; the Axiom mapping uses buttons 1–8. Scene and register actions update the live routing. Cues can run actions automatically or wait for a control; script functions can extend the live setup; clip actions launch or sweep audio fragments.
+New projects include transport and DAW bindings, speed on knob 1, track volumes by fader order and master volume on fader 9. New projects use the orchestra layout below. Existing projects keep their saved mappings. Use **Controls → Use orchestra pad layout** to update the selected profile, then save the project. Undo restores the previous layout. Scene and register actions update the live routing. Cues can run actions automatically or wait for a control; script functions can extend the live setup; clip actions launch or sweep audio fragments.
 
 KeyLab feedback uses only its paired main MIDI output. Mapping colours, binding state, beat chase, hit flashes and queued-cue blinking share the same states on the screen and keyboard. Turn **Visual pads** off in Bar grid to disable beat chase. The display shows the project or scene name, position, speed and follow state. Feedback reinitializes after a program change and refreshes after pad release. **Select Arturia program on connect** is off by default; enabling it changes the keyboard's active program. For the tested KeyLab, select **DAWs** manually for pad colours and display text. In **Arturia** mode the same feedback messages were accepted by Web MIDI but had no visible effect. Leave **Select Arturia program on connect** off when using feedback. The option still explicitly selects Arturia and does not select DAWs.
 
 On 2026-11-16 the connected KeyLab passed live piano/strings splits, pitch/modulation wheels, chords and sustain release in DAWs mode. The owner confirmed project/transport text, coloured pads, top-row beat chase, continued chase after pad presses and Stop ending playback. Precise audible/visual timing, all individual RGB ids, full arrangements, cue output, hot-plug and host-forced program selection remain unverified.
+
+| KeyLab control | Axiom control | New project assignment |
+| --- | --- | --- |
+| Bank A pads 1–4 | Buttons 1–4 | Toggle section registers 1–4 |
+| Bank A pads 5–8 | Buttons 5–8 | Select Symphonic, New Age, EDM Trance or Tuned Percussion |
+| Bank B upper row | — | Beat within the bar |
+| Bank B lower row | — | Bar within a four-bar phrase |
+
+Install the presets from **Orchestra → + Preset**. Registers 5–8 remain available on screen, on number keys and in scripts. Hardware verification of bank B LED retention when switching banks is pending.
 
 ## Captured KeyLab addresses
 
@@ -25,7 +34,7 @@ The profile accepts the verified addresses below as the same logical controls. B
 | Four display buttons | CC30, CC31, CC86, CC87 | CC44–47 |
 | Play, Stop, Rewind, Forward, Loop, Metronome | CC21, CC20, CC25, CC26, CC24, CC27 | Same six CC numbers |
 
-The encoder uses values above/below 64 for clockwise/counterclockwise movement; 64 is neutral. DAWs captures also included accelerated values 66/62. Absolute knobs/sliders report 0–127. Buttons send 127/0 for press/release; pads also send poly pressure. Arturia bank A pad 3–7 addresses have not been inferred from neighbouring pads. All eight DAWs bank B addresses were subsequently captured in order; the owner confirmed that pad 2 toggles on-screen Register 2 and that bank B pads stay silent rather than playing keyboard instruments.
+The encoder uses values above/below 64 for clockwise/counterclockwise movement; 64 is neutral. DAWs captures also included accelerated values 66/62. Absolute knobs/sliders report 0–127. Buttons send 127/0 for press/release; pads also send poly pressure. Arturia bank A pad 3–7 addresses have not been inferred from neighbouring pads. All eight DAWs bank B addresses were subsequently captured in order; with the earlier mapping the owner confirmed that pad 2 toggled on-screen Register 2 and that bank B pads stay silent rather than playing keyboard instruments.
 
 Unmatched notes in the reserved KeyLab pad range (36–51 on channels 10–11) are suppressed, including pressure and releases, so an unlearned pad cannot unexpectedly play a keyboard instrument. Keep the keyboard itself on another MIDI channel when using those reserved pad addresses. Learned messages override that suppression.
 

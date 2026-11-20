@@ -9,6 +9,7 @@ export function sequenceSignature(project: Project): string {
     lengthTicks: project.lengthTicks,
     loop: project.loop,
     soundfonts: project.soundfonts,
+    recordMode: project.record?.mode,
     orchestras: project.orchestras,
     instruments: project.instruments.map((i) => ({
       id: i.id,
@@ -28,6 +29,7 @@ export function sequenceSignature(project: Project): string {
           ? {
               id: t.id,
               kind: t.kind,
+              armed: t.armed,
               orchestraId: t.orchestraId,
               notes: t.notes,
               events: t.events,

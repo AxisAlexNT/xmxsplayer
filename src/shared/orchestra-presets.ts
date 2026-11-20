@@ -170,7 +170,7 @@ export function addPreset(p: Project, id: string, soundfontId: string) {
           id: instrumentId,
           name,
           program,
-          color: preset.color,
+          color: ['#70b4e8', '#84d5b0', '#e6ad67', '#c49ae5'][register],
           soundfontId,
         })
         const margin = Math.floor((hi - lo) / 5)

@@ -1,10 +1,10 @@
 # Release verification
 
-Current validation: 0.1.0, Ubuntu Studio 24.04, 2026-11-16. This document separates completed software checks from physical or platform work still required. A passing unit suite does not establish full live-performance readiness.
+The v1 packaging baseline was recorded on Ubuntu Studio 24.04 on 2026-11-16. The v2 source-build checks below were run on 2026-11-21. This document separates completed software checks from physical or platform work still required. A passing unit suite does not establish full live-performance readiness.
 
 ## Completed checks
 
-- `CHOKIDAR_USEPOLLING=1 npm run check`: typecheck and lint passed; 327 tests passed, one optional native test skipped.
+- `CHOKIDAR_USEPOLLING=1 npm run check`: v1 baseline before the orchestra layout: typecheck and lint passed; 327 tests passed, one optional native test skipped.
 - `XM_FLUID_FILE_TEST=1 CHOKIDAR_USEPOLLING=1 npx vitest run tests/main/fluidsynth-native.test.ts`: passed again with real FluidSynth 2.3.4, SF2/SF3 and file output. No hardware MIDI.
 - `npm run smoke`: UI mount and engine handshake passed before packaging; real MIDI disabled.
 - Isolated desktop checks: recording/editing, real muted audio processing and five import formats, clips, scenes/cues/registers/scripts, follow modes, linked-score conversion and notation, backend changes/recovery and external MIDI routing.
@@ -32,7 +32,7 @@ The Linux and Windows packages contain no private sketch/instruction files. Both
 | Multi-track MIDI, instruments, staff/roll, page/center, reorder, zoom | Import/timing/notation tests and desktop checks | Physical packaged-build interaction pass |
 | Four-bar audio loop at 50%, knob speed, filter/isolation, grid/taps, click/cue | Real muted processing and synthetic control checks | Listen for pitch/timing; physical knob and alternate output checks |
 | Reduced-speed recording, undo/redo, edits, quantize, updated staves | Desktop recording/editing/notation checks | Physical playing/pen comfort and listening |
-| Transport/DAW, Learn, conditions, beat chase, register LEDs/display, hot-plug | Profile/binding/feedback simulations plus physical DAWs display, colours, beat chase and control captures | Full bank B/register/LED performance; remaining Arturia-only variants; hot-plug and exact timing |
+| Transport/DAW, Learn, conditions, beat chase, register LEDs/display, hot-plug | Profile/binding/feedback simulations plus physical DAWs display, colours, beat chase and control captures | Current bank A sections/presets and bank B beat/phrase LEDs; remaining Arturia-only variants; hot-plug and exact timing |
 | Reprise scenes/registers/scripts, exclusive groups, wait cue, live YAML/conflict | State/routing/script tests and desktop checks | Perform the arrangement on real hardware |
 | Wait any/all, tempo tracking, wrong notes and skip | Synthetic performance and muted audio checks | Tune matching with the performer |
 | Clips: all launches/sweeps, groups, speed, pressure, LEDs, WAV/MP3/OGG/M4A/FLAC | Decoder/processing/controller simulations and desktop checks | Actual pad/fader use, sound and LEDs |
@@ -48,3 +48,17 @@ Unsigned Windows artifacts cross-built successfully on Linux; no Windows runtime
 ## Release gates
 
 AppImage execution, packaged assets, notices, portable settings, final checks and the repository/history trace audit must be reviewed before requesting a tag. Physical checks cannot be replaced by simulated ports. Verify the launcher source attachments and bundled notices against the final EXE before distribution. Tag creation and release publication require separate explicit approval. A draft release may omit Windows artifacts if that experimental job failed; inspect the workflow before publishing.
+
+## v2 performance pass
+
+| Check | Procedure |
+| --- | --- |
+| Measure editing | Insert two bars in a recorded part. Inspect staff and roll, delete the bars and compare the notes. Change bar 9 to 3/4. |
+| Replace recording | Punch in at bar 9 with one bar of pre-roll. Play, leave a rest and stop. Listen across both boundaries and undo. |
+| Orchestral sets | Install all four presets. Use bank A pads 5–8 to switch sets and 1–4 to gate sections. Hold a chord across a switch, then vary the layer limit and release. Compare ranges on both GM fonts. |
+| Physical bank B | Start transport in DAWs mode with bank A selected. Switch to bank B and observe the upper beat and lower phrase lamps. Return to bank A and confirm the section and preset colours. |
+| Spectral view | Open WAV, MP3 and FLAC references. Compare Wave, Spectrum and Both, mid/side, a MIDI overlay and both follow views at 50% speed. Reopen to reuse the analysis cache. |
+
+On the Linux development machine, the spectrum worker’s analysis function processed five minutes of 48 kHz stereo in 6.77 s. The input repeated a decoded Oxygen notification recording on both channels. Reading and validating the 28,125-frame binary cache took 5.65 ms with a warm filesystem cache. These timings exclude media decode, inter-process calls and painting. An isolated Electron run imported WAV, MP3 and FLAC, rendered overlays and wrote separate cache files for stereo and side.
+
+The v2 typecheck, lint and 342 automated tests passed. One optional native test was skipped. In a fresh muted Electron session, inserting and deleting two bars in staff view restored the original note positions. A bar-nine silent replace take with one bar of pre-roll removed only the notes inside the passage. Undo restored all four test notes. The same session exercised half-speed transport, three reference formats, an overlay, both follow views and all four orchestra presets with hardware MIDI disabled.

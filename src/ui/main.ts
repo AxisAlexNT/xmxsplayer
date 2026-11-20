@@ -155,9 +155,10 @@ watch(engineBus, (bus) => {
         for (const data of tracks) {
           const track = d.tracks.find((t) => t.id === data.trackId)
           if (track?.kind !== 'midi') continue
-          const kept = data.covered
-            ? replaceRange(track.notes, track.events, data.covered)
-            : track
+          const kept =
+            'mode' in value && value.mode === 'replace' && data.covered
+              ? replaceRange(track.notes, track.events, data.covered)
+              : track
           track.notes = [...kept.notes, ...data.notes].sort(
             (a, b) => a[0] - b[0] || a[2] - b[2],
           )

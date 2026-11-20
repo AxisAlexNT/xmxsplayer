@@ -295,6 +295,33 @@ export class Scheduler {
             this.output.noteOff(note, when)
         }
       }
+      const punch = this.clock.punchRaw
+      if (
+        this.clock.recording &&
+        this.project?.record?.mode === 'replace' &&
+        cursor < punch &&
+        punch <= end
+      ) {
+        const when = this.clock.contextAt(punch)
+        for (const track of this.project.tracks)
+          if (track.kind === 'midi' && track.armed) {
+            this.output.event(
+              track,
+              {
+                tick: this.clock.map.secToTick(this.clock.songAt(punch)),
+                type: 'cc',
+                num: 64,
+                value: 0,
+              },
+              when,
+            )
+          }
+        for (const e of this.events)
+          if (e.on && e.track.armed) {
+            const note = this.descriptor(e, cycle)
+            if (this.output.hasNote(note.id)) this.output.noteOff(note, when)
+          }
+      }
       let beat = this.clock.map.nextBeat(
         this.clock.map.secToTick(startSong),
         true,
