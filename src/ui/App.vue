@@ -653,7 +653,7 @@ onUnmounted(() => {
           />
         </button>
       </div>
-      <details>
+      <details class="xm-record-settings">
         <summary title="Recording settings">
           {{ p.record?.mode === 'replace' ? 'Replace' : 'Overdub' }}
         </summary>
