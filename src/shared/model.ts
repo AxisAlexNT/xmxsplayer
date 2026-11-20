@@ -126,6 +126,14 @@ export interface MidiTrack extends TrackBase {
   leads: boolean // drives follow modes when mode === 'live'
 }
 export interface AudioTrack extends TrackBase {
+  display?: 'wave' | 'spectrum' | 'both'
+  spectrum?: {
+    floorDb: number
+    gain: number
+    palette: 'magma' | 'gray'
+    pitchAligned: boolean
+    overlayTrackId?: Id
+  }
   kind: 'audio'
   file: string
   offsetSec: number

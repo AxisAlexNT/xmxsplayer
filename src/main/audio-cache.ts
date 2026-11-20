@@ -1,3 +1,4 @@
+import { readSpectrum } from '../shared/spectrum'
 import { createHash } from 'node:crypto'
 import { readFile, stat } from 'node:fs/promises'
 import { atomicWrite, confined } from './project-io'
@@ -42,6 +43,36 @@ export class AudioCache {
       /* Missing and damaged caches are rebuilt. */
     }
     return { ...identity, cached }
+  }
+  async spectrum(
+    file: string,
+    key: string,
+    rate: number,
+    mode: string,
+    data?: ArrayBuffer,
+  ): Promise<ArrayBuffer | null> {
+    const identity = await this.identity(file, rate)
+    if (
+      identity.key !== key ||
+      !['stereo', 'left', 'right', 'mid', 'side'].includes(mode)
+    )
+      return null
+    const hash = createHash('sha256')
+      .update(key + mode)
+      .digest('hex')
+    const path = await confined(this.folder(), `.xmxs/spectrum-${hash}.bin`)
+    if (data) {
+      if (readSpectrum(data).sampleRate !== rate)
+        throw Error('Invalid spectrum rate')
+      await atomicWrite(path, new Uint8Array(data))
+      return null
+    }
+    try {
+      const buffer = Uint8Array.from(await readFile(path)).buffer
+      return readSpectrum(buffer).sampleRate === rate ? buffer : null
+    } catch {
+      return null
+    }
   }
   async store(file: string, key: string, data: AudioPeaks): Promise<void> {
     if (!validPeaks(data)) throw Error('Invalid audio peak cache')

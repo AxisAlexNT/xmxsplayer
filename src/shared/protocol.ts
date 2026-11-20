@@ -133,6 +133,7 @@ export interface EventMap {
     anchors: Project['beatAnchors']
     unit: 'beat' | 'bar'
   }
+  'audio:spectrumProgress': { trackId: Id; fraction: number }
   'audio:peaks': AudioPeaks & { trackId: Id; file: string; key: string }
   'audio:state': { trackId: Id; loading: boolean; error?: string }
   'synth:state': { loading: boolean; readyIds: Id[] }
@@ -191,6 +192,7 @@ export interface RequestMap {
     input: { file: string; key: string; data: AudioPeaks }
     output: undefined
   }
+  'audio:spectrum': { input: { trackId: Id }; output: ArrayBuffer }
   'audio:load': {
     input: { trackId: Id; url: string; file?: string }
     output: { durationSec: number; peaks: number[]; sampleRate?: number }

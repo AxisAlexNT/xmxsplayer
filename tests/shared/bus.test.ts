@@ -11,6 +11,10 @@ describe('typed message bus', () => {
       const ready = new Promise<void>((resolve) => ui.on('ready', resolve))
       ui.send('ping', undefined)
       await ready
+      const bytes=new Uint8Array([7,11,42])
+      engine.respond('audio:spectrum',()=>bytes.buffer)
+      expect(new Uint8Array(await ui.request('audio:spectrum',{trackId:'audio'}))).toEqual(new Uint8Array([7,11,42]))
+      expect(bytes.byteLength).toBe(0)
       engine.respond('audio:devices', () => [{ id: 'main', label: 'Main' }])
       expect(await ui.request('audio:devices', undefined)).toEqual([
         { id: 'main', label: 'Main' },

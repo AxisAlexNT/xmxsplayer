@@ -1138,6 +1138,43 @@ window.addEventListener('message', (event) => {
       bus?.send('clip:preview', { state: 'stopped', error: String(error) })
     }
   })
+  bus.respond('audio:spectrum', async ({ trackId }) => {
+    const track = project?.tracks.find((t) => t.id === trackId)
+    if (track?.kind !== 'audio' || !transport)
+      throw Error('Unknown audio track')
+    const { buffer } = await transport.audio.decoder.load(track.file)
+    const worker = new Worker(
+      new URL('./audio/spectrum.worker.ts', import.meta.url),
+      { type: 'module' },
+    )
+    return new Promise<ArrayBuffer>((resolve, reject) => {
+      worker.onmessage = ({ data }) => {
+        if (typeof data.progress === 'number') {
+          bus?.send('audio:spectrumProgress', {
+            trackId,
+            fraction: data.progress,
+          })
+          return
+        }
+        worker.terminate()
+        if (data.error) reject(Error(data.error))
+        else resolve(data.result)
+      }
+      worker.onerror = (event) => {
+        worker.terminate()
+        reject(Error(event.message))
+      }
+      const left = buffer.getChannelData(0).slice(),
+        right =
+          buffer.numberOfChannels > 1
+            ? buffer.getChannelData(1).slice()
+            : undefined
+      worker.postMessage(
+        { left, right, mode: track.channelMode, rate: buffer.sampleRate },
+        right ? [left.buffer, right.buffer] : [left.buffer],
+      )
+    })
+  })
   bus.respond('audio:load', async ({ trackId, file }) => {
     if (!transport || !file) throw Error('Select an audio file first')
     const data = await transport.audio.load(trackId, file)

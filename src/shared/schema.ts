@@ -303,6 +303,21 @@ export const trackSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     ...trackBase,
     kind: z.literal('audio'),
+    display: enums(['wave', 'spectrum', 'both']).default('wave'),
+    spectrum: z
+      .strictObject({
+        floorDb: num.min(-90).max(-1),
+        gain: num.min(-48).max(48),
+        palette: enums(['magma', 'gray']),
+        pitchAligned: z.boolean(),
+        overlayTrackId: id.optional(),
+      })
+      .default({
+        floorDb: -90,
+        gain: 0,
+        palette: 'magma',
+        pitchAligned: false,
+      }),
     file: path,
     offsetSec: num,
     durationSec: tick,

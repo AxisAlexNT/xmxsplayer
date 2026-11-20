@@ -87,7 +87,11 @@ export class Bus {
           return handler(data.payload as never)
         })
         .then(
-          (payload) => this.port.postMessage({ ...data, kind: 'res', payload }),
+          (payload) =>
+            this.port.postMessage(
+              { ...data, kind: 'res', payload },
+              payload instanceof ArrayBuffer ? [payload] : [],
+            ),
           (error) =>
             this.port.postMessage({
               ...data,

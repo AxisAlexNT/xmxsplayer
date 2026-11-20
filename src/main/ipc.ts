@@ -219,6 +219,16 @@ export function installIpc(windows: Windows): () => Promise<void> {
       url: await fileTokens.issue(source.file, [io.folder]),
     }
   })
+  handle(
+    'audio:spectrumCache',
+    (
+      file: string,
+      key: string,
+      rate: number,
+      mode: string,
+      data?: ArrayBuffer,
+    ) => audioCache.spectrum(file, key, rate, mode, data),
+  )
   handle('audio:cache', (file: string, key: string, data: AudioPeaks) =>
     audioCache.store(file, key, data),
   )

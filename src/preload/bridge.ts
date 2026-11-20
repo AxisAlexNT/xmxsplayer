@@ -58,6 +58,8 @@ export function installBridge(ui: boolean): void {
         ),
       audioSource: (file, rate) =>
         ipcRenderer.invoke('audio:source', file, rate),
+      spectrumCache: (file, key, rate, mode, data) =>
+        ipcRenderer.invoke('audio:spectrumCache', file, key, rate, mode, data),
       cachePeaks: (file, key, data) =>
         ipcRenderer.invoke('audio:cache', file, key, data),
       onFilesChanged: (handler) => subscribe('project:changed', handler),

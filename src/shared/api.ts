@@ -59,6 +59,13 @@ export interface DesktopApi {
     urlFor: (relPath: string) => Promise<string>
     importDropped: (file: File) => Promise<string>
     audioSource: (file: string, sampleRate: number) => Promise<AudioSource>
+    spectrumCache: (
+      file: string,
+      key: string,
+      rate: number,
+      mode: string,
+      data?: ArrayBuffer,
+    ) => Promise<ArrayBuffer | null>
     cachePeaks: (file: string, key: string, data: AudioPeaks) => Promise<void>
     onFilesChanged: (handler: (changes: FileChanges) => void) => () => void
   }
