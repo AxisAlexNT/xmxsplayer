@@ -473,15 +473,30 @@ it('releases the original orchestra layers after a preset switch and section tog
     () => ({ registers, bar: 1, activeSceneId: null, playing: false }),
   )
   router.setProject(project)
+  router.cc('keys', 0, 64, 127)
+  backend.events = []
   router.note('keys', 0, 60, 90, true)
+  router.note('keys', 0, 60, 0, false)
   track.orchestraId = 'second'
+  router.setProject(project)
   router.note('keys', 0, 62, 90, true)
   registers[0] = false
-  router.note('keys', 0, 60, 0, false)
+  router.setProject(project)
   router.note('keys', 0, 62, 0, false)
   expect(
     backend.events.filter((e) => e.type === 'off').map((e) => e.key),
   ).toEqual([60, 74])
+  expect(
+    backend.events.filter(
+      (e) => e.type === 'cc' && e.cc === 64 && e.value === 0,
+    ),
+  ).toHaveLength(0)
+  router.cc('keys', 0, 64, 0)
+  expect(
+    backend.events.filter(
+      (e) => e.type === 'cc' && e.cc === 64 && e.value === 0,
+    ),
+  ).toHaveLength(2)
   router.close()
   rack.close()
 })

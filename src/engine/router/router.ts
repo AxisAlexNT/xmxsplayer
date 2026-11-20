@@ -10,6 +10,7 @@ import type { EventMap } from '../../shared/protocol'
 import { InstrumentRack, type RackSlot } from '../synth/rack'
 
 interface Target {
+  orchestra?: boolean
   slot: RackSlot
   key: number
   trackId: string
@@ -227,6 +228,7 @@ export class Router {
                   key: sent,
                   trackId,
                   instrumentId: layer.instrumentId,
+                  orchestra: true,
                   zoneId: zone.id,
                 },
                 Math.max(
@@ -346,8 +348,29 @@ export class Router {
     return slots
   }
   private releaseUnreachableSustain(): void {
-    const reachable = this.routeSlots()
+    const routed = this.routeSlots()
     for (const [owner, slots] of this.pedals) {
+      const reachable = new Set(routed)
+      const retainVoice = (voice: Voice) => {
+        for (const target of voice.targets) {
+          if (!target.orchestra) continue
+          const track = this.project?.tracks.find(
+            (t) => t.id === target.trackId,
+          )
+          if (
+            track?.kind === 'midi' &&
+            track.orchestraId &&
+            track.mode !== 'mute' &&
+            (!this.project!.tracks.some((t) => t.solo) || track.solo)
+          )
+            reachable.add(target.slot)
+        }
+      }
+      for (const voices of this.held.values())
+        for (const voice of voices)
+          if (this.owner(voice.source, voice.channel) === owner)
+            retainVoice(voice)
+      for (const voice of this.sustained.get(owner) ?? []) retainVoice(voice)
       for (const slot of [...slots]) {
         if (reachable.has(slot)) continue
         slots.delete(slot)
