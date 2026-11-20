@@ -18,9 +18,9 @@ const selectedZone = ref<string | null>(null),
 const preview = ref<{ id: string; lo: number; hi: number } | null>(null)
 const doc = useProjectStore()
 const runtime = useRuntimeStore()
-const count = ref(Number(localStorage.getItem('keyCount')) || 61)
+const count = ref(Number(localStorage.getItem('keyCount')) || 100)
 const range = computed(() =>
-  count.value === 88
+  count.value === 128 ? [0,127] : count.value === 100 ? [9,108] : count.value === 88
     ? [21, 108]
     : count.value === 76
       ? [28, 103]
@@ -309,7 +309,7 @@ onUnmounted(() => {
         @change="keyCount"
       >
         <option
-          v-for="size in [49, 61, 76, 88]"
+          v-for="size in [49, 61, 76, 88, 100, 128]"
           :key="size"
           :value="size"
         >

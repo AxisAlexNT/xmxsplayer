@@ -20,9 +20,28 @@ it('ranks by comfort, limits layers, gates sections and folds by octaves', () =>
   expect(pickLayers(o, 60, [])).toEqual([])
   o.maxLayers = 0
   expect(pickLayers(o, 60, regs).length).toBeGreaterThan(3)
+  o.outOfRange = 'silent'
   expect(pickLayers(o, 10, regs)).toEqual([])
   o.outOfRange = 'nearest'
   const [folded] = pickLayers(o, 10, regs)
   expect(folded.key % 12).toBe(10)
   expect(folded.key).toBeGreaterThanOrEqual(24)
+})
+
+it('covers all MIDI keys in each factory section by default', () => {
+  const p = newProject()
+  for (const id of Object.keys(presets)) {
+    addPreset(p, id, 'gm')
+    const o = p.orchestras!.find((o) => o.id === id)!
+    for (let section = 0; section < 4; section++)
+      for (let key = 0; key < 128; key++) {
+        const layers = pickLayers(
+          o,
+          key,
+          [0, 1, 2, 3].map((i) => i === section),
+        )
+        expect(layers.length).toBeGreaterThan(0)
+        expect(layers.every((l) => l.key % 12 === key % 12)).toBe(true)
+      }
+  }
 })

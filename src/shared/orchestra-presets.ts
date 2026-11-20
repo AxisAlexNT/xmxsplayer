@@ -151,7 +151,7 @@ export function addPreset(p: Project, id: string, soundfontId: string) {
     name: preset.name,
     color: preset.color,
     maxLayers: preset.maxLayers,
-    outOfRange: 'silent',
+    outOfRange: 'nearest',
     sections: [],
   }
   p.orchestras ??= []
