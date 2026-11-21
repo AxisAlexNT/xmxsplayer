@@ -20,6 +20,8 @@ On the earlier controller layout, physical KeyLab splits, wheels, chords and sus
 
 ## Start
 
+On Linux, run `./run-xmxsplayer.sh` from the checkout to build and launch the current version. To open a saved song directly, pass its project folder, for example `./run-xmxsplayer.sh "/path/to/song"`.
+
 Use your own SF2/SF3 fonts and MIDI controller; the on-screen keyboard also works. FluidSynth and MuseScore are optional, separately installed programs.
 
 With Node.js 24 and npm:
