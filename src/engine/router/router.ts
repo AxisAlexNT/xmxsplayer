@@ -1,4 +1,8 @@
-import { pickLayers } from '../../shared/orchestra'
+import {
+  layerBalance,
+  pickLayers,
+  sharedExternalMembers,
+} from '../../shared/orchestra'
 import { activitySource, type ActivityRoute } from '../../shared/activity'
 import {
   matchesCondition,
@@ -10,6 +14,7 @@ import type { EventMap } from '../../shared/protocol'
 import { InstrumentRack, type RackSlot } from '../synth/rack'
 
 interface Target {
+  expression?: number
   orchestra?: boolean
   slot: RackSlot
   key: number
@@ -27,6 +32,8 @@ interface Voice {
   activityPaths: ActivityRoute[]
 }
 export class Router {
+  private layerLevels = new WeakMap<RackSlot, number>()
+  private sharedExternal = new Set<string>()
   private project?: Project
   private noteSerial = 0
   private held = new Map<string, Voice[]>()
@@ -50,6 +57,7 @@ export class Router {
     private activityPulse: (route: ActivityRoute) => void = () => undefined,
   ) {}
   setProject(project: Project): void {
+    this.sharedExternal = sharedExternalMembers(project.instruments)
     this.project = project
     this.releaseUnreachableSustain()
   }
@@ -89,11 +97,21 @@ export class Router {
     const expression = this.controllers.get(owner)
     if (expression) {
       for (const [cc, value] of expression.cc)
-        slot.backend.cc(slot.slot, cc, value)
+        if (cc !== 11 || target.expression === undefined)
+          slot.backend.cc(slot.slot, cc, value)
       if (expression.bend !== undefined)
         slot.backend.pitchBend(slot.slot, expression.bend)
       if (expression.pressure !== undefined)
         slot.backend.channelPressure(slot.slot, expression.pressure)
+    }
+    if (target.expression !== undefined || this.layerLevels.has(slot)) {
+      slot.backend.cc(
+        slot.slot,
+        11,
+        Math.round((target.expression ?? 1) * (expression?.cc.get(11) ?? 127)),
+      )
+      if (target.expression === undefined) this.layerLevels.delete(slot)
+      else this.layerLevels.set(slot, target.expression)
     }
     slot.backend.noteOn(slot.slot, sentKey, velocity)
     this.sounding.set(
@@ -215,6 +233,7 @@ export class Router {
             )) {
               const slot = this.rack.acquire(layer.instrumentId, trackId)
               if (!slot) continue
+              const balance = layerBalance(layer, this.sharedExternal)
               const sent = layer.key + slot.instrument.transpose
               if (sent < 0 || sent > 127) {
                 this.rack.release(slot)
@@ -229,6 +248,7 @@ export class Router {
                   trackId,
                   instrumentId: layer.instrumentId,
                   orchestra: true,
+                  expression: balance.expression,
                   zoneId: zone.id,
                 },
                 Math.max(
@@ -236,7 +256,7 @@ export class Router {
                   Math.min(
                     127,
                     Math.round(
-                      this.velocity(velocity, zone.velocity) * layer.gain,
+                      this.velocity(velocity, zone.velocity) * balance.velocity,
                     ),
                   ),
                 ),
@@ -433,7 +453,13 @@ export class Router {
     } else if (cc === 1 || cc === 11) {
       this.expression(owner).cc.set(cc, value)
       for (const slot of this.reachable(source, channel))
-        slot.backend.cc(slot.slot, cc, value)
+        slot.backend.cc(
+          slot.slot,
+          cc,
+          cc === 11
+            ? Math.round(value * (this.layerLevels.get(slot) ?? 1))
+            : value,
+        )
     } else if (cc === 120 || cc === 123) this.disconnect(source)
   }
   pitchBend(source: string, channel: number, value: number): void {

@@ -1,6 +1,10 @@
 import { expect, it } from 'vitest'
 import { addPreset, presets } from '../../src/shared/orchestra-presets'
-import { pickLayers } from '../../src/shared/orchestra'
+import {
+  layerBalance,
+  pickLayers,
+  sharedExternalMembers,
+} from '../../src/shared/orchestra'
 import { newProject } from '../../src/shared/defaults'
 import { toFiles, fromFiles } from '../../src/shared/project-files'
 it('saves all presets and reloads member ranges and the orchestra track', () => {
@@ -44,4 +48,35 @@ it('covers all MIDI keys in each factory section by default', () => {
         expect(layers.every((l) => l.key % 12 === key % 12)).toBe(true)
       }
   }
+})
+
+it('splits member proportion between expression and velocity and isolates shared MIDI channels', () => {
+  const member = { instrumentId: 'horn', gain: 0.25 }
+  const independent = new Set<string>()
+  expect(layerBalance(member, independent)).toEqual({
+    velocity: 1,
+    expression: 0.25,
+  })
+  expect(layerBalance({ ...member, balance: 'both' }, independent)).toEqual({
+    velocity: 0.5,
+    expression: 0.5,
+  })
+  expect(layerBalance({ ...member, balance: 'velocity' }, independent)).toEqual(
+    { velocity: 0.25, expression: 1 },
+  )
+  const p = newProject()
+  addPreset(p, 'symphonic', 'gm')
+  const instrument = {
+    ...p.instruments[0],
+    backend: 'midi' as const,
+    midiOut: { portName: 'module', channel: 2 },
+  }
+  const shared = sharedExternalMembers([
+    { ...instrument, id: 'horn' },
+    { ...instrument, id: 'strings' },
+  ])
+  expect(layerBalance(member, shared)).toEqual({
+    velocity: 0.25,
+    expression: undefined,
+  })
 })

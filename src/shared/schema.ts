@@ -413,6 +413,7 @@ export const projectSchema = z
                     comfortHi: keySchema,
                     enabled: z.boolean(),
                     octave: int.min(-10).max(10),
+                    balance: enums(['volume', 'velocity', 'both']).optional(),
                     gain: num.min(0).max(2),
                   })
                   .refine(

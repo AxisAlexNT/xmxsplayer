@@ -460,7 +460,8 @@ it('releases the original orchestra layers after a preset switch and section tog
             comfortHi: 72,
             enabled: true,
             octave: i,
-            gain: 1,
+            gain: 0.25,
+            balance: i ? 'both' : 'volume',
           },
         ],
       },
@@ -480,6 +481,8 @@ it('releases the original orchestra layers after a preset switch and section tog
   track.orchestraId = 'second'
   router.setProject(project)
   router.note('keys', 0, 62, 90, true)
+  expect(backend.events.filter(e => e.type === 'on').map(e => e.value)).toEqual([90, 45])
+  expect(backend.events.filter(e => e.type === 'cc' && e.cc === 11).map(e => e.value)).toEqual([32, 64])
   registers[0] = false
   router.setProject(project)
   router.note('keys', 0, 62, 0, false)

@@ -6,6 +6,8 @@ interface Slot {
   owner: string
   notes: Map<number, number>
   sustained: number[]
+  volume: number
+  expression: number
   pedal: boolean
   timers: Set<ReturnType<typeof setTimeout>>
 }
@@ -30,6 +32,8 @@ export class PluginSynthBackend implements SynthBackend {
       owner: 'instrument-' + owner,
       notes: new Map(),
       sustained: [],
+      volume: instrument.volume,
+      expression: 1,
       pedal: false,
       timers: new Set(),
     })
@@ -43,7 +47,10 @@ export class PluginSynthBackend implements SynthBackend {
   }
   configure(id: string, instrument: Instrument) {
     const slot = this.slots.get(id)
-    if (slot) this.send(slot, 'set_volume', [instrument.volume])
+    if (slot) {
+      slot.volume = instrument.volume
+      this.send(slot, 'set_volume', [slot.volume * slot.expression])
+    }
   }
   private at(id: string, when: number | undefined, fn: (slot: Slot) => void) {
     const slot = this.slots.get(id)
@@ -81,6 +88,9 @@ export class PluginSynthBackend implements SynthBackend {
         if (!slot.pedal)
           for (const key of slot.sustained.splice(0))
             this.send(slot, 'note_off', [0, key])
+      } else if (cc === 11) {
+        slot.expression = value / 127
+        this.send(slot, 'set_volume', [slot.volume * slot.expression])
       } else if (cc === 120 || cc === 123) this.silence(slot)
     })
   }

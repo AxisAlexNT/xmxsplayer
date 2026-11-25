@@ -1,4 +1,8 @@
-import { pickLayers } from '../../shared/orchestra'
+import {
+  layerBalance,
+  pickLayers,
+  sharedExternalMembers,
+} from '../../shared/orchestra'
 import type { ActivityRoute } from '../../shared/activity'
 import type {
   MidiTrack,
@@ -24,6 +28,9 @@ interface Voice {
   off?: number
 }
 export class SequenceOutput implements SchedulerOutput {
+  private layerLevels = new WeakMap<RackSlot, number>()
+  private trackExpression = new Map<string, number>()
+  private sharedExternal = new Set<string>()
   private orchestras: Project['orchestras']
   private rack: InstrumentRack
   private tracks = new Map<string, { slot: RackSlot; patch: PatchConn }[]>()
@@ -61,6 +68,7 @@ export class SequenceOutput implements SchedulerOutput {
     available: readonly PatchConn[] = allPatches(project),
     tick = 0,
   ): Promise<void> {
+    this.sharedExternal = sharedExternalMembers(project.instruments)
     this.orchestras = project.orchestras
     if (!preserve) this.reset(false)
     const owners = new Map<string, string>()
@@ -136,9 +144,16 @@ export class SequenceOutput implements SchedulerOutput {
     this.noteActivity.set(note.id, { trackId: note.track.id, on: when })
     this.activityPulse({ sourceId: 'sequencer', trackId: note.track.id }, when)
     const voices: Voice[] = []
-    const targets = this.destinations(note.track.id, note.start).map(
-      (slot) => ({ slot, pitch: note.note[2], gain: 1 }),
-    )
+    const targets: {
+      slot: RackSlot
+      pitch: number
+      gain: number
+      expression?: number
+    }[] = this.destinations(note.track.id, note.start).map((slot) => ({
+      slot,
+      pitch: note.note[2],
+      gain: 1,
+    }))
     const orchestra = this.orchestras?.find(
       (o) => o.id === note.track.orchestraId,
     )
@@ -155,13 +170,34 @@ export class SequenceOutput implements SchedulerOutput {
             instrumentId: layer.instrumentId,
           }),
         )
-        if (slot) targets.push({ slot, pitch: layer.key, gain: layer.gain })
+        if (slot) {
+          const balance = layerBalance(layer, this.sharedExternal)
+          targets.push({
+            slot,
+            pitch: layer.key,
+            gain: balance.velocity,
+            expression: balance.expression,
+          })
+        }
       }
-    for (const { slot, pitch, gain } of targets) {
+    for (const { slot, pitch, gain, expression } of targets) {
       const key = pitch + slot.instrument.transpose
       if (key < 0 || key > 127) continue
       const offset = this.timing(slot.backend),
         at = Math.max(this.now(), when + offset)
+      if (expression !== undefined || this.layerLevels.has(slot)) {
+        slot.backend.cc(
+          slot.slot,
+          11,
+          Math.round(
+            (expression ?? 1) *
+              (this.trackExpression.get(note.track.id) ?? 127),
+          ),
+          at,
+        )
+        if (expression === undefined) this.layerLevels.delete(slot)
+        else this.layerLevels.set(slot, expression)
+      }
       slot.backend.noteOn(
         slot.slot,
         key,
@@ -210,6 +246,8 @@ export class SequenceOutput implements SchedulerOutput {
     event: MidiTrack['events'][number],
     when: number,
   ): void {
+    if (event.type === 'cc' && event.num === 11)
+      this.trackExpression.set(track.id, event.value)
     const slots = new Set(this.destinations(track.id, event.tick))
     for (const voices of this.voices.values())
       for (const voice of voices)
@@ -224,6 +262,8 @@ export class SequenceOutput implements SchedulerOutput {
         slot.backend.pitchBend(slot.slot, event.value, at)
       else {
         let value = event.value
+        if (event.num === 11)
+          value = Math.round(value * (this.layerLevels.get(slot) ?? 1))
         if (event.num === 7) value = Math.round(value * slot.instrument.volume)
         if (event.num === 10)
           value = Math.round(
@@ -240,6 +280,7 @@ export class SequenceOutput implements SchedulerOutput {
       [7, 127],
       [10, 64],
     ])
+    if (this.trackExpression.has(track.id)) controls.set(11, 127)
     let bend = 8192
     for (const e of track.events) {
       if (e.tick > tick) continue

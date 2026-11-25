@@ -235,6 +235,16 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
               />
             </div>
           </div>
+          <label>Balance by
+            <select
+              :value="m.balance ?? 'volume'"
+              @change="edit(o => { o.sections[i].members[j].balance = ($event.target as HTMLSelectElement).value as OrchestraMember['balance'] })"
+            >
+              <option value="volume">Volume</option>
+              <option value="velocity">Velocity</option>
+              <option value="both">Volume and velocity</option>
+            </select>
+          </label>
           <label
             v-for="k in [
               'lo',
@@ -252,7 +262,7 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
                comfortLo: 'Comfort low',
                comfortHi: 'Comfort high',
                octave: 'Octave',
-               gain: 'Gain',
+               gain: 'Proportion',
              }[k]
            }}
             <input
@@ -285,7 +295,7 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
               :value="m[k]"
               @input="member(i, j, k, $event)"
             >
-            {{ m[k] }}
+            {{ k === 'gain' ? Math.round(m.gain * 100) + '%' : m[k] }}
           </label>
         </div>
       </details>

@@ -6,6 +6,7 @@ export type Note = [tick: number, dur: number, key: number, vel: number]
 export type Timing = 'now' | 'beat' | 'bar'
 
 export interface OrchestraMember {
+  balance?: 'volume' | 'velocity' | 'both'
   instrumentId: Id
   lo: number
   hi: number

@@ -1,4 +1,4 @@
-import type { Orchestra } from './model'
+import type { Instrument, Orchestra, OrchestraMember } from './model'
 
 export function pickLayers(
   orchestra: Orchestra,
@@ -25,6 +25,7 @@ export function pickLayers(
       instrumentId: m.instrumentId,
       key: key + m.octave * 12,
       gain: m.gain,
+      balance: m.balance,
     }))
     .filter((t) => t.key >= 0 && t.key <= 127)
   if (targets.length || orchestra.outOfRange === 'silent')
@@ -43,6 +44,7 @@ export function pickLayers(
               instrumentId: m.instrumentId,
               key: output,
               gain: m.gain,
+              balance: m.balance,
               distance: Math.abs(octaves),
             },
           ]
@@ -55,7 +57,35 @@ export function pickLayers(
           instrumentId: folded.instrumentId,
           key: folded.key,
           gain: folded.gain,
+          balance: folded.balance,
         },
       ]
     : []
+}
+
+export function sharedExternalMembers(instruments: Instrument[]): Set<string> {
+  const channels = new Map<string, string[]>()
+  for (const instrument of instruments) {
+    if (instrument.backend !== 'midi' || !instrument.midiOut) continue
+    const { portName, channel } = instrument.midiOut
+    const key = JSON.stringify([portName, channel])
+    const members = channels.get(key) ?? []
+    members.push(instrument.id)
+    channels.set(key, members)
+  }
+  return new Set([...channels.values()].filter((ids) => ids.length > 1).flat())
+}
+
+export function layerBalance(
+  layer: Pick<OrchestraMember, 'gain' | 'balance' | 'instrumentId'>,
+  shared: Set<string>,
+) {
+  if (shared.has(layer.instrumentId))
+    return { velocity: layer.gain, expression: undefined }
+  const mode = layer.balance ?? 'volume'
+  const level =
+    mode === 'both' ? Math.sqrt(layer.gain) : mode === 'volume' ? layer.gain : 1
+  // CC11 tops out at unity. Preserve the existing gain range above 100% in velocity.
+  const expression = Math.min(1, level)
+  return { expression, velocity: expression > 0 ? layer.gain / expression : 0 }
 }
