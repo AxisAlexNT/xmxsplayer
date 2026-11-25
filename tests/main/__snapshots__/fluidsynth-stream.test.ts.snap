@@ -1,0 +1,49 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`preserves FluidSynth launch arguments and stdin bytes for a plain piano project 1`] = `
+{
+  "launches": [
+    [
+      "-n",
+      "-a",
+      "file",
+      "-V",
+    ],
+    [
+      "-n",
+      "-a",
+      "file",
+      "-r",
+      "48000",
+      "-z",
+      "256",
+      "-c",
+      "2",
+      "-g",
+      "0.5",
+      "-o",
+      "synth.midi-channels=64",
+    ],
+  ],
+  "stdin": "echo xmxsplayer-ready
+echo xm-fluid-00000000-0000-4000-8000-000000000001
+load "Studio piano.sf2" 0
+echo xm-fluid-00000000-0000-4000-8000-000000000001
+select 0 1 0 0
+cc 0 7 102
+cc 0 10 64
+cc 0 91 25
+cc 0 93 0
+noteon 0 60 98
+cc 0 64 127
+noteon 0 64 76
+noteoff 0 60
+noteoff 0 64
+cc 0 64 0
+cc 0 64 0
+cc 0 120 0
+reset
+quit
+",
+}
+`;
