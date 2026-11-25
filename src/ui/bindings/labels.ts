@@ -1,3 +1,4 @@
+import { orchestraSections } from '../../shared/orchestra'
 import type { Action, Project } from '../../shared/model'
 export const sentence = (text: string): string =>
   text
@@ -21,6 +22,7 @@ export function actionLabel(
         rate: 'Speed',
         masterVolume: 'Master',
         'track.volume': 'Volume',
+        'section.gain': 'Section level',
         'effect.param': action.param ?? 'Effect',
         'track.pan': 'Pan',
         'instrument.pluginParam': project.instruments.find(i => i.id === action.id)?.plugin?.parameters?.find(p => String(p.index) === action.param)?.name ?? 'Plugin parameter',
@@ -33,6 +35,7 @@ export function actionLabel(
       }
       const fader = /^fader\.(\d+)$/.exec(control),
         name =
+          (action.target === 'section.gain' ? orchestraSections(project).find(s => s.id === action.id)?.name : undefined) ??
           project.tracks.find((t) => t.id === action.id)?.name ??
           project.instruments.find((i) => i.id === action.id)?.name ??
           (fader && action.target.startsWith('track.')

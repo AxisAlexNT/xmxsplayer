@@ -186,7 +186,17 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
         v-for="(s, i) in current.sections"
         :key="i"
       >
-        <summary>{{ s.name }} · Register {{ (s.register ?? 0) + 1 }}</summary>
+        <summary>{{ s.name }} · {{ s.register === null ? 'Always on' : 'Register ' + (s.register + 1) }}</summary>
+        <label>Section level
+          <input
+            type="range"
+            min="0"
+            max="100"
+            :value="Math.round((s.gain ?? 1) * 100)"
+            @input="edit(o => { o.sections[i].gain = value($event) / 100 })"
+          >
+          {{ Math.round((s.gain ?? 1) * 100) }}%
+        </label>
         <EffectsDialog
           :orchestra-id="current.id"
           :section="i"

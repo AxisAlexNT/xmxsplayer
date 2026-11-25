@@ -1,4 +1,4 @@
-import type { Instrument, Orchestra, OrchestraMember } from './model'
+import type { Instrument, Orchestra, OrchestraMember, Project } from './model'
 
 export function pickLayers(
   orchestra: Orchestra,
@@ -7,7 +7,8 @@ export function pickLayers(
 ) {
   const members = orchestra.sections
     .filter((s) => s.register === null || registers[s.register])
-    .flatMap((s) => s.members)
+    .filter((s) => s.gain !== 0)
+    .flatMap((s) => s.members.map((m) => ({ ...m, sectionGain: s.gain ?? 1 })))
     .filter((m) => m.enabled && m.gain > 0)
   const ranked = members
     .filter((m) => key >= m.lo && key <= m.hi)
@@ -26,6 +27,7 @@ export function pickLayers(
       key: key + m.octave * 12,
       gain: m.gain,
       balance: m.balance,
+      sectionGain: m.sectionGain,
     }))
     .filter((t) => t.key >= 0 && t.key <= 127)
   if (targets.length || orchestra.outOfRange === 'silent')
@@ -45,6 +47,7 @@ export function pickLayers(
               key: output,
               gain: m.gain,
               balance: m.balance,
+              sectionGain: m.sectionGain,
               distance: Math.abs(octaves),
             },
           ]
@@ -58,6 +61,7 @@ export function pickLayers(
           key: folded.key,
           gain: folded.gain,
           balance: folded.balance,
+          sectionGain: folded.sectionGain,
         },
       ]
     : []
@@ -77,15 +81,32 @@ export function sharedExternalMembers(instruments: Instrument[]): Set<string> {
 }
 
 export function layerBalance(
-  layer: Pick<OrchestraMember, 'gain' | 'balance' | 'instrumentId'>,
+  layer: Pick<OrchestraMember, 'gain' | 'balance' | 'instrumentId'> & {
+    sectionGain?: number
+  },
   shared: Set<string>,
 ) {
+  const sectionGain = layer.sectionGain ?? 1
   if (shared.has(layer.instrumentId))
-    return { velocity: layer.gain, expression: undefined }
+    return { velocity: layer.gain * sectionGain, expression: undefined }
   const mode = layer.balance ?? 'volume'
   const level =
     mode === 'both' ? Math.sqrt(layer.gain) : mode === 'volume' ? layer.gain : 1
   // CC11 tops out at unity. Preserve the existing gain range above 100% in velocity.
   const expression = Math.min(1, level)
-  return { expression, velocity: expression > 0 ? layer.gain / expression : 0 }
+  return {
+    expression: expression * sectionGain,
+    velocity: expression > 0 ? layer.gain / expression : 0,
+  }
+}
+
+export function orchestraSections(project: Project) {
+  return (project.orchestras ?? []).flatMap((orchestra) =>
+    orchestra.sections.map((section, index) => ({
+      id: `section:${orchestra.id}:${index}`,
+      orchestra,
+      section,
+      name: orchestra.name + ' · ' + section.name,
+    })),
+  )
 }

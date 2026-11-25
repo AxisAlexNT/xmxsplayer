@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { orchestraSections } from '../../shared/orchestra'
 import { effectOwners } from '../../shared/effect-targets'
 import { controlsForEffect } from '../../shared/effects'
 import { computed } from 'vue'
@@ -164,6 +165,7 @@ function selectEffect(index: number) {
   const choice = effectChoices.value[index]
   if (choice) emit('update:modelValue', choice.action)
 }
+const sections = computed(() => orchestraSections(props.project))
 const pluginControls = computed(() => props.project.instruments.filter(i => i.backend === 'plugin')
   .flatMap(i => (i.plugin?.parameters ?? []).filter(p => p.input).map(p => ({
     label: i.name + ' · ' + p.name, id: i.id, param: String(p.index), min: p.min, max: p.max,
@@ -178,7 +180,7 @@ function target(target: ParamTarget): void {
   if (target === 'effect.param') return selectEffect(0)
   const instrument = target.startsWith('instrument.'),
     track = target.startsWith('track.') || target.startsWith('audio.'),
-    id = instrument
+    id = target === 'section.gain' ? sections.value[0]?.id : instrument
       ? props.project.instruments[0]?.id
       : track
         ? props.project.tracks.find(
@@ -213,6 +215,7 @@ function target(target: ParamTarget): void {
 const targets: ParamTarget[] = [
   'rate',
   'masterVolume',
+  'section.gain',
   'effect.param',
   'track.volume',
   'track.pan',
@@ -302,12 +305,28 @@ const targets: ParamTarget[] = [
           <option
             v-for="targetName in targets"
             :key="targetName"
-            :disabled="(targetName==='effect.param' && !effectChoices.length) || (targetName==='instrument.pluginParam' && !pluginControls.length)"
+            :disabled="(targetName==='section.gain' && !sections.length) || (targetName==='effect.param' && !effectChoices.length) || (targetName==='instrument.pluginParam' && !pluginControls.length)"
             :value="targetName"
           >
             {{ sentence(targetName) }}
           </option>
         </select>
+        <label
+          v-if="a.target==='section.gain'"
+          class="form-label"
+        >Orchestra section
+          <select
+            class="form-select"
+            :value="a.id"
+            @change="patch({id:($event.target as HTMLSelectElement).value})"
+          >
+            <option
+              v-for="s in sections"
+              :key="s.id"
+              :value="s.id"
+            >{{ s.name }}</option>
+          </select>
+        </label>
         <label
           v-if="a.target==='instrument.cc'"
           class="form-label"

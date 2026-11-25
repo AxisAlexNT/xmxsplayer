@@ -80,3 +80,42 @@ it('splits member proportion between expression and velocity and isolates shared
     expression: undefined,
   })
 })
+
+it('maps section level independently of member velocity and retains it across a save', async () => {
+  const { parameterValue, parameterPatch } =
+    await import('../../src/shared/parameters')
+  const project = newProject()
+  addPreset(project, 'symphonic', 'gm')
+  const action = {
+    type: 'param' as const,
+    target: 'section.gain' as const,
+    id: 'section:symphonic:0',
+    min: 0,
+    max: 1,
+  }
+  expect(parameterValue(project, action)).toBe(1)
+  Object.assign(project, parameterPatch(project, action, 0.4))
+  const restored = fromFiles(toFiles(project))
+  const orchestra = restored.orchestras![0]
+  const member = orchestra.sections[0].members[0]
+  member.balance = 'velocity'
+  member.gain = 0.5
+  orchestra.maxLayers = 0
+  const layers = pickLayers(orchestra, member.comfortLo, [
+    true,
+    false,
+    false,
+    false,
+  ])
+  const layer = layers.find((l) => l.instrumentId === member.instrumentId)!
+  expect(layerBalance(layer, new Set())).toEqual({
+    velocity: 0.5,
+    expression: 0.4,
+  })
+  expect(layerBalance(layer, new Set([member.instrumentId]))).toEqual({
+    velocity: 0.2,
+    expression: undefined,
+  })
+  orchestra.sections[0].gain = 0
+  expect(pickLayers(orchestra, 0, [true, false, false, false])).toEqual([])
+})

@@ -1,3 +1,4 @@
+import { orchestraSections } from './orchestra'
 import { effectParameterPatch, findEffect } from './effect-targets'
 import type { Action, Project } from './model'
 export type ParamAction = Extract<Action, { type: 'param' }>
@@ -8,6 +9,10 @@ export function parameterValue(
   const track = project.tracks.find((t) => t.id === action.id),
     instrument = project.instruments.find((i) => i.id === action.id)
   switch (action.target) {
+    case 'section.gain': {
+      const target = orchestraSections(project).find(s => s.id === action.id)
+      return target ? target.section.gain ?? 1 : undefined
+    }
     case 'effect.param':
       return action.param
         ? findEffect(project, action.id, action.effectId)?.effect.params[
@@ -46,6 +51,13 @@ export function parameterPatch(
   const unit = Math.max(0, Math.min(1, value)),
     raw = action.min + (action.max - action.min) * unit,
     clamped = (min: number, max: number) => Math.max(min, Math.min(max, raw))
+  if (action.target === 'section.gain') {
+    const target = orchestraSections(project).find(s => s.id === action.id)
+    if (!target) return
+    return { orchestras: project.orchestras?.map(o => o === target.orchestra ? {
+      ...o, sections: o.sections.map(s => s === target.section ? {...s, gain: clamped(0, 1)} : s),
+    } : o) }
+  }
   if (action.target === 'effect.param')
     return effectParameterPatch(
       project,

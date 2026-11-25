@@ -119,6 +119,7 @@ export const actionSchema = z.discriminatedUnion('type', [
     target: enums([
       'rate',
       'masterVolume',
+      'section.gain',
       'effect.param',
       'track.volume',
       'track.pan',
@@ -408,6 +409,7 @@ export const projectSchema = z
               name: z.string(),
               register: int.min(0).max(7).nullable(),
               startOn: z.boolean(),
+              gain: unit.optional(),
               effects: effectChain,
               members: z.array(
                 z

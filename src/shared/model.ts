@@ -17,6 +17,7 @@ export interface OrchestraMember {
   gain: number
 }
 export interface OrchestraSection {
+  gain?: number
   effects?: Effect[]
   name: string
   register: number | null
@@ -299,6 +300,7 @@ export type Action =
     }
   | { type: 'script'; fn: string }
 export type ParamTarget =
+  | 'section.gain'
   | 'effect.param'
   | 'rate'
   | 'masterVolume'

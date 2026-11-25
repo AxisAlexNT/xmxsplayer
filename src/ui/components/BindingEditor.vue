@@ -10,6 +10,8 @@ import {
   watch,
 } from 'vue'
 import type { Action, Binding, ControlDef } from '../../shared/model'
+import { effectOwners } from '../../shared/effect-targets'
+import { controlsForEffect } from '../../shared/effects'
 import { bindingSchema } from '../../shared/schema'
 import { effectiveSetup, isUnbound, unbound } from '../../shared/overlay'
 import {
@@ -140,6 +142,41 @@ async function filterSweep() {
   })
   error.value = ''
 }
+async function chooseRecipe(event: Event) {
+  const menu = event.target as HTMLSelectElement
+  const recipe = menu.value
+  menu.value = ''
+  const p = doc.project
+  let target: Action | undefined
+  let trigger: Binding['edge'] = 'change'
+  if (recipe === 'volume' || recipe === 'reverb') {
+    const instrument = p.instruments[0]
+    if (instrument) target = {type:'param', target:recipe === 'volume' ? 'instrument.volume' : 'instrument.reverb', id:instrument.id, min:0, max:1}
+  } else if (recipe === 'orchestra') {
+    trigger = 'press'
+    if (p.orchestras?.length) target = {type:'orchestra', cmd:'select', orchestraId:p.orchestras[0].id}
+  } else if (recipe === 'section') {
+    trigger = 'press'
+    const section = p.orchestras?.flatMap(o => o.sections).find(s => s.register !== null)
+    if (section?.register != null) target = {type:'register', cmd:'toggle', index:section.register}
+  } else if (recipe === 'effect') {
+    for (const owner of effectOwners(p)) {
+      const effect = owner.effects?.find(f => Object.keys(controlsForEffect(f)).length)
+      if (!effect) continue
+      const [param, spec] = Object.entries(controlsForEffect(effect))[0]
+      target = {type:'param', target:'effect.param', id:owner.id, effectId:effect.id, param, min:spec.min, max:spec.max}
+      break
+    }
+  }
+  if (!target) {
+    error.value = recipe === 'effect' ? 'Add an effect with a control first.' :
+      recipe === 'section' || recipe === 'orchestra' ? 'Add an orchestra with registered sections first.' : 'Add an instrument first.'
+    return
+  }
+  edge.value = trigger
+  await nextTick()
+  apply({ control:props.control.id, edge:trigger, action:target })
+}
 async function drumRoll() {
   const track = doc.project.tracks.find(t => t.kind === 'midi')
   if (!track) {
@@ -252,6 +289,23 @@ onUnmounted(() => {
           {{ value[0].toUpperCase() + value.slice(1) }}
         </button>
       </div>
+      <label class="form-label">Binding recipe
+        <select
+          class="form-select"
+          @change="chooseRecipe"
+        >
+          <option value="">Choose a recipe…</option>
+          <template v-if="control.mode === 'momentary'">
+            <option value="orchestra">Switch orchestra</option>
+            <option value="section">Toggle section</option>
+          </template>
+          <template v-else>
+            <option value="volume">Volume</option>
+            <option value="reverb">Reverb amount</option>
+            <option value="effect">Effect knob</option>
+          </template>
+        </select>
+      </label>
       <button
         v-if="control.mode !== 'momentary'"
         class="btn btn-sm btn-xm"
