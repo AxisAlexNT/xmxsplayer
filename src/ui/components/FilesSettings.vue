@@ -66,15 +66,15 @@ defineExpose({ path })
     >
       {{ error }}
     </p>
+    <button
+      class="btn btn-sm btn-xm"
+      @click="managing=true"
+    >
+      {{ t('library.manage') }}
+    </button>
+    <SoundLibrary
+      v-if="managing"
+      @close="managing=false"
+    />
   </div>
-  <button
-    class="btn btn-sm btn-xm"
-    @click="managing=true"
-  >
-    {{ t('library.manage') }}
-  </button>
-  <SoundLibrary
-    v-if="managing"
-    @close="managing=false"
-  />
 </template>

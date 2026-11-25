@@ -1,9 +1,18 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { useProjectStore } from '../stores/project'
 import { useRuntimeStore } from '../stores/runtime'
 import { useSettingsStore } from '../stores/settings'
 import { engineBus } from '../bus'
+import { addFont } from '../../shared/soundfont-ops'
+import { uniqueId } from '../../shared/ids'
+import {
+  gmFamilies,
+  favouriteKey,
+  searchPresets,
+} from '../../shared/preset-search'
+import type { SoundFontIndexEntry } from '../../shared/api'
+import { useI18n } from '../i18n'
 import type { Instrument } from '../../shared/model'
 import type { CommandMap } from '../../shared/protocol'
 import type { Preset } from '../../engine/synth/backend'
@@ -15,10 +24,28 @@ const settings = useSettingsStore()
 const instrument = doc.project.instruments.find(
   (i) => i.id === props.instrumentId,
 )!
-const fontId = ref(
-  instrument.soundfontId ?? doc.project.soundfonts[0]?.id ?? '',
+const { t } = useI18n()
+const index = shallowRef<SoundFontIndexEntry[]>([])
+const scope = ref('')
+const selectedFile = ref(
+  doc.project.soundfonts.find((f) => f.id === instrument.soundfontId)?.file ??
+    '',
 )
-const presets = ref<Preset[]>([])
+const includeLibrary = ref(false),
+  family = ref(''),
+  onlyFavourites = ref(false),
+  saving = ref(false)
+const favourites = computed(
+  () => new Set(settings.value.soundfontFavourites ?? []),
+)
+const fontId = computed(
+  () =>
+    doc.project.soundfonts.find((f) => f.file === selectedFile.value)?.id ??
+    uniqueId(
+      selectedFile.value.replace(/\.sf[23]$/i, ''),
+      doc.project.soundfonts.map((f) => f.id),
+    ),
+)
 const selected = ref<Preset | null>(null)
 const query = ref('')
 const loading = ref(false)
@@ -62,6 +89,7 @@ const choice = computed<CommandMap['audition:select']>(() =>
       ? {
           backend: backendChoice.value,
           soundfontId: fontId.value,
+          soundfontFile: selectedFile.value,
           bank: selected.value.bank,
           program: selected.value.program,
           isDrum: selected.value.isDrum,
@@ -74,65 +102,64 @@ const pan = ref(instrument.pan)
 const reverb = ref(instrument.reverb)
 const chorus = ref(instrument.chorus)
 const dialog = ref<HTMLDialogElement>()
-const filtered = computed(() =>
-  presets.value.filter((p) =>
-    `${p.name} ${p.bank}:${p.program}`
-      .toLowerCase()
-      .includes(query.value.toLowerCase()),
+const groups = computed(() =>
+  searchPresets(
+    index.value,
+    new Set(doc.project.soundfonts.map((f) => f.file)),
+    {
+      file: scope.value,
+      library: includeLibrary.value,
+      query: query.value,
+      family: family.value,
+      onlyFavourites: onlyFavourites.value,
+      favourites: favourites.value,
+    },
   ),
 )
-let generation = 0
 let releaseTimer: ReturnType<typeof setTimeout>
-async function load(): Promise<void> {
-  const current = ++generation
-  if (external.value) {
-    loading.value = false
-    error.value = ''
-    return
-  }
+async function load() {
   loading.value = true
-  error.value = ''
-  selected.value = null
-  presets.value = []
   try {
-    const values = await engineBus.value!.request(
-      'soundfont:presets',
-      { soundfontId: fontId.value },
-      30000,
-    )
-    if (current !== generation) return
-    presets.value = values
+    index.value = await window.xm.soundfonts.index()
+    const presets =
+      index.value.find((e) => e.file === selectedFile.value)?.presets ?? []
     selected.value =
-      values.find(
-        (p) =>
-          p.bank === instrument.bank &&
-          p.program === instrument.program &&
-          p.isDrum === instrument.isDrum,
-      ) ??
-      values[0] ??
-      null
-  } catch (reason) {
-    if (current === generation) error.value = String(reason)
+      presets.find(
+        (p) => p.bank === instrument.bank && p.program === instrument.program,
+      ) ?? null
+    error.value = ''
+  } catch (e) {
+    error.value = String(e)
   } finally {
-    if (current === generation) loading.value = false
+    loading.value = false
   }
 }
-watch(fontId, () => {
-  void load()
-})
-watch(backendChoice, (value, previous) => {
-  if (value === 'midi') {
-    generation++
-    loading.value = false
-    error.value = ''
-  } else if (previous === 'midi') void load()
-})
-watch(choice, (value) => engineBus.value?.send('audition:select', value), { immediate: true })
-
-function selectFont(id: string): void {
+function selectFont(file: string) {
   if (external.value) backendChoice.value = 'default'
-  fontId.value = id
+  scope.value = file
+  if(file && file !== selectedFile.value){
+    selectedFile.value=file
+    selected.value=index.value.find(entry=>entry.file===file)?.presets[0]??null
+  }
 }
+function selectPreset(file: string, preset: Preset) {
+  selectedFile.value = file
+  selected.value = preset
+}
+async function favourite(file: string, preset: Preset) {
+  const keys = new Set(favourites.value),
+    key = favouriteKey(file, preset)
+  if (keys.has(key)) keys.delete(key)
+  else keys.add(key)
+  try {
+    await settings.save({ ...settings.value, soundfontFavourites: [...keys] })
+  } catch (e) {
+    error.value = String(e)
+  }
+}
+watch(choice, (value) => engineBus.value?.send('audition:select', value), {
+  immediate: true,
+})
 function audition(): void {
   if (!choice.value) return
   const payload = { ...choice.value, key: 60 }
@@ -143,35 +170,55 @@ function audition(): void {
     600,
   )
 }
-function usePreset(): void {
+async function usePreset(): Promise<void> {
   const value = choice.value
-  if (!value) return
-  doc.update((p) => {
-    const target = p.instruments.find((i) => i.id === props.instrumentId)!
-    Object.assign(target, {
-      backend: backendChoice.value,
-      soundfontId: external.value ? undefined : fontId.value,
-      bank: value.bank,
-      program: value.program,
-      isDrum: value.isDrum,
-      name: external.value
-        ? name.value.trim() || 'External MIDI'
-        : selected.value!.name,
-      midiOut: value.midiOut,
-      volume: volume.value,
-      pan: pan.value,
-      reverb: reverb.value,
-      chorus: chorus.value,
+  if (!value || saving.value) return
+  saving.value = true
+  try {
+    const folder=doc.folder
+    let file = selectedFile.value
+    if (
+      !external.value &&
+      settings.value.soundfontCopyIntoProject &&
+      !doc.project.soundfonts.some((f) => f.file === file)
+    )
+      file = await window.xm.soundfonts.copy(file)
+    if(doc.folder!==folder)return
+    const project = external.value ? doc.project : addFont(doc.project, file)
+    doc.update((p) => {
+      p.soundfonts = project.soundfonts
+
+      const target = p.instruments.find((i) => i.id === props.instrumentId)!
+      Object.assign(target, {
+        backend: backendChoice.value,
+        soundfontId: external.value
+          ? undefined
+          : project.soundfonts.find((f) => f.file === file)!.id,
+        bank: value.bank,
+        program: value.program,
+        isDrum: value.isDrum,
+        name: external.value
+          ? name.value.trim() || 'External MIDI'
+          : selected.value!.name,
+        midiOut: value.midiOut,
+        volume: volume.value,
+        pan: pan.value,
+        reverb: reverb.value,
+        chorus: chorus.value,
+      })
     })
-  })
-  emit('close')
+    emit('close')
+  } catch (e) {
+    error.value = String(e)
+  } finally {
+    saving.value = false
+  }
 }
 onMounted(() => {
   dialog.value!.showModal()
   void load()
 })
 onUnmounted(() => {
-  generation++
   clearTimeout(releaseTimer)
   engineBus.value?.send('audition:preset', {
     soundfontId: fontId.value,
@@ -194,11 +241,11 @@ onUnmounted(() => {
   >
     <div class="xm-dialog-h">
       <h5 id="instrument-title">
-        Instrument — {{ instrument.name }}
+        {{ t('picker.instrument') }} {{ instrument.name }}
       </h5>
       <button
         class="btn btn-sm btn-ghost"
-        aria-label="Close instrument picker"
+        :aria-label="t('picker.closeInstrumentPicker')"
         @click="emit('close')"
       >
         <i class="bi bi-x-lg" />
@@ -207,14 +254,21 @@ onUnmounted(() => {
     <div class="xm-dialog-b">
       <div class="xm-picker-columns">
         <div>
-          <label class="form-label">Soundfont</label>
+          <label class="form-label">{{ t('picker.soundfont') }}</label>
           <div class="xm-list">
+            <button
+              class="xm-list-button"
+              :class="{'is-selected':!scope && !external}"
+              @click="selectFont('')"
+            >
+              {{ t('picker.allFonts') }}
+            </button>
             <button
               v-for="sf in doc.project.soundfonts"
               :key="sf.id"
               class="xm-list-button"
-              :class="{ 'is-selected': !external && fontId === sf.id }"
-              @click="selectFont(sf.id)"
+              :class="{ 'is-selected': !external && scope === sf.file }"
+              @click="selectFont(sf.file)"
             >
               {{ sf.file }}
             </button>
@@ -223,7 +277,7 @@ onUnmounted(() => {
               :class="{ 'is-selected': external }"
               @click="backendChoice = 'midi'"
             >
-              <i class="bi bi-box-arrow-up-right" /> External MIDI port…
+              <i class="bi bi-box-arrow-up-right" /> {{ t('picker.externalMidiPort') }}
             </button>
           </div>
         </div>
@@ -231,25 +285,25 @@ onUnmounted(() => {
           v-if="external"
           class="xm-external-fields"
         >
-          <label class="form-label">Name<input
+          <label class="form-label">{{ t('picker.name') }}<input
             v-model="name"
             class="form-control"
-            aria-label="External MIDI instrument name"
+            :aria-label="t('picker.externalMidiInstrumentName')"
           ></label>
-          <label class="form-label">MIDI output<select
+          <label class="form-label">{{ t('picker.midiOutput') }}<select
             v-model="portName"
             class="form-select"
-            aria-label="External MIDI output"
+            :aria-label="t('picker.externalMidiOutput')"
           >
             <option
               value=""
               disabled
-            >Select a MIDI output</option>
+            >{{ t('picker.selectAMidiOutput') }}</option>
             <option
               v-if="portName && !portNames.includes(portName)"
               :value="portName"
             >
-              {{ portName }} · disconnected
+              {{ portName }} {{ t('picker.disconnected') }}
             </option>
             <option
               v-for="port in portNames"
@@ -259,10 +313,10 @@ onUnmounted(() => {
               {{ port }}
             </option>
           </select></label>
-          <label class="form-label">Channel<select
+          <label class="form-label">{{ t('picker.channel') }}<select
             v-model.number="channel"
             class="form-select"
-            aria-label="External MIDI channel"
+            :aria-label="t('picker.externalMidiChannel')"
           >
             <option
               v-for="n in 16"
@@ -271,49 +325,70 @@ onUnmounted(() => {
             >{{ n }}</option>
           </select></label>
           <div class="xm-row">
-            <label class="form-label">Bank (0–16383)<input
+            <label class="form-label">{{ t('picker.bank016383') }}<input
               v-model.number="bank"
               class="form-control"
               type="number"
               min="0"
               max="16383"
               step="1"
-              aria-label="External MIDI bank"
+              :aria-label="t('picker.externalMidiBank')"
             ></label>
-            <label class="form-label">Program (0–127)<input
+            <label class="form-label">{{ t('picker.program0127') }}<input
               v-model.number="program"
               class="form-control"
               type="number"
               min="0"
               max="127"
               step="1"
-              aria-label="External MIDI program"
+              :aria-label="t('picker.externalMidiProgram')"
             ></label>
           </div>
           <p class="xm-faint">
-            Use separate channels for overlapping sounds. Volume, pan, effects
-            and expression are shared by each physical channel.
+            {{ t('picker.useSeparateChannelsForOverlappingSoundsVolumePanEffectsAndExpressionAreSharedByEachPhysicalChannel') }}
           </p>
           <p
             v-if="!runtime.midi.outputs.length"
             class="xm-faint"
             role="status"
           >
-            No MIDI outputs connected.
+            {{ t('picker.noMidiOutputsConnected') }}
           </p>
         </div>
         <div v-else>
           <label
             class="form-label"
             for="preset-search"
-          >Preset</label><input
+          >{{ t('picker.preset') }}</label><input
             id="preset-search"
             v-model="query"
             type="search"
             class="form-control mb-2"
-            placeholder="Search presets"
+            :placeholder="t('picker.searchPresets')"
             autofocus
           >
+          <div class="xm-preset-filters">
+            <button
+              v-for="item in [...gmFamilies,'Drums']"
+              :key="item"
+              class="xm-chip is-sm"
+              :aria-pressed="family===item"
+              @click="family=family===item?'':item"
+            >
+              {{ item }}
+            </button>
+            <button
+              class="xm-chip is-sm"
+              :aria-pressed="onlyFavourites"
+              @click="onlyFavourites=!onlyFavourites"
+            >
+              {{ t('picker.favourites') }}
+            </button>
+            <label><input
+              v-model="includeLibrary"
+              type="checkbox"
+            > {{ t('picker.includeLibrary') }}</label>
+          </div>
           <div
             v-if="error"
             class="xm-banner"
@@ -324,39 +399,51 @@ onUnmounted(() => {
               class="btn btn-sm btn-xm"
               @click="load"
             >
-              Retry
+              {{ t('picker.retry') }}
             </button>
           </div>
           <p
             v-else-if="loading"
             role="status"
           >
-            Loading presets…
+            {{ t('picker.loadingPresets') }}
           </p>
           <div
             v-else
             class="xm-list xm-presets"
           >
-            <button
-              v-for="preset in filtered"
-              :key="`${preset.bank}:${preset.program}:${preset.isDrum}`"
-              class="xm-list-button"
-              :class="{ 'is-selected': selected === preset }"
-              @click="selected = preset"
+            <template
+              v-for="group in groups"
+              :key="group.file"
             >
-              <span class="xm-mono xm-faint">{{ String(preset.bank).padStart(3, '0') }}:{{
-                String(preset.program).padStart(3, '0')
-              }}</span>
-              {{ preset.name }} <i
-                v-if="preset.isDrum"
-                class="bi bi-grid"
-              />
-            </button>
+              <b class="xm-fontgroup">{{ group.file }}</b>
+              <div
+                v-for="preset in group.presets"
+                :key="favouriteKey(group.file,preset)"
+                class="xm-row"
+              >
+                <button
+                  class="xm-list-button"
+                  :class="{'is-selected': selectedFile===group.file && selected?.bank===preset.bank && selected?.program===preset.program}"
+                  @click="selectPreset(group.file,preset)"
+                >
+                  <span class="xm-mono xm-faint">{{ preset.bank }}:{{ preset.program }}</span> {{ preset.name }}
+                </button>
+                <button
+                  class="btn btn-ghost"
+                  :aria-label="t('picker.favourite')"
+                  :aria-pressed="favourites.has(favouriteKey(group.file,preset))"
+                  @click="favourite(group.file,preset)"
+                >
+                  <i :class="favourites.has(favouriteKey(group.file,preset))?'bi bi-star-fill':'bi bi-star'" />
+                </button>
+              </div>
+            </template>
             <p
-              v-if="!filtered.length"
+              v-if="!groups.length"
               class="xm-faint p-2 mb-0"
             >
-              No matching presets
+              {{ t('picker.noMatchingPresets') }}
             </p>
           </div>
         </div>
@@ -364,7 +451,7 @@ onUnmounted(() => {
       <label
         v-if="!external"
         class="form-label mt-3"
-      >Engine</label>
+      >{{ t('picker.engine') }}</label>
       <div
         v-if="!external"
         class="xm-seg"
@@ -374,7 +461,7 @@ onUnmounted(() => {
           :aria-pressed="backendChoice === 'default'"
           @click="backendChoice = 'default'"
         >
-          Default ({{
+          {{ t('picker.default') }}{{
             settings.value.audio.defaultSynth === 'fluid'
               ? 'FluidSynth'
               : 'Built-in'
@@ -384,13 +471,13 @@ onUnmounted(() => {
           :aria-pressed="backendChoice === 'web'"
           @click="backendChoice = 'web'"
         >
-          Built-in
+          {{ t('picker.builtIn') }}
         </button><button
           :class="{ 'is-on': backendChoice === 'fluid' }"
           :aria-pressed="backendChoice === 'fluid'"
           @click="backendChoice = 'fluid'"
         >
-          FluidSynth
+          {{ t('picker.fluidsynth') }}
         </button>
       </div>
       <div class="xm-picker-controls mt-3">
@@ -438,21 +525,21 @@ onUnmounted(() => {
         :disabled="!choice"
         @click="audition"
       >
-        <i class="bi bi-volume-up" /> Audition
+        <i class="bi bi-volume-up" /> {{ t('picker.audition') }}
       </button>
     </div>
     <div class="xm-dialog-f">
-      <span class="xm-faint me-auto">Play your keyboard to audition</span><button
+      <span class="xm-faint me-auto">{{ t('picker.playYourKeyboardToAudition') }}</span><button
         class="btn btn-xm"
         @click="emit('close')"
       >
-        Cancel
+        {{ t('picker.cancel') }}
       </button><button
         class="btn btn-primary"
-        :disabled="!choice || !runtime.connected"
+        :disabled="saving || !choice || !runtime.connected"
         @click="usePreset"
       >
-        Use preset
+        {{ t('picker.usePreset') }}
       </button>
     </div>
   </dialog>

@@ -10,6 +10,7 @@ class ScheduledSynthesizer extends WorkletSynthesizer {
   }
 }
 interface Pool {
+  retired?: boolean
   synth: ScheduledSynthesizer
   used: Set<number>
   file: string
@@ -67,7 +68,7 @@ export class WebSynthBackend implements SynthBackend {
       await loaded
       if (old)
         void old.loaded
-          .then((pool) => this.collect(pool))
+          .then((pool) => { pool.retired=true; this.collect(pool) })
           .catch(() => undefined)
     } catch (error) {
       if (this.banks.get(sf.id)?.loaded === loaded) this.banks.delete(sf.id)
@@ -132,7 +133,7 @@ export class WebSynthBackend implements SynthBackend {
     return work
   }
   private collect(pool: Pool): void {
-    if (!pool.used.size && this.banks.get(pool.id)?.file !== pool.file)
+    if (!pool.used.size && pool.retired)
       pool.synth.destroy()
   }
   release(slotId: SlotId): void {
@@ -262,7 +263,7 @@ export class WebSynthBackend implements SynthBackend {
       if (!ids.has(id)) {
         this.banks.delete(id)
         void bank.loaded
-          .then((pool) => this.collect(pool))
+          .then((pool) => { pool.retired=true; this.collect(pool) })
           .catch(() => undefined)
       }
   }

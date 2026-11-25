@@ -70,6 +70,7 @@ watch(engineBus, (bus) => {
   bus.on('audio:state', (data) => {
     runtime.audioStates[data.trackId] = data
   })
+  bus.respond('soundfont:info',font=>window.xm.soundfonts.resolve(font.file))
   bus.respond(
     'soundfont:resolve',
     async (font) =>

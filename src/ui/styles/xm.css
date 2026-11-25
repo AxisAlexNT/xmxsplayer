@@ -239,3 +239,7 @@ body { background: var(--xm-bg-0); color: var(--xm-text); font-family: var(--xm-
 .xm-lib-nav button.is-on { color:var(--xm-accent); }
 .xm-lib-nav .xm-row button:first-child { flex:1; }
 .xm-sound-library section { min-width:0; padding:12px; }
+
+.xm-preset-filters { display:flex; flex-wrap:wrap; gap:4px; margin:6px 0; }
+.xm-preset-filters [aria-pressed=true] { color:var(--xm-accent); border-color:var(--xm-accent); }
+.xm-fontgroup { display:block; padding:4px 8px; color:var(--xm-text-muted); font-size:var(--xm-fs-xs); }

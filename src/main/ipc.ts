@@ -1,3 +1,4 @@
+import { stat } from 'node:fs/promises'
 import { readScoreXml } from './score-xml'
 import { FluidSynthProcess, detectFluid } from './fluidsynth'
 import { convertScore, detectMuseScore } from './musescore'
@@ -289,7 +290,7 @@ export function installIpc(windows: Windows): () => Promise<void> {
   handle('soundfonts:resolve', async (file: string, locate = false) => {
     const dirs = directories()
     const found = await findSoundfont(file, dirs)
-    if (found) return { file, url: await fileTokens.issue(found, dirs) }
+    if (found) return { file, bytes:(await stat(found)).size, url: await fileTokens.issue(found, dirs) }
     return locate ? pickSoundfont(`Locate missing soundfont — ${file}`) : null
   })
   handle('soundfonts:pick', () => pickSoundfont('Add soundfont'))

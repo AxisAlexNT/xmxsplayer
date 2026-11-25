@@ -63,6 +63,7 @@ export interface CommandMap {
   'control:capture': { active: boolean }
   'device:assign': { portName: string; profileId: string }
   'audition:select': {
+    soundfontFile?: string
     backend?: Instrument['backend']
     midiOut?: Instrument['midiOut']
     soundfontId: Id
@@ -71,6 +72,7 @@ export interface CommandMap {
     isDrum: boolean
   } | null
   'audition:preset': {
+    soundfontFile?: string
     backend?: Instrument['backend']
     midiOut?: Instrument['midiOut']
     soundfontId: Id
@@ -181,6 +183,7 @@ export interface RequestMap {
   'recording:close': { input: undefined; output: undefined }
   'device:profiles': { input: undefined; output: DeviceProfile[] }
   'recording:flush': { input: undefined; output: undefined }
+  'soundfont:info': { input: SoundFontRef; output: import('./api').ResolvedSoundFont | null }
   'soundfont:resolve': { input: SoundFontRef; output: string | null }
   'soundfont:presets': {
     input: { soundfontId: Id }

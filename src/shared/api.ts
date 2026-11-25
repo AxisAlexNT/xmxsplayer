@@ -23,6 +23,7 @@ export interface SoundFontIndexEntry extends SoundFontFile {
   presets:FluidPreset[]
 }
 export interface ResolvedSoundFont {
+  bytes?: number
   file: string
   url: string
 }

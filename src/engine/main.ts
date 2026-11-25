@@ -411,6 +411,8 @@ function receiveControl(event: ControlEvent): void {
     log('error', 'bindings', String(error))
   }
 }
+const fontBytes = new Map<string,number>()
+let warnedFontSize = false
 const fontLoads = new Map<string, { file: string; loading: Promise<void> }>()
 function selectBackend(instrument: Instrument): SynthBackend {
   const target =
@@ -453,12 +455,18 @@ async function load(
   const previous = fontLoads.get(key)
   if (previous?.file === font.file) return previous.loading
   const loading = (async () => {
-    const url = await bus!.request('soundfont:resolve', font)
-    if (!url)
+    const info = await bus!.request('soundfont:info', font)
+    if (!info)
       throw new Error(
         `${font.file}: missing soundfont. Use Locate in Soundfonts.`,
       )
-    await target.loadSoundFont(font, url)
+    await target.loadSoundFont(font, info.url)
+    if(fontLoads.get(key)?.file===font.file){
+      fontBytes.set(key,info.bytes??0)
+      const bytes=[...fontBytes.values()].reduce((n,size)=>n+size,0)
+      if(bytes>1_000_000_000 && !warnedFontSize)log('warn','soundfonts',`Loaded soundfonts total ${Math.round(bytes/1048576)} MiB. Remove unused instruments to free memory.`)
+      warnedFontSize=bytes>1_000_000_000
+    }
   })()
   fontLoads.set(key, { file: font.file, loading })
   try {
@@ -901,17 +909,20 @@ async function synchronize(
   router?.setProject(performanceProject() ?? project)
   publishRuntime()
   reportSynthReady()
-  for (const key of fontLoads.keys())
-    if (
-      !project.soundfonts.some(
-        (sf) => key === `web:${sf.id}` || key === `fluid:${sf.id}`,
-      )
-    )
-      fontLoads.delete(key)
-  const ids = new Set(project.soundfonts.map((sf) => sf.id))
+  pruneFonts()
+  graph?.latency()
+}
+function pruneFonts(){
+  if(!project)return
+  const ids=new Set(project.instruments.map(i=>i.soundfontId).filter((id):id is string=>!!id))
+  if(audition?.soundfontId)ids.add(audition.soundfontId)
+  for(const key of fontLoads.keys())if(!ids.has(key.slice(key.indexOf(':')+1))){
+    fontLoads.delete(key)
+    fontBytes.delete(key)
+  }
+  if([...fontBytes.values()].reduce((n,size)=>n+size,0)<=1_000_000_000)warnedFontSize=false
   backend?.prune(ids)
   fluidBackend?.prune(ids)
-  graph?.latency()
 }
 function previewNote(
   owner: string,
@@ -933,7 +944,8 @@ function previewNote(
   if (!on || !preset || !project || !backend) return
   const token = {}
   previews.set(owner, { token, key })
-  const font = project.soundfonts.find((sf) => sf.id === preset.soundfontId)
+  const font = project.soundfonts.find((sf) => sf.id === preset.soundfontId) ??
+    (preset.soundfontFile ? {id:preset.soundfontId,file:preset.soundfontFile} : undefined)
   if (!font && preset.backend !== 'midi') {
     previews.delete(owner)
     return
@@ -957,6 +969,7 @@ function previewNote(
     }
     const target = selectBackend(instrument)
     if (font && target.id !== 'midi') await load(font, target)
+    if(previews.get(owner)?.token!==token){ pruneFonts();return }
     const slot = await target.allocate(instrument)
     if (previews.get(owner)?.token !== token) {
       target.release(slot)
@@ -1191,8 +1204,9 @@ window.addEventListener('message', (event) => {
     const font = project?.soundfonts.find((sf) => sf.id === soundfontId)
     if (!font) throw new Error('Select a soundfont first')
     await load(font)
-    await synchronize()
-    return backend!.listPresets(soundfontId)
+    const presets=await backend!.listPresets(soundfontId)
+    pruneFonts()
+    return presets
   })
   bus.respond('recording:close', () => {
     if (transport?.clock.recording) transport.stop()
@@ -1228,6 +1242,7 @@ window.addEventListener('message', (event) => {
   )
   bus.on('audition:select', (value) => {
     audition = value
+    pruneFonts()
   })
   bus.on('audition:preset', (value) =>
     previewNote(
