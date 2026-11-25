@@ -1,3 +1,4 @@
+import { mappable } from './bindings/map-mode'
 import { TimeMap } from '../shared/time-map'
 import { recordedLength, replaceRange } from '../shared/recording'
 import { parameterPatch } from '../shared/parameters'
@@ -18,6 +19,7 @@ import type { Project } from '../shared/model'
 
 const app = createApp(App)
 app.use(createPinia())
+app.directive('mappable',mappable)
 const doc = useProjectStore()
 const runtime = useRuntimeStore()
 const settings = useSettingsStore()
@@ -132,10 +134,10 @@ watch(engineBus, (bus) => {
     window.xm.app.engineReady()
   })
   bus.on('log', (entry) => runtime.log(entry))
-  bus.on('param:change', ({ action, value }) => {
+  bus.on('param:change', ({ action, value, tick }) => {
     try {
       doc.update((draft) => {
-        const patch = parameterPatch(draft, action, value)
+        const patch = parameterPatch(draft, action, value,tick,settings.value.tempoMode)
         if (patch) Object.assign(draft, patch)
       })
     } catch (error) {

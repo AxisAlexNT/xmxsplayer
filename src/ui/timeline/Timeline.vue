@@ -768,6 +768,7 @@ onUnmounted(() => {
           </div>
           <div class="xm-th-top xm-track-mixer">
             <i class="bi bi-volume-up xm-faint" /><input
+              v-mappable="{label:track.name+' volume',action:{type:'param',target:'track.volume',id:track.id,min:0,max:1}}"
               type="range"
               class="form-range xm-track-volume"
               :style="{ '--v': track.volume }"
@@ -782,6 +783,7 @@ onUnmounted(() => {
                 })
               "
             ><input
+              v-mappable="{label:track.name+' pan',action:{type:'param',target:'track.pan',id:track.id,min:-1,max:1}}"
               type="range"
               class="form-range xm-track-pan"
               min="-1"

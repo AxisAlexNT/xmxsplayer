@@ -99,6 +99,7 @@ export const en = {
   'control.clear': 'Clear',
   'control.clearBeatMap': 'Clear beat map',
   'control.clickToCue': 'Click to cue',
+  'control.mapMode': 'Map controls (Ctrl+M)',
   'control.collapseLeftPanel': 'Collapse left panel',
   'control.configured': 'Configured',
   'control.countIn': 'Count-in',

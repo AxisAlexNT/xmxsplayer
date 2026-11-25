@@ -303,6 +303,8 @@ export type Action =
   | { type: 'script'; fn: string }
 export type ParamTarget =
   | `orchestra.${OrchestraControl}`
+  | 'tempo'
+  | 'member.gain'
   | 'section.gain'
   | 'effect.param'
   | 'rate'

@@ -53,3 +53,9 @@ The built-in synth produced three distinct waveforms for TimGM6mb bank 0, progra
 ### Assign a pad by dragging
 
 Open **Controls** and choose where to store the binding. Drag an orchestra button onto a pad to select that orchestra. Drag a registered section’s heading onto a pad to toggle its register. Under **Drag an instrument to a pad**, drag an instrument name onto a pad to play that instrument directly. The pad uses its strike velocity and releases the note when you let go. The starting note is 60 for melodic instruments and 36 for drums. Click the pad to change the note or destination.
+
+### Map a control while looking at its target
+
+Press **Ctrl+M** or choose **Map controls** in the transport or Controls panel. Click an outlined target, then move a fader or encoder for a value, or press a pad for a button. On an orchestra or section, a pad selects or toggles it and a fader sets its level. On a clip, a pad launches it and a knob sweeps it. When the control already has an assignment, choose **Replace** or **Cancel**. With a scene active, the assignment applies to that controller in that scene. Otherwise it applies to that controller across the project.
+
+The badge shows the assigned control. Right-click or hold the target to **Unmap** it or **Edit** its binding. Press **Esc** to return to playing.

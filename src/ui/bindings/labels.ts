@@ -23,6 +23,7 @@ export function actionLabel(
         masterVolume: 'Master',
         'track.volume': 'Volume',
         'orchestra.volume':'Orchestra volume', 'orchestra.reverb':'Hall reverb', 'orchestra.chorus':'Chorus', 'orchestra.brightness':'Brightness',
+        tempo:'Tempo', 'member.gain':'Member proportion',
         'section.gain': 'Section level',
         'effect.param': action.param ?? 'Effect',
         'track.pan': 'Pan',

@@ -121,6 +121,7 @@ export const actionSchema = z.discriminatedUnion('type', [
       'rate',
       'masterVolume',
       'orchestra.volume', 'orchestra.reverb', 'orchestra.chorus', 'orchestra.brightness',
+      'tempo', 'member.gain',
       'section.gain',
       'effect.param',
       'track.volume',

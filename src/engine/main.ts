@@ -294,7 +294,7 @@ function currentParameter(action: ParamAction): number | undefined {
   if (action.target === 'masterVolume') return masterVolume
   const pending = pendingParameters.get(JSON.stringify([action.target,action.id,action.effectId,action.param,action.cc]))
   if (pending && performance.now() - pending.time < 250) return pending.value
-  return project ? parameterValue(project, action) : undefined
+  return project ? parameterValue(project, action, transport?.clock.tick) : undefined
 }
 function runAction(
   action: Action,
@@ -383,15 +383,16 @@ function runAction(
         0.01,
       )
     } else {
-      const patch = parameterPatch(project, action, unit)
+      const tick=action.target === 'tempo' ? transport?.clock.tick : undefined
+      const patch = parameterPatch(project, action, unit, tick, settings?.tempoMode)
       if (patch) {
-        const next = parameterValue({ ...project, ...patch }, action)
+        const next = parameterValue({ ...project, ...patch }, action, tick)
         if (next !== undefined)
           pendingParameters.set(JSON.stringify([action.target,action.id,action.effectId,action.param,action.cc]), {
             value: next,
             time: performance.now(),
           })
-        bus?.send('param:change', { action, value: unit })
+        bus?.send('param:change', { action, value: unit, tick })
       }
     }
     return
@@ -403,11 +404,12 @@ function runAction(
     scriptTimeline?.reset()
   }
 }
+let mapCapture = false
 function receiveControl(event: ControlEvent): void {
   if (engineClosing) return
   bus?.send('control', event)
   leds?.control(event)
-  if (controlCapture) {
+  if (controlCapture || mapCapture) {
     bindings?.releaseControl(event)
     return
   }
@@ -1072,7 +1074,9 @@ window.addEventListener('message', (event) => {
     )
   })
   bus.respond('device:profiles', () => midi?.profiles() ?? [])
-  bus.on('learn:start', ({ deviceId, controlId, control }) => {
+  bus.on('learn:start', ({ deviceId, controlId, control, binding }) => {
+    mapCapture = !!binding
+    if (binding) return
     const device = midi?.devices().find((d) => !deviceId || d.id === deviceId)
     const target =
       control ??
@@ -1087,7 +1091,7 @@ window.addEventListener('message', (event) => {
         'Select a connected controller and a control to learn',
       )
   })
-  bus.on('learn:stop', () => midi?.learn.stop())
+  bus.on('learn:stop', () => { mapCapture = false; midi?.learn.stop() })
   bus.respond('control:capture', ({ active }) => {
     controlCapture = active
     if (active) clipActions?.clear()

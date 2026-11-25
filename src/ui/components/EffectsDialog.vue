@@ -305,6 +305,7 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
         <label
           v-for="(spec, key) in controlsForEffect(fx)"
           :key="key"
+          v-mappable="{label:fx.id+' '+spec.label,action:{type:'param',target:'effect.param',id:props.instrumentId?'instrument:'+props.instrumentId:props.section!==undefined?'section:'+props.orchestraId+':'+props.section:props.orchestraId?'orchestra:'+props.orchestraId:'master',effectId:fx.id,param:key,min:spec.min,max:spec.max}}"
         >{{ spec.label }}
           <select
             v-if="key === 'mode'"

@@ -158,6 +158,7 @@ onUnmounted(() => clearTimeout(clickTimer))
     <button
       v-else
       ref="button"
+      v-mappable="locked ? undefined : {label:'Tempo',action:{type:'param',target:'tempo',min:20,max:400}}"
       class="xm-tempo-button"
       :title="t('tempo.hint')"
       aria-haspopup="dialog"

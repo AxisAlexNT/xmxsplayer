@@ -145,6 +145,7 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
       <button
         v-for="o in doc.project.orchestras"
         :key="o.id"
+        v-mappable="{label:o.name,continuous:{type:'param',target:'orchestra.volume',id:o.id,min:0,max:1},action:{type:'orchestra',cmd:'select',orchestraId:o.id}}"
         draggable="true"
         title="Select orchestra, or drag to a controller pad"
         :aria-pressed="o.id === current?.id"
@@ -189,12 +190,13 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
         class="xm-orc-sec"
       >
         <summary
+          v-mappable="s.register === null ? undefined : {label:s.name,continuous:{type:'param',target:'section.gain',id:'section:'+current.id+':'+i,min:0,max:1},action:{type:'register',cmd:'toggle',index:s.register}}"
           :draggable="s.register !== null"
           @dragstart="s.register !== null && dragPadSource($event, 'section:' + current.id + ':' + i)"
         >
           {{ s.name }} · {{ s.register === null ? 'Always on' : 'Register ' + (s.register + 1) }}
         </summary>
-        <label>Section level
+        <label v-mappable="{label:s.name+' level',action:{type:'param',target:'section.gain',id:'section:'+current.id+':'+i,min:0,max:1}}">Section level
           <input
             type="range"
             min="0"
@@ -272,6 +274,7 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
               'gain',
             ] as const"
             :key="k"
+            v-mappable="k==='gain' ? {label:m.instrumentId+' proportion',action:{type:'param',target:'member.gain',id:'section:'+current.id+':'+i,param:m.instrumentId,min:0,max:2}} : undefined"
           >{{
              {
                lo: 'Low',
@@ -320,6 +323,7 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
         <label
           v-for="key in orchestraControls"
           :key="key"
+          v-mappable="unsupportedMembers(doc.project,current,key).length ? undefined : {label:current.name+' '+key,action:{type:'param',target:'orchestra.'+key,id:current.id,min:0,max:1}}"
           class="xm-knob"
           :style="{'--v':current.fx?.[key] ?? orchestraDefaults[key]}"
           :title="unsupportedMembers(doc.project,current,key).map(i=>i.name + ' has no matching plugin control').join(', ')"

@@ -156,6 +156,7 @@ function remove(): void {
       :style="{ '--c': scene.color }"
     >
       <button
+        v-mappable="{label:scene.name,action:{type:'scene',cmd:'activate',sceneId:scene.id}}"
         class="xm-chip"
         :class="{ 'is-active': runtime.state.activeSceneId === scene.id }"
         :aria-label="`Activate scene ${scene.name}`"

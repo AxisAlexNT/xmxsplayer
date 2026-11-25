@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import MapMode from './components/MapMode.vue'
+import { mapActive } from './bindings/map-mode'
 import EffectsDialog from "./components/EffectsDialog.vue"
 import { useI18n } from './i18n'
 const { t } = useI18n()
@@ -600,6 +602,16 @@ onUnmounted(() => {
     @drop.prevent="drop"
   >
     <header class="xm-transport">
+      <MapMode @edit="(deviceId,controlId)=>flowSelect({kind:'control',deviceId,controlId},{right:24,top:96})" />
+      <button
+        class="xm-tbtn"
+        :aria-pressed="mapActive"
+        :title="t('control.mapMode')"
+        :aria-label="t('control.mapMode')"
+        @click="mapActive=!mapActive"
+      >
+        <i class="bi bi-bezier2" />
+      </button>
       <EffectsDialog label="Master FX" />
       <div class="xm-tgroup">
         <button
@@ -630,6 +642,7 @@ onUnmounted(() => {
         <button
           v-for="button in transportButtons"
           :key="button.cmd"
+          v-mappable="{label:button.title,action:{type:'transport',cmd:button.cmd}}"
           class="xm-tbtn"
           :class="{
             'is-play': button.cmd === 'toggle' && runtime.transport.playing,

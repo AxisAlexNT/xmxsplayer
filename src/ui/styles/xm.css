@@ -258,3 +258,7 @@ body { background: var(--xm-bg-0); color: var(--xm-text); font-family: var(--xm-
 .xm-ticks { display: flex; gap: 3px; align-items: flex-end; height: 34px; }
 .xm-ticks > i { width: 6px; border-radius: 2px; background: var(--xm-bg-3); height: 30%; }
 .xm-ticks > i.is-hit { background: var(--xm-c6); height: 100%; box-shadow: 0 0 6px rgba(255,159,67,.6); }
+
+.xm-map-mode .xm-mappable { outline: 1px dashed var(--xm-accent); outline-offset: -1px; cursor: crosshair; position: relative; }
+.xm-map-mode [data-map-badge]::after { content: attr(data-map-badge); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; position:absolute; right:0; top:0; z-index:2; border-radius:3px; background:var(--xm-accent); color:var(--xm-bg-0); padding:1px 3px; font:10px/1.2 monospace; pointer-events:none; }
+.xm-map-prompt:popover-open { display:flex; align-items:center; flex-wrap:wrap; gap:8px; inset:auto 12px 12px auto; max-width:min(540px,95vw); margin:0; padding:12px; color:var(--xm-text); background:var(--xm-bg-2); border:1px solid var(--xm-accent); border-radius:8px; }

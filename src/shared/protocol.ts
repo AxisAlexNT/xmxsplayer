@@ -58,7 +58,7 @@ export interface CommandMap {
     source: string
   }
   audition: { instrumentId: Id; key: number; on: boolean }
-  'learn:start': { controlId?: string; deviceId?: string; control?: ControlDef }
+  'learn:start': { binding?: boolean; controlId?: string; deviceId?: string; control?: ControlDef }
   'learn:stop': undefined
   'control:capture': { active: boolean }
   'device:assign': { portName: string; profileId: string }
@@ -127,7 +127,7 @@ export interface EventMap {
   'clips:progress': Record<Id, number>
   'script:status': ScriptStatus
   feedback: DeviceFeedback
-  'param:change': { action: Extract<Action, { type: 'param' }>; value: number }
+  'param:change': { action: Extract<Action, { type: 'param' }>; value: number; tick?:number }
   ready: undefined
   'grid:taps': {
     active: boolean

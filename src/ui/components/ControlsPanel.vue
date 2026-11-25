@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nextTick, computed, ref, shallowRef, watch } from 'vue'
 import type { ControlDef, DeviceProfile } from '../../shared/model'
+import { mapActive } from '../bindings/map-mode'
 import { PAD_SOURCE, dragPadSource, padAction } from '../bindings/pad-drop'
 import { writeBinding, type BindingScope } from '../bindings/edit'
 import { effectiveSetup, isUnbound } from '../../shared/overlay'
@@ -217,6 +218,13 @@ function relearn(): void {
 }
 </script>
 <template>
+  <button
+    class="btn btn-sm btn-xm"
+    :aria-pressed="mapActive"
+    @click="mapActive=!mapActive"
+  >
+    Map controls
+  </button>
   <details v-if="profile && doc.project.instruments.length">
     <summary>Drag an instrument to a pad</summary>
     <span

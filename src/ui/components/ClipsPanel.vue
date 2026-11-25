@@ -231,6 +231,7 @@ onUnmounted(() => {
       @dragstart="drag($event, clip)"
     >
       <button
+        v-mappable="{label:clip.name,action:{type:'clip',cmd:'launch',clipId:clip.id}}"
         class="xm-clip-launch"
         :aria-label="`Launch ${clip.name}`"
         :aria-pressed="runtime.state.clips[clip.id] === 'playing'"
