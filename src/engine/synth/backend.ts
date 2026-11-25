@@ -12,7 +12,7 @@ export interface SynthBackend {
   readonly id: 'web' | 'fluid' | 'midi'
   loadSoundFont(sf: SoundFontRef, url: string): Promise<void>
   listPresets(soundfontId: string): Promise<Preset[]>
-  allocate(instrument: Instrument): Promise<SlotId>
+  allocate(instrument: Instrument, ownerId?: string): Promise<SlotId>
   release(slot: SlotId): void
   configure(slot: SlotId, instrument: Instrument): void
   noteOn(slot: SlotId, key: number, vel: number, whenCtx?: number): void

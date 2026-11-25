@@ -63,10 +63,12 @@ export class SequenceOutput implements SchedulerOutput {
   ): Promise<void> {
     this.orchestras = project.orchestras
     if (!preserve) this.reset(false)
+    const owners = new Map<string, string>()
     const instruments = available.flatMap((conn) => {
       const track = project.tracks.find((t) => t.id === conn.trackId),
         instrument = project.instruments.find((i) => i.id === conn.instrumentId)
       if (!track || track.kind !== 'midi' || !instrument) return []
+      owners.set(`seq:${patchKey(conn)}`, instrument.id)
       return [
         {
           ...instrument,
@@ -77,7 +79,7 @@ export class SequenceOutput implements SchedulerOutput {
         },
       ]
     })
-    await this.rack.synchronize({ ...project, instruments })
+    await this.rack.synchronize({ ...project, instruments }, owners)
     this.slots.clear()
     this.identities.clear()
     for (const conn of available) {

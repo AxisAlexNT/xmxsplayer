@@ -76,6 +76,7 @@ export interface XmApi {
     mode: TrackMode
     playNote(key: number, vel: number, beats: number): void
   }
+  fx(ownerId: string, effectId: string): { set(param: string, value: number): void }
   clip(id: string): {
     launch(): void
     stop(): void

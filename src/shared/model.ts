@@ -1,3 +1,4 @@
+import type { Effect, EffectType } from './effects'
 export const PPQ = 480
 export type Id = string // readable slug, see section 4
 export type Note = [tick: number, dur: number, key: number, vel: number]
@@ -14,12 +15,14 @@ export interface OrchestraMember {
   gain: number
 }
 export interface OrchestraSection {
+  effects?: Effect[]
   name: string
   register: number | null
   startOn: boolean
   members: OrchestraMember[]
 }
 export interface Orchestra {
+  effects?: Effect[]
   id: Id
   name: string
   color: string
@@ -28,6 +31,7 @@ export interface Orchestra {
   sections: OrchestraSection[]
 }
 export interface Project {
+  masterEffects?: Effect[]
   orchestras?: Orchestra[]
   record?: { mode: 'overdub' | 'replace'; preRollBars: number }
   version: 1
@@ -81,6 +85,7 @@ export interface SoundFontRef {
   file: string
 } // file name only; resolved per PC
 export interface Instrument {
+  effects?: Effect[]
   id: Id
   name: string
   color: string
@@ -261,7 +266,7 @@ export type Action =
       on?: boolean
     }
   | { type: 'note'; trackId: Id; key: number; velocity: 'control' | number }
-  | { type: 'param'; target: ParamTarget; id?: Id; min: number; max: number }
+  | { type: 'param'; target: ParamTarget; id?: Id; effectId?: Id; param?: string; min: number; max: number }
   | { type: 'trackMode'; trackId: Id; mode: TrackMode | 'cycle' }
   | { type: 'follow'; mode: Project['follow']['mode'] | 'cycle' }
   | { type: 'cue'; cmd: 'fireNext' | 'fire' | 'prev' | 'next'; cueId?: Id }
@@ -289,6 +294,7 @@ export type Action =
     }
   | { type: 'script'; fn: string }
 export type ParamTarget =
+  | 'effect.param'
   | 'rate'
   | 'masterVolume'
   | 'track.volume'
@@ -383,6 +389,7 @@ export interface Settings {
     extraArgs: string[]
   }
   musescorePath: string
+  effectPresets?: { name: string; type: EffectType; params: Record<string, number> }[]
   soundfontFavourites?: string[]
   soundfontCopyIntoProject?: boolean
   soundfontDirsConfigured?: boolean

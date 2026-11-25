@@ -111,3 +111,9 @@ The comparison temporarily changed `clock.force-quantum` from 1024 to 256 with p
 6. While connected to power, compare **Settings → System → Power & battery → Power mode → Best performance**, where available. Record the previous mode and account for the power/thermal tradeoff. Repeat the same project rather than assuming the setting resolves dropouts. [Microsoft power-mode instructions](https://support.microsoft.com/en-us/windows/experience/change-the-power-mode-for-your-windows-pc).
 
 7. Test the complete performance: live keys, sustain, instrument changes, reference audio, clips and cue output. Save, quit and reopen to confirm the selected configuration persists. Record driver/build, interface, sample rate, buffer/period settings, app readouts and audible failures separately. Windows device selection, exclusive-mode coexistence and physical timing still require this verification.
+
+## Built-in instrument inserts
+
+On the Linux development machine at 48 kHz, a muted three-note chord using FluidR3_GM.sf2 was sampled for four seconds with and without a dedicated built-in synth and filter/LFO. The engine renderer used 461 MiB RSS before and 602 MiB after. Process CPU averaged 4.25% and 4.50% of one core respectively. These single samples cover the renderer, including the underlying soundfont worklet. The instrument uses one insert synth across its live and sequenced routes.
+
+The app reported the same Web Audio base latency (2.67 ms) and the same configured FluidSynth latency (10.67 ms) in both cases. Chromium’s output estimate varied from 96 ms to 48 ms. Physical Bluetooth piano response and dropouts still require a listening check.

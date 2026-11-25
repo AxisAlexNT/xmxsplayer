@@ -282,7 +282,7 @@ function receiveMidi(message: MidiMessage): void {
 function currentParameter(action: ParamAction): number | undefined {
   if (action.target === 'rate') return transport?.clock.rate
   if (action.target === 'masterVolume') return masterVolume
-  const pending = pendingParameters.get(`${action.target}|${action.id}`)
+  const pending = pendingParameters.get(JSON.stringify([action.target,action.id,action.effectId,action.param]))
   if (pending && performance.now() - pending.time < 250) return pending.value
   return project ? parameterValue(project, action) : undefined
 }
@@ -377,7 +377,7 @@ function runAction(
       if (patch) {
         const next = parameterValue({ ...project, ...patch }, action)
         if (next !== undefined)
-          pendingParameters.set(`${action.target}|${action.id}`, {
+          pendingParameters.set(JSON.stringify([action.target,action.id,action.effectId,action.param]), {
             value: next,
             time: performance.now(),
           })
@@ -502,6 +502,7 @@ async function initialize(value: Settings): Promise<void> {
       (message) => log('warn', 'audio', message),
     )
     await graph.apply(value.audio)
+    graph.effects.set(project?.masterEffects)
     backend = await WebSynthBackend.create(graph.context, graph.main)
     midiBackend = new MidiOutSynthBackend(
       () => midi?.outputs() ?? [],
@@ -543,7 +544,10 @@ async function initialize(value: Settings): Promise<void> {
       reportKeys,
       (note) => transport?.liveNote(note),
       () => scenes.context,
-      (route) => activity?.pulse(route),
+      (route) => {
+        activity?.pulse(route)
+        if (route.trackId && graph) { graph.effects.trigger(route.trackId, graph.context.currentTime); backend?.trigger(route.trackId, graph.context.currentTime) }
+      },
     )
     transport = new Transport(
       graph,
@@ -567,6 +571,9 @@ async function initialize(value: Settings): Promise<void> {
         createApi(
           {
             project: () => project!,
+            setEffect: (id, effectId, param, value) => runAction({
+              type: 'param', target: 'effect.param', id, effectId, param, min: value, max: value,
+            }, 1),
             position: () => ({
               ...transport!.clock.map.tickToBarBeat(transport!.clock.tick),
               tick: transport!.clock.tick,
@@ -836,17 +843,27 @@ async function initialize(value: Settings): Promise<void> {
       report: (frame) => bus?.send('feedback', frame),
       warn: (message) => log('warn', 'feedback', message),
     })
-    transport.onNoteActivity = (route, when) =>
+    transport.onNoteActivity = (route, when) => {
+      if (route.trackId) { graph?.effects.trigger(route.trackId, when); backend?.trigger(route.trackId, when) }
       activity?.pulse(
         route,
         performance.now() + (when - graph!.context.currentTime) * 1000,
         'sequencer',
       )
+    }
     transport.onTimingChange = (keepBeat) => {
+      graph?.effects.cancelTriggers()
+      backend?.cancelTriggers()
+      const bpm = transport!.clock.map.tempoAt(transport!.clock.tick) * transport!.clock.speed
+      graph?.effects.tempo(bpm)
+      backend?.tempo(bpm)
       leds?.invalidate(keepBeat)
       activity?.cancel('sequencer', keepBeat)
     }
     transport.onBeat = (tick, when) => {
+      const bpm = transport!.clock.map.tempoAt(tick) * transport!.clock.speed
+      graph?.effects.tempo(bpm)
+      backend?.tempo(bpm)
       const ctx = graph!.context,
         stamp = ctx.getOutputTimestamp()
       const perf =
@@ -1088,6 +1105,7 @@ window.addEventListener('message', (event) => {
     const old = project
     if (old?.script !== value.script) scriptSession?.suspend()
     project = applyMetadata(value, old)
+    graph?.effects.set(project.masterEffects)
     scenes.configure(project)
     if (old?.name !== value.name || old.tracks.length !== value.tracks.length)
       log(

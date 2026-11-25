@@ -7,6 +7,7 @@ function rig() {
     errors: unknown[] = []
   const host: ApiHost = {
     project: () => project,
+    setEffect: vi.fn(),
     position: () => ({ bar: 1, beat: 1, tick: 0, playing: false, rate: 1 }),
     play: vi.fn(),
     stop: vi.fn(),
@@ -128,4 +129,20 @@ it('guards clip controls and live properties after disable or deletion', () => {
   expect(live.launch).toHaveBeenCalledTimes(1)
   expect(live.stop).toHaveBeenCalledTimes(1)
   expect(live.gain).toBe(0.5)
+})
+
+it('addresses an effect in native units and rejects invalid or stale script calls', () => {
+  const { api, host, project, errors, deactivate } = rig()
+  project.masterEffects = [
+    { id: 'sweep', type: 'filter', enabled: true, params: { cutoff: 1000 } },
+  ]
+  const fx = api.fx('master', 'sweep')
+  fx.set('cutoff', 4200)
+  expect(host.setEffect).toHaveBeenCalledWith('master', 'sweep', 'cutoff', 4200)
+  fx.set('cutoff', 25000)
+  fx.set('bogus', 1)
+  expect(errors).toHaveLength(2)
+  deactivate()
+  fx.set('cutoff', 500)
+  expect(host.setEffect).toHaveBeenCalledTimes(1)
 })

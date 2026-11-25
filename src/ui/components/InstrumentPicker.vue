@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EffectsDialog from "./EffectsDialog.vue"
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { useProjectStore } from '../stores/project'
 import { useRuntimeStore } from '../stores/runtime'
@@ -529,6 +530,10 @@ onUnmounted(() => {
       </button>
     </div>
     <div class="xm-dialog-f">
+      <EffectsDialog
+        :instrument-id="instrumentId"
+        label="Effects chain"
+      />
       <span class="xm-faint me-auto">{{ t('picker.playYourKeyboardToAudition') }}</span><button
         class="btn btn-xm"
         @click="emit('close')"

@@ -29,7 +29,45 @@ export class InstrumentRack {
       )
     },
   ) {}
-  synchronize(project: Project): Promise<void> {
+  synchronize(
+    project: Project,
+    owners = new Map<string, string>(),
+  ): Promise<void> {
+    if (
+      project.orchestras?.some(
+        (orchestra) =>
+          orchestra.effects?.length ||
+          orchestra.sections.some((section) => section.effects?.length),
+      )
+    ) {
+      project = {
+        ...project,
+        instruments: project.instruments.map((instrument) => {
+          const inherited = project.orchestras!.flatMap((orchestra) => {
+            const sections = orchestra.sections.filter((section) =>
+              section.members.some(
+                (member) =>
+                  member.enabled &&
+                  member.instrumentId ===
+                    (owners.get(instrument.id) ?? instrument.id),
+              ),
+            )
+            return sections.length
+              ? [
+                  ...sections.flatMap((section) => section.effects ?? []),
+                  ...(orchestra.effects ?? []),
+                ]
+              : []
+          })
+          return inherited.length
+            ? {
+                ...instrument,
+                effects: [...(instrument.effects ?? []), ...inherited],
+              }
+            : instrument
+        }),
+      }
+    }
     if (this.perTrack) {
       const aliases = new Map<string, string>()
       const instruments = project.instruments.flatMap((instrument) => {
@@ -49,6 +87,7 @@ export class InstrumentRack {
               ? instrument.id
               : JSON.stringify([instrument.id, trackId])
           aliases.set(JSON.stringify([instrument.id, trackId]), id)
+          owners.set(id, instrument.id)
           return [
             {
               ...instrument,
@@ -90,6 +129,9 @@ export class InstrumentRack {
           const samePatch =
             old &&
             old.backend === target &&
+            (target.id !== 'web' ||
+              !!old.instrument.effects?.length ===
+                !!instrument.effects?.length) &&
             old.fontFile === (font?.file ?? '') &&
             old.instrument.soundfontId === instrument.soundfontId &&
             old.instrument.bank === instrument.bank &&
@@ -104,7 +146,10 @@ export class InstrumentRack {
             old.instrument = instrument
             continue
           }
-          const slot = await target.allocate(instrument)
+          const slot = await target.allocate(
+            instrument,
+            owners.get(instrument.id) ?? instrument.id,
+          )
           if (revision !== this.revision) {
             target.release(slot)
             return

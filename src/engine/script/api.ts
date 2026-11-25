@@ -1,3 +1,5 @@
+import { findEffect } from '../../shared/effect-targets'
+import { effectParameters } from '../../shared/effects'
 import type {
   FollowMode,
   Timing,
@@ -8,6 +10,12 @@ import type {
 import type { Project } from '../../shared/model'
 import { zoneSchema } from '../../shared/schema'
 export interface ApiHost {
+  setEffect(
+    ownerId: string,
+    effectId: string,
+    param: string,
+    value: number,
+  ): void
   project(): Project
   position(): {
     bar: number
@@ -93,6 +101,24 @@ export function createApi(
   return {
     on,
     state,
+    fx: (ownerId, effectId) => ({
+      set: (param, value) =>
+        effect(() => {
+          const found = findEffect(host.project(), ownerId, effectId)
+          if (
+            !found ||
+            !Object.hasOwn(effectParameters[found.effect.type], param)
+          )
+            throw Error('Unknown effect parameter: ' + param)
+          const spec = effectParameters[found.effect.type][param]
+          host.setEffect(
+            found.owner.id,
+            effectId,
+            param,
+            number(value, spec.label, spec.min, spec.max),
+          )
+        }),
+    }),
     transport: {
       play: () => effect(() => host.play()),
       stop: () => effect(() => host.stop()),

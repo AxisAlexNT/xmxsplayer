@@ -1,3 +1,4 @@
+import { EffectChain } from '../audio/effects/chain'
 import processorUrl from './processor.worklet.ts?worker&url'
 import { WorkletSynthesizer } from 'spessasynth_lib'
 import type { MIDIController } from 'spessasynth_core'
@@ -10,6 +11,8 @@ class ScheduledSynthesizer extends WorkletSynthesizer {
   }
 }
 interface Pool {
+  chain?: EffectChain
+  owner?: string
   retired?: boolean
   synth: ScheduledSynthesizer
   used: Set<number>
@@ -25,8 +28,13 @@ interface Slot {
 }
 export class WebSynthBackend implements SynthBackend {
   readonly id = 'web'
-  private banks = new Map<string, { file: string; loaded: Promise<Pool> }>()
+  private banks = new Map<
+    string,
+    { file: string; url: string; loaded: Promise<Pool> }
+  >()
   private slots = new Map<SlotId, Slot>()
+  private inserts = new Map<string, Pool>()
+  private bpm = 120
   private serial = 0
   private operation = Promise.resolve<unknown>(undefined)
   private constructor(
@@ -43,37 +51,81 @@ export class WebSynthBackend implements SynthBackend {
   async loadSoundFont(sf: SoundFontRef, url: string): Promise<void> {
     const old = this.banks.get(sf.id)
     if (old?.file === sf.file) {
+      old.url = url
       await old.loaded
       return
     }
-    const loaded = (async (): Promise<Pool> => {
-      const response = await fetch(url)
-      if (!response.ok)
-        throw new Error(`${sf.file}: loading failed (${response.status})`)
-      const data = await response.arrayBuffer()
-      const synth = new ScheduledSynthesizer(this.context)
-      try {
-        await synth.isReady
-        synth.setLogLevel(false, true, false)
-        await synth.soundBankManager.addSoundBank(data, sf.id)
-        synth.connect(this.output)
-      } catch (error) {
-        synth.destroy()
-        throw error
-      }
-      return { synth, used: new Set(), file: sf.file, id: sf.id }
-    })()
-    this.banks.set(sf.id, { file: sf.file, loaded })
+    const loaded = this.createPool(sf, url, this.output)
+    this.banks.set(sf.id, { file: sf.file, url, loaded })
     try {
       await loaded
       if (old)
         void old.loaded
-          .then((pool) => { pool.retired=true; this.collect(pool) })
+          .then((pool) => {
+            pool.retired = true
+            this.collect(pool)
+          })
           .catch(() => undefined)
     } catch (error) {
       if (this.banks.get(sf.id)?.loaded === loaded) this.banks.delete(sf.id)
       throw error
     }
+  }
+  private async createPool(
+    sf: SoundFontRef,
+    url: string,
+    output: AudioNode,
+  ): Promise<Pool> {
+    const response = await fetch(url)
+    if (!response.ok)
+      throw new Error(`${sf.file}: loading failed (${response.status})`)
+    const data = await response.arrayBuffer()
+    const synth = new ScheduledSynthesizer(this.context)
+    try {
+      await synth.isReady
+      synth.setLogLevel(false, true, false)
+      await synth.soundBankManager.addSoundBank(data, sf.id)
+      synth.connect(output)
+    } catch (error) {
+      synth.destroy()
+      throw error
+    }
+    return { synth, used: new Set(), file: sf.file, id: sf.id }
+  }
+  private async instrumentPool(
+    instrument: Instrument,
+    ownerId: string,
+    shared: Pool,
+    url: string,
+  ): Promise<Pool> {
+    if (!instrument.effects?.length) return shared
+    const owner = JSON.stringify([ownerId, shared.id, shared.file])
+    const existing = this.inserts.get(owner)
+    if (existing) return existing
+    const input = this.context.createGain()
+    const chain = new EffectChain(this.context, input, this.output)
+    try {
+      chain.tempo(this.bpm)
+      chain.set(instrument.effects)
+      const pool = await this.createPool(shared, url, input)
+      pool.owner = owner
+      pool.chain = chain
+      this.inserts.set(owner, pool)
+      return pool
+    } catch (error) {
+      chain.close()
+      throw error
+    }
+  }
+  tempo(bpm: number): void {
+    this.bpm = bpm
+    for (const pool of this.inserts.values()) pool.chain?.tempo(bpm)
+  }
+  cancelTriggers(): void {
+    for (const pool of this.inserts.values()) pool.chain?.cancelTriggers()
+  }
+  trigger(track: string, when: number): void {
+    for (const pool of this.inserts.values()) pool.chain?.trigger(track, when)
   }
   async listPresets(id: string): Promise<Preset[]> {
     const bank = this.banks.get(id)
@@ -93,11 +145,16 @@ export class WebSynthBackend implements SynthBackend {
           a.program - b.program,
       )
   }
-  allocate(instrument: Instrument): Promise<SlotId> {
+  allocate(instrument: Instrument, ownerId = instrument.id): Promise<SlotId> {
     const work = this.operation.then(async () => {
       const bank = this.banks.get(instrument.soundfontId ?? '')
       if (!bank) throw new Error(`No soundfont for ${instrument.name}`)
-      const pool = await bank.loaded
+      const pool = await this.instrumentPool(
+        instrument,
+        ownerId,
+        await bank.loaded,
+        bank.url,
+      )
       const available = instrument.isDrum
         ? [9]
         : Array.from({ length: 16 }, (_, i) => i).filter((i) => i !== 9)
@@ -133,8 +190,11 @@ export class WebSynthBackend implements SynthBackend {
     return work
   }
   private collect(pool: Pool): void {
-    if (!pool.used.size && pool.retired)
+    if (!pool.used.size && (pool.retired || pool.owner)) {
+      if (pool.owner) this.inserts.delete(pool.owner)
+      pool.chain?.close()
       pool.synth.destroy()
+    }
   }
   release(slotId: SlotId): void {
     const slot = this.slots.get(slotId)
@@ -199,6 +259,7 @@ export class WebSynthBackend implements SynthBackend {
         93,
         Math.round(instrument.chorus * 127),
       )
+    pool.chain?.set(instrument.effects)
     slot.config = { ...instrument }
   }
   private get(id: SlotId): Slot {
@@ -263,7 +324,10 @@ export class WebSynthBackend implements SynthBackend {
       if (!ids.has(id)) {
         this.banks.delete(id)
         void bank.loaded
-          .then((pool) => { pool.retired=true; this.collect(pool) })
+          .then((pool) => {
+            pool.retired = true
+            this.collect(pool)
+          })
           .catch(() => undefined)
       }
   }
@@ -276,7 +340,12 @@ export class WebSynthBackend implements SynthBackend {
           if (!pools.has(pool)) pool.synth.destroy()
         })
         .catch(() => undefined)
-    pools.forEach((pool) => pool.synth.destroy())
+    for (const pool of this.inserts.values()) pools.add(pool)
+    pools.forEach((pool) => {
+      pool.chain?.close()
+      pool.synth.destroy()
+    })
+    this.inserts.clear()
     this.banks.clear()
     this.slots.clear()
   }

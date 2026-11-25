@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EffectsDialog from "./EffectsDialog.vue"
 import { computed, ref, nextTick } from 'vue'
 import { useProjectStore } from '../stores/project'
 import { useRuntimeStore } from '../stores/runtime'
@@ -150,6 +151,10 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
       </button>
     </div>
     <template v-if="current">
+      <EffectsDialog
+        :orchestra-id="current.id"
+        label="Effects chain"
+      />
       <label>Max layers
         <select
           :value="current.maxLayers"
@@ -182,6 +187,11 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
         :key="i"
       >
         <summary>{{ s.name }} · Register {{ (s.register ?? 0) + 1 }}</summary>
+        <EffectsDialog
+          :orchestra-id="current.id"
+          :section="i"
+          label="Section effects"
+        />
         <div
           v-for="(m, j) in s.members"
           :key="m.instrumentId"

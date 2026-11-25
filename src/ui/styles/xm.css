@@ -243,3 +243,14 @@ body { background: var(--xm-bg-0); color: var(--xm-text); font-family: var(--xm-
 .xm-preset-filters { display:flex; flex-wrap:wrap; gap:4px; margin:6px 0; }
 .xm-preset-filters [aria-pressed=true] { color:var(--xm-accent); border-color:var(--xm-accent); }
 .xm-fontgroup { display:block; padding:4px 8px; color:var(--xm-text-muted); font-size:var(--xm-fs-xs); }
+
+/* Effect chain cards */
+.xm-fxcard { flex: none; width: 168px; display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: var(--xm-r-lg); background: var(--xm-bg-2); border: 1px solid var(--xm-border); }
+.xm-fxcard.is-add { border-style: dashed; background: transparent; color: var(--xm-text-muted); align-items: center; justify-content: center; font-size: var(--xm-fs-sm); }
+.xm-fxcard.is-add > i { font-size: 22px; }
+.xm-fxh { display: flex; align-items: center; gap: 6px; }
+.xm-fxh b { flex: 1; font-size: var(--xm-fs-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xm-fxk { display: flex; gap: 6px; justify-content: space-between; }
+.xm-pwr { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--xm-text-faint); flex: none; }
+.xm-pwr.is-on { border-color: var(--xm-ok); background: var(--xm-ok); box-shadow: 0 0 6px rgba(61,220,151,.6); }
+.xm-fxh button.xm-pwr { padding: 0; }

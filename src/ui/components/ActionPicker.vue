@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { effectOwners } from '../../shared/effect-targets'
+import { effectParameters } from '../../shared/effects'
 import { computed } from 'vue'
 import type { Action, Project, ParamTarget } from '../../shared/model'
 import { sentence } from '../bindings/labels'
@@ -146,7 +148,24 @@ function command(cmd: string): void {
     patch({ cmd, ...(cmd === 'set' ? { on: a.value.on ?? true } : {}) })
   else patch({ cmd })
 }
+const effectChoices = computed(() => effectOwners(props.project).flatMap(owner =>
+  (owner.effects ?? []).flatMap(effect => Object.entries(effectParameters[effect.type]).map(([param, spec]) => ({
+    label: owner.name + ' · ' + effect.id + ' · ' + spec.label,
+    action: {type: 'param' as const, target: 'effect.param' as const, id: owner.id, effectId: effect.id, param, min: spec.min, max: spec.max},
+  })))
+))
+const selectedEffect = computed(() => {
+  const action = a.value
+  if (action.type !== 'param') return -1
+  return effectChoices.value.findIndex(({action: choice}) =>
+    choice.id === action.id && choice.effectId === action.effectId && choice.param === action.param)
+})
+function selectEffect(index: number) {
+  const choice = effectChoices.value[index]
+  if (choice) emit('update:modelValue', choice.action)
+}
 function target(target: ParamTarget): void {
+  if (target === 'effect.param') return selectEffect(0)
   const instrument = target.startsWith('instrument.'),
     track = target.startsWith('track.') || target.startsWith('audio.'),
     id = instrument
@@ -183,6 +202,7 @@ function target(target: ParamTarget): void {
 const targets: ParamTarget[] = [
   'rate',
   'masterVolume',
+  'effect.param',
   'track.volume',
   'track.pan',
   'instrument.volume',
@@ -269,11 +289,29 @@ const targets: ParamTarget[] = [
           <option
             v-for="targetName in targets"
             :key="targetName"
+            :disabled="targetName==='effect.param' && !effectChoices.length"
             :value="targetName"
           >
             {{ sentence(targetName) }}
           </option>
-        </select><label
+        </select>
+        <label
+          v-if="a.target==='effect.param'"
+          class="form-label mt-2"
+        >Effect parameter
+          <select
+            class="form-select form-select-sm"
+            aria-label="Effect parameter"
+            :value="selectedEffect"
+            @change="selectEffect(Number(($event.target as HTMLSelectElement).value))"
+          >
+            <option
+              v-for="(choice,i) in effectChoices"
+              :key="i"
+              :value="i"
+            >{{ choice.label }}</option>
+          </select>
+        </label><label
           v-if="a.target.startsWith('instrument.')"
           class="form-label mt-2"
         >Instrument<select

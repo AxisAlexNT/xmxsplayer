@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EffectsDialog from "./components/EffectsDialog.vue"
 import { useI18n } from './i18n'
 const { t } = useI18n()
 import TempoPopover from './components/TempoPopover.vue'
@@ -599,6 +600,7 @@ onUnmounted(() => {
     @drop.prevent="drop"
   >
     <header class="xm-transport">
+      <EffectsDialog label="Master FX" />
       <div class="xm-tgroup">
         <button
           class="xm-tbtn"

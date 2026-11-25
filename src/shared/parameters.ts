@@ -1,3 +1,4 @@
+import { effectParameterPatch, findEffect } from './effect-targets'
 import type { Action, Project } from './model'
 export type ParamAction = Extract<Action, { type: 'param' }>
 export function parameterValue(
@@ -7,6 +8,12 @@ export function parameterValue(
   const track = project.tracks.find((t) => t.id === action.id),
     instrument = project.instruments.find((i) => i.id === action.id)
   switch (action.target) {
+    case 'effect.param':
+      return action.param
+        ? findEffect(project, action.id, action.effectId)?.effect.params[
+            action.param
+          ]
+        : undefined
     case 'track.volume':
       return track?.volume
     case 'track.pan':
@@ -31,6 +38,14 @@ export function parameterPatch(
   const unit = Math.max(0, Math.min(1, value)),
     raw = action.min + (action.max - action.min) * unit,
     clamped = (min: number, max: number) => Math.max(min, Math.min(max, raw))
+  if (action.target === 'effect.param')
+    return effectParameterPatch(
+      project,
+      action.id,
+      action.effectId,
+      action.param,
+      raw,
+    )
   if (
     action.target.startsWith('track.') ||
     action.target.startsWith('audio.')

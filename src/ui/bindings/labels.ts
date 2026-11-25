@@ -21,6 +21,7 @@ export function actionLabel(
         rate: 'Speed',
         masterVolume: 'Master',
         'track.volume': 'Volume',
+        'effect.param': action.param ?? 'Effect',
         'track.pan': 'Pan',
         'instrument.volume': 'Volume',
         'instrument.reverb': 'Reverb',

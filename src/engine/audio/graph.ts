@@ -1,3 +1,4 @@
+import { EffectChain } from './effects/chain'
 import type { Settings } from '../../shared/model'
 import type { EventMap } from '../../shared/protocol'
 
@@ -36,6 +37,7 @@ export class AudioGraph {
   readonly main: GainNode
   readonly cue: GainNode
   readonly master: GainNode
+  readonly effects: EffectChain
   readonly limiter: DynamicsCompressorNode
   private splitMain: ChannelSplitterNode
   private splitCue: ChannelSplitterNode
@@ -62,6 +64,7 @@ export class AudioGraph {
     this.main = this.context.createGain()
     this.cue = this.context.createGain()
     this.master = this.context.createGain()
+    this.effects = new EffectChain(this.context, this.main, this.master)
     this.limiter = this.context.createDynamicsCompressor()
     this.limiter.threshold.value = -1
     this.limiter.knee.value = 0
@@ -140,7 +143,6 @@ export class AudioGraph {
   }
   private wire(): void {
     for (const node of [
-      this.main,
       this.cue,
       this.master,
       this.limiter,
@@ -149,7 +151,6 @@ export class AudioGraph {
       this.merger,
     ])
       node.disconnect()
-    this.main.connect(this.master)
     const output = this.limited
       ? this.master.connect(this.limiter)
       : this.master
@@ -203,6 +204,7 @@ export class AudioGraph {
       .map((d, i) => ({ id: d.deviceId, label: d.label || `Output ${i + 1}` }))
   }
   async close(): Promise<void> {
+    this.effects.close()
     clearInterval(this.timer)
     await this.cueContext?.close()
     await this.context.close()

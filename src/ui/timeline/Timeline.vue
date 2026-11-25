@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EffectsDialog from "../components/EffectsDialog.vue"
 import { useI18n } from '../i18n'
 const { t } = useI18n()
 defineOptions({ name: 'TrackTimeline' })
@@ -762,6 +763,7 @@ onUnmounted(() => {
                   )?.name ?? 'Missing instrument'
                 }}
               </button>
+              <EffectsDialog :instrument-id="conn.instrumentId" />
             </template>
           </div>
           <div class="xm-th-top xm-track-mixer">

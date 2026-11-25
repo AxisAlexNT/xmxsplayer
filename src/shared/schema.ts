@@ -1,3 +1,4 @@
+import { effectDefaults, effectParameters, effectTypes } from './effects'
 import { z } from 'zod'
 import type { Condition, Project, Settings } from './model'
 
@@ -117,6 +118,7 @@ export const actionSchema = z.discriminatedUnion('type', [
     target: enums([
       'rate',
       'masterVolume',
+      'effect.param',
       'track.volume',
       'track.pan',
       'instrument.volume',
@@ -125,7 +127,9 @@ export const actionSchema = z.discriminatedUnion('type', [
       'audio.semitones',
       'audio.filterFreq',
     ]),
-    id: id.optional(),
+    id: z.string().regex(/^(?:(?:instrument|orchestra):)?[a-z0-9]+(?:-[a-z0-9]+)*$|^section:[a-z0-9]+(?:-[a-z0-9]+)*:[0-9]+$/).optional(),
+    effectId: id.optional(),
+    param: z.string().min(1).optional(),
     min: num,
     max: num,
   }),
@@ -343,6 +347,22 @@ export const trackSchema = z.discriminatedUnion('kind', [
     }),
   }),
 ])
+const effectChain = z.strictObject({
+  id,
+  type: z.enum(effectTypes),
+  enabled: z.boolean().default(true),
+  params: record(num).default({}),
+  trigger: z.strictObject({ trackId: id }).optional(),
+  preset: z.string().optional(),
+}).superRefine((effect, ctx) => {
+  for (const [name, value] of Object.entries(effect.params)) {
+    const spec = effectParameters[effect.type][name]
+    if (!Object.hasOwn(effectParameters[effect.type], name) || value < spec.min || value > spec.max)
+      ctx.addIssue({ code: 'custom', path: ['params', name], message: 'Unknown or out-of-range effect parameter' })
+  }
+}).transform(effect => ({ ...effect, params: { ...effectDefaults(effect.type), ...effect.params } }))
+  .array().refine(chain => new Set(chain.map(effect => effect.id)).size === chain.length, 'Duplicate effect ID').optional()
+
 export const projectSchema = z
   .strictObject({
     record: z
@@ -351,12 +371,14 @@ export const projectSchema = z
         preRollBars: int.min(0).max(4),
       })
       .default({ mode: 'overdub', preRollBars: 0 }),
+    masterEffects: effectChain,
     orchestras: z
       .array(
         z.strictObject({
           id,
           name: z.string().min(1),
           color,
+          effects: effectChain,
           maxLayers: int.min(0).max(8),
           outOfRange: enums(['silent', 'nearest']),
           sections: z.array(
@@ -364,6 +386,7 @@ export const projectSchema = z
               name: z.string(),
               register: int.min(0).max(7).nullable(),
               startOn: z.boolean(),
+              effects: effectChain,
               members: z.array(
                 z
                   .strictObject({
@@ -419,6 +442,7 @@ export const projectSchema = z
         id,
         name: z.string(),
         color,
+        effects: effectChain,
         backend: enums(['default', 'web', 'fluid', 'midi']),
         soundfontId: id.optional(),
         bank: int.min(0).max(16383),
@@ -599,6 +623,7 @@ export const settingsSchema = z.strictObject({
     extraArgs: z.string().array(),
   }),
   musescorePath: z.string(),
+  effectPresets: z.strictObject({ name: z.string().min(1), type: z.enum(effectTypes), params: record(num) }).array().optional(),
   soundfontFavourites: z.string().array().default([]),
   soundfontCopyIntoProject: z.boolean().default(false),
   soundfontDirsConfigured: z.boolean().optional(),
