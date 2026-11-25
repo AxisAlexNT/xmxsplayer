@@ -159,6 +159,7 @@ watch(
 const toast = ref('')
 const pickerId = ref<string | null>(null)
 const showTutorials = ref(false)
+const tutorialSession = ref<InstanceType<typeof TutorialSession>>()
 const tutorialTopic = ref<TutorialTopic>()
 const tutorialOffer = ref(false)
 function openTutorials(topic?: TutorialTopic) {
@@ -639,6 +640,7 @@ async function prepareClose(): Promise<void> {
   try {
     if (runtime.connected)
       await engineBus.value?.request('recording:close', undefined)
+    if (tutorialSession.value?.interceptClose()) return
     if (
       (doc.dirtyFiles.length || scripts.dirty) &&
       !(await window.xm.app.confirmClose())
@@ -651,6 +653,10 @@ async function prepareClose(): Promise<void> {
   } finally {
     closing = false
   }
+}
+async function prepareCloseAfterPractice(): Promise<void> {
+  await nextTick()
+  await prepareClose()
 }
 function beforeUnload(event: BeforeUnloadEvent): void {
   if (closeAllowed) return
@@ -680,8 +686,10 @@ onUnmounted(() => {
   <ScriptTrust />
   <TutorialSession
     v-if="showTutorials"
+    ref="tutorialSession"
     :topic="tutorialTopic"
     @close="showTutorials=false"
+    @quit="prepareCloseAfterPractice"
     @error="fail"
   />
   <div

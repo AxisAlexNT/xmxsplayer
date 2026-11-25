@@ -13,7 +13,7 @@ import { advanceTour, startTour, type TourAction, type TourState } from './machi
 import type { Tour } from './tours'
 
 defineProps<{ topic?: string }>()
-const emit = defineEmits<{ close: []; error: [error: unknown] }>()
+const emit = defineEmits<{ close: []; quit: []; error: [error: unknown] }>()
 const doc = useProjectStore()
 const settings = useSettingsStore()
 const scripts = useScriptStore()
@@ -21,6 +21,7 @@ const selected = ref<Tour>()
 const state = ref<TourState>()
 const practice = ref(false)
 const busy = ref(false)
+const quitAfterPractice = ref(false)
 const step = computed(() => selected.value?.steps[state.value?.index ?? 0])
 const ended = computed(() => state.value?.phase === 'completed' || state.value?.phase === 'skipped')
 
@@ -44,7 +45,7 @@ async function start(copy: boolean) {
   finally { busy.value = false }
 }
 async function act(action: TourAction) {
-  if (!state.value || !selected.value || busy.value) return
+  if (!state.value || !selected.value || busy.value || quitAfterPractice.value) return
   const previous = state.value
   const next = advanceTour(previous, action)
   if (next === previous) return
@@ -62,6 +63,14 @@ async function act(action: TourAction) {
   finally { busy.value = false }
   if (ended.value && !practice.value) emit('close')
 }
+function interceptClose(): boolean {
+  if (busy.value) return true
+  if (!practice.value || !state.value) return false
+  quitAfterPractice.value = true
+  return true
+}
+defineExpose({ interceptClose })
+
 async function finish(keep: boolean) {
   if (busy.value) return
   busy.value = true
@@ -72,6 +81,7 @@ async function finish(keep: boolean) {
     if (keep && !snapshot) return
     doc.load(snapshot ?? {folder:'', files:toFiles(newProject()), hashes:{}})
     emit('close')
+    if (quitAfterPractice.value) emit('quit')
   } catch (error) { emit('error', error) }
   finally { busy.value = false }
 }
@@ -93,12 +103,12 @@ async function finish(keep: boolean) {
   <TourOverlay
     v-else-if="step"
     :step="step"
-    :state="state"
+    :state="quitAfterPractice ? { ...state, phase: 'confirmExit' } : state"
     :busy="busy"
     @action="act"
   >
-    <template v-if="ended && practice">
-      <strong>{{ t('tutorial.keepPrompt') }}</strong>
+    <template v-if="(ended || quitAfterPractice) && practice">
+      <strong>{{ quitAfterPractice ? t('tutorial.quitPrompt') : t('tutorial.keepPrompt') }}</strong>
       <button
         :disabled="busy"
         @click="finish(true)"
@@ -110,6 +120,13 @@ async function finish(keep: boolean) {
         @click="finish(false)"
       >
         {{ t('tutorial.discard') }}
+      </button>
+      <button
+        v-if="quitAfterPractice"
+        :disabled="busy"
+        @click="quitAfterPractice=false"
+      >
+        {{ t('tutorial.cancelQuit') }}
       </button>
     </template>
     <template v-else-if="state.phase==='confirmExit'">
@@ -126,7 +143,7 @@ async function finish(keep: boolean) {
       <strong>{{ t(step.titleKey) }}</strong><p>{{ t(step.bodyKey) }}</p>
     </template>
     <template #navigation>
-      <footer v-if="!ended && state.phase!=='confirmExit'">
+      <footer v-if="!quitAfterPractice && !ended && state.phase!=='confirmExit'">
         <button
           class="btn btn-sm btn-xm"
           :disabled="!state.index || busy"

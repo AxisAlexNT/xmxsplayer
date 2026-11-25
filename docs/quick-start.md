@@ -47,7 +47,7 @@ Select a MIDI track under **Overlay** to draw its note outlines, then choose **M
 
 Press **F1** or choose **Help → Tutorials**. Choose **First project** for a walkthrough of naming, playing, recording and saving. The **?** buttons in Orchestra, Controls and Effects open the picker with a related tour selected.
 
-Choose **Continue**, leave **Practice copy** selected and choose **Start tutorial**. If your open project has unsaved edits, the app asks whether to save them before making the copy. At the end, choose **Save as project…** and enter a new folder name to keep your arrangement, or choose **Discard practice copy** to return to where you started. Choose **Current project** at the start if you want the tutorial edits in your open arrangement.
+Choose **Continue**, leave **Practice copy** selected and choose **Start tutorial**. If your open project has unsaved edits, the app asks whether to save them before making the copy. At the end, choose **Save as project…** and enter a new folder name to keep your arrangement, or choose **Discard practice copy** to return to where you started. If you close the window during practice, choose **Save as project…**, **Discard practice copy**, or **Cancel quit** to continue playing. Choose **Current project** at the start if you want the tutorial edits in your open arrangement.
 
 Use the highlighted control to try the step. **Next** moves on, **Back** revisits the previous step, and **Esc** opens the exit confirmation. The pad, drum roll and filter sweep tours provide an on-screen controller when a mapped controller is unavailable.
 

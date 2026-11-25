@@ -495,6 +495,8 @@ export const en = {
   'tutorial.finish': 'Finish',
   'tutorial.keep': 'Save as project…',
   'tutorial.discard': 'Discard practice copy',
+  'tutorial.quitPrompt': 'Save your practice project before quitting?',
+  'tutorial.cancelQuit': 'Cancel quit',
   'tutorial.keepPrompt': 'Keep your practice project?',
   'tutorial.saveOriginal': 'Save your current edits before switching to the practice copy?',
   'tutorial.stepCount': 'Step {step} of {total}',
