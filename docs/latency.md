@@ -128,3 +128,12 @@ Nine C4 notes at velocity 110 were sent on each route through an isolated JACK d
 | FluidSynth stdin, TimGM6mb piano | 2.65 ms | 0.52–5.32 ms |
 
 Each block spans 5.33 ms. The two patches have different attacks, so the observed difference includes both instrument response and block scheduling. Keyboard input, physical output buffers and Bluetooth transmission fall outside this measurement.
+
+A second run used the same graph rate and block size with 20 measured notes per route after two warm-ups. It triggered Geonkick on MIDI note 36 and the piano on note 60, both at velocity 110. The probe timed dispatch to the capture callback for the first block above 0.001 in amplitude. It varied the interval between notes and waited for eight quiet blocks before each trigger.
+
+| Command and instrument | Median | 95th percentile (nearest rank) | Range |
+| --- | ---: | ---: | ---: |
+| Carla OSC, Geonkick Single | 8.54 ms | 13.27 ms | 1.37–13.58 ms |
+| FluidSynth stdin, TimGM6mb piano | 2.04 ms | 4.96 ms | 0.17–5.16 ms |
+
+The wider spread on the Carla route makes a single fixed compensation value unreliable for this setup. Both runs measured software output on the dummy graph. A keyboard-to-headphones measurement is still needed for the live setup.
