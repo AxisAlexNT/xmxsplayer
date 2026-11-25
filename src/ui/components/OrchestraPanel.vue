@@ -54,6 +54,24 @@ function addSection() {
   edit(o => o.sections.push({name, register: null, startOn: true, members: []}))
   sectionName.value = ''
 }
+function assignRegister(index: number, event: Event) {
+  const input = (event.target as HTMLSelectElement).value
+  const register = input === '' ? null : Number(input)
+  edit(o => {
+    const section = o.sections[index]
+    const sibling = o.sections.find((s, i) => i !== index && s.register === register)
+    section.register = register
+    if (register !== null && sibling) section.startOn = sibling.startOn
+  })
+}
+
+function setRegisterStart(register: number, enabled: boolean) {
+  edit(o => {
+    for (const section of o.sections) {
+      if (section.register === register) section.startOn = enabled
+    }
+  })
+}
 function addMember(index: number, event: Event) {
   const field = event.target as HTMLSelectElement
   const instrumentId = field.value
@@ -263,8 +281,30 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
           :draggable="s.register !== null"
           @dragstart="s.register !== null && dragPadSource($event, 'section:' + current.id + ':' + i)"
         >
-          {{ s.name }} · {{ s.register === null ? 'Always on' : 'Register ' + (s.register + 1) }}
+          {{ s.name }}
+          <span class="xm-orc-register">{{ s.register === null ? t('orchestraPanel.alwaysOn') : t('orchestraPanel.registerNumber', { number: s.register + 1 }) }}</span>
         </summary>
+        <label>{{ t('orchestraPanel.sectionSwitch') }}
+          <select
+            :value="s.register ?? ''"
+            @change="assignRegister(i, $event)"
+          >
+            <option value="">{{ t('orchestraPanel.alwaysOn') }}</option>
+            <option
+              v-for="(register, index) in doc.project.registers"
+              :key="index"
+              :value="index"
+            >{{ index + 1 }} · {{ register.name }}</option>
+          </select>
+        </label>
+        <label v-if="s.register !== null">
+          <input
+            type="checkbox"
+            :checked="s.startOn"
+            @change="setRegisterStart(s.register, ($event.target as HTMLInputElement).checked)"
+          >
+          {{ t('orchestraPanel.startOn') }}
+        </label>
         <label v-mappable="{label:s.name+' level',action:{type:'param',target:'section.gain',id:'section:'+current.id+':'+i,min:0,max:1}}">{{ t('orchestraPanel.sectionLevel') }}
           <input
             type="range"
@@ -445,6 +485,7 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
 .xm-macro label:has(input:disabled) { opacity:.55; }
 .xm-macro output { font-variant-numeric:tabular-nums; }
 .xm-orc-sec { border:1px solid var(--xm-border); border-radius:6px; }
+.xm-orc-register { margin-inline-start: 0.5em; padding: 0.1em 0.45em; border: 1px solid var(--xm-border); border-radius: 1em; font-size: 0.85em; }
 .xm-orc-sec summary { padding:8px; cursor:pointer; }
 
 .orchestra-panel {
