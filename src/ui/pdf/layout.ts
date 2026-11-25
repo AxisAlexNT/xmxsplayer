@@ -29,6 +29,22 @@ export function markerForBar(markers: readonly PdfMarker[], bar: number) {
   return selected
 }
 
+/** Anchor to a page that actually crosses the reading line, including mixed-height rows. */
+export function markerAtLine(bar: number, line: number, tops: number[], heights: number[]): PdfMarker | undefined {
+  let page = 0
+  let distance = Infinity
+  for (let i = 0; i < tops.length && tops[i] <= line; i++) {
+    const gap = Math.max(0, line - tops[i] - heights[i])
+    if (gap < distance) {
+      page = i
+      distance = gap
+      if (gap === 0) break
+    }
+  }
+  if (!heights[page]) return undefined
+  return { bar, page: page + 1, y: Math.max(0, Math.min(1, (line - tops[page]) / heights[page])) }
+}
+
 export function markerScroll(marker: PdfMarker, tops: number[], heights: number[], viewport: number, total: number) {
   const index = marker.page-1
   if (tops[index] === undefined) return undefined

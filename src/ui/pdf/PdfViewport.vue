@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch 
 import type { PDFDocumentProxy } from 'pdfjs-dist/types/src/display/api'
 import type { PdfAction, PdfDocument } from '../../shared/model'
 import { openPdfDocument } from './pdf-client'
-import { markerForBar, markerScroll, pagePositions, renderPages } from './layout'
+import { markerAtLine, markerForBar, markerScroll, pagePositions, renderPages } from './layout'
 import PdfPage from './PdfPage.vue'
 
 const props = defineProps<{ sheet: PdfDocument; folder: string; bar: number }>()
@@ -16,6 +16,7 @@ const root = ref<HTMLElement>()
 const pdf = shallowRef<PDFDocumentProxy>()
 const ratios = shallowRef<number[]>([])
 const width = ref(0)
+const viewportHeight = ref(0)
 const visible = shallowRef(new Set<number>())
 const live = computed(() => renderPages(visible.value, ratios.value.length))
 const gap = 8
@@ -30,7 +31,7 @@ watch(pageWidth, (value, _, cleanup) => {
 }, { immediate: true })
 let observer: IntersectionObserver | undefined
 let resize: ResizeObserver | undefined
-let restored = false
+const restored = ref(false)
 let animation = 0
 function stopAnimation() { cancelAnimationFrame(animation) }
 function observePages() {
@@ -57,7 +58,7 @@ watch([() => props.folder, () => props.sheet.file], async (_, __, cleanup) => {
     observer?.disconnect()
     if (session) void session.close().catch(error => emit('error', error))
   })
-  restored = false
+  restored.value = false
   pdf.value = undefined
   ratios.value = []
   visible.value = new Set()
@@ -81,16 +82,20 @@ watch([() => props.folder, () => props.sheet.file], async (_, __, cleanup) => {
   } catch (error) { if (!cancelled) emit('error',error) }
 }, {immediate:true})
 function restorePosition() {
-  if (restored || !root.value || !pdf.value || !width.value || !root.value.clientHeight) return
+  if (restored.value || !root.value || !pdf.value || !width.value || !root.value.clientHeight) return
   root.value.scrollTop = props.sheet.scroll
-  restored = true
+  restored.value = true
   observePages()
 }
 onMounted(() => {
   if (!root.value) return
   width.value = root.value.clientWidth
+  viewportHeight.value = root.value.clientHeight
   resize = new ResizeObserver(async () => {
-    if (root.value) width.value = root.value.clientWidth
+    if (root.value) {
+      width.value = root.value.clientWidth
+      viewportHeight.value = root.value.clientHeight
+    }
     await nextTick()
     restorePosition()
   })
@@ -98,12 +103,12 @@ onMounted(() => {
 })
 onBeforeUnmount(() => { stopAnimation(); resize?.disconnect(); observer?.disconnect() })
 const activeMarker = computed(() => props.sheet.follow && markerForBar(props.sheet.markers ?? [],props.bar))
-watch([activeMarker,layout], ([marker, bounds]) => {
+watch([activeMarker,layout,restored,viewportHeight], ([marker, bounds]) => {
+  stopAnimation()
   const el = root.value
-  if (!marker || !el || !restored) return
+  if (!marker || !el || !restored.value) return
   const target = markerScroll(marker,bounds.tops,heights.value,el.clientHeight,bounds.height)
   if (target === undefined) return
-  stopAnimation()
   const start = performance.now(), from = el.scrollTop
   function move(now: number) {
     const progress = Math.min(1,(now-start)/300)
@@ -113,6 +118,7 @@ watch([activeMarker,layout], ([marker, bounds]) => {
   animation = requestAnimationFrame(move)
 })
 function pageTo(page: number) {
+  stopAnimation()
   if (root.value && layout.value.tops[page-1] !== undefined)
     root.value.scrollTop = layout.value.tops[page-1]
 }
@@ -120,14 +126,11 @@ function markerHere() {
   const el = root.value
   if (!el || !ratios.value.length) return
   const line = el.scrollTop + el.clientHeight/4
-  const tops = layout.value.tops
-  let index = 0
-  while (index+props.sheet.cols < tops.length && tops[index+props.sheet.cols] <= line) index+=props.sheet.cols
-  return {bar:props.bar,page:index+1,y:Math.max(0,Math.min(1,(line-tops[index])/heights.value[index]))}
+  return markerAtLine(props.bar, line, layout.value.tops, heights.value)
 }
 function navigate(action: PdfAction) {
   const el = root.value
-  if (!el || !restored) return false
+  if (!el || !restored.value) return false
   stopAnimation()
   if (action.cmd === 'scroll') el.scrollTop += action.amount ?? 160
   else if (action.cmd === 'next' || action.cmd === 'prev') {

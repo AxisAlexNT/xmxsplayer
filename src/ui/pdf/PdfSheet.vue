@@ -11,6 +11,10 @@ const doc = useProjectStore()
 const viewport = ref<InstanceType<typeof PdfViewport>>()
 const pages = ref({first:0,last:0,total:0})
 const error = ref('')
+watch([() => doc.folder, () => props.sheet.file], () => {
+  pages.value = {first:0,last:0,total:0}
+  error.value = ''
+})
 watch(() => [pendingSheetCommands.value, pages.value.total, props.sheet.id] as const, () => {
   if (!pages.value.total) return
   const list = pendingSheetCommands.value
