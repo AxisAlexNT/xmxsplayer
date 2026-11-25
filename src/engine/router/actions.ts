@@ -47,6 +47,7 @@ export class Actions {
     const cmd = action.cmd,
       c = h.clock
     const seek = (tick: number): void => {
+      c.recording = false
       c.seek(tick)
       h.scheduler.clearActions()
       h.onSeek?.()
@@ -107,7 +108,7 @@ export class Actions {
                     c.map.barToTick(pos.bar),
             )
             c.punchRaw = c.map.tickToSec(punch)
-          } else if (!c.playing && c.tick >= p.lengthTicks) c.punchRaw = 0
+          } else if (!c.playing && p.loop.enabled && c.tick >= p.lengthTicks) c.punchRaw = 0
         }
         c.recording = !c.recording
         if (c.recording && !c.playing) void h.play()

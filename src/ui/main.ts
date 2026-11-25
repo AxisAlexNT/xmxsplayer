@@ -1,4 +1,5 @@
-import { replaceRange } from '../shared/recording'
+import { TimeMap } from '../shared/time-map'
+import { recordedLength, replaceRange } from '../shared/recording'
 import { parameterPatch } from '../shared/parameters'
 import { syncProject } from '../shared/project-sync'
 import { createApp, watch } from 'vue'
@@ -166,10 +167,7 @@ watch(engineBus, (bus) => {
             (a, b) => a.tick - b.tick,
           )
           if (track.link) track.link.state = 'ahead'
-          d.lengthTicks = Math.max(
-            d.lengthTicks,
-            ...data.notes.map((n) => n[0] + n[1]),
-          )
+          d.lengthTicks = recordedLength(d.lengthTicks, data.notes, new TimeMap(d))
         }
       })
       runtime.lastTake = tracks.map((t) => ({

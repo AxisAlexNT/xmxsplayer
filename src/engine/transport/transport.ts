@@ -189,6 +189,7 @@ export class Transport {
         this.onClipPreview('stopped', message)
       },
     })
+    this.scheduler.onRecordExtend = (lengthTicks) => this.bus()?.send('record:extend', { lengthTicks })
     this.scheduler.onEnd = () => this.changed()
     this.scheduler.onBoundary = () => this.changed()
     this.actions = new Actions({
@@ -324,7 +325,7 @@ export class Transport {
       await this.serial
       await this.context.resume()
       if (revision !== this.playRevision) return
-      if (this.project && this.clock.tick >= this.project.lengthTicks) {
+      if (this.project && (!this.clock.recording || this.project.loop.enabled) && this.clock.tick >= this.project.lengthTicks) {
         this.clock.seek(
           this.project.loop.enabled ? this.project.loop.startTick : 0,
         )
@@ -368,7 +369,10 @@ export class Transport {
     this.armDeadline()
   }
   seek(tick: number): void {
-    this.clock.seek(Math.min(this.project?.lengthTicks ?? tick, tick))
+    const limit = this.scheduler.lengthTicks
+    this.clock.recording = false
+    this.recorder.clockChanged()
+    this.clock.seek(Math.min(this.project ? limit : tick, tick))
     this.waitNotes.reset()
     this.scheduler.clearActions()
     this.onSeek()

@@ -156,6 +156,7 @@ export interface EventMap {
   'learn:captured': { deviceId: string; control: ControlDef }
   keys: { held: { key: number; trackIds: Id[] }[] }
   activity: ActivityState
+  'record:extend': { lengthTicks: number }
   recorded: { trackId: Id; notes: Note[] } | RecordedTake
   'doc:patch': Partial<Project>
   latency: {

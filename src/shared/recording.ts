@@ -1,3 +1,4 @@
+import type { TimeMap } from './time-map'
 import type { MidiTrack, Note } from './model'
 export interface RecordedTrack {
   covered?: [number, number][]
@@ -6,6 +7,7 @@ export interface RecordedTrack {
   events: MidiTrack['events']
 }
 export interface RecordedTake {
+  stopTick?: number
   mode?: 'replace' | 'overdub'
   takeId: string
   scope: string
@@ -21,6 +23,11 @@ export interface RoutedNote {
   velocity: number
   on: boolean
   when?: number
+}
+
+export function recordedLength(previous: number, notes: Note[], map: TimeMap): number {
+  const end = notes.reduce((latest, [tick, duration]) => Math.max(latest, tick + duration), 0)
+  return end ? Math.max(previous, map.nextBar(map.nextBar(end, true))) : previous
 }
 
 export function replaceRange(

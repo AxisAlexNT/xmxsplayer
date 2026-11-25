@@ -210,3 +210,23 @@ it('keeps a 40 ms horizon during the return from tempo tracking to written mode'
   f.scheduler.tick()
   expect(f.events.some((e) => e.type === 'on')).toBe(true)
 })
+
+it('extends a recording by bars at half speed while normal playback stops at the end', () => {
+  const f = fixture()
+  const lengths: number[] = []
+  f.scheduler.onRecordExtend = length => lengths.push(length)
+  f.clock.seek(f.project.lengthTicks)
+  f.clock.setRate(0.5)
+  f.clock.recording = true
+  f.clock.play()
+  f.scheduler.tick()
+  f.setNow(4)
+  f.scheduler.tick()
+  expect(f.clock.playing).toBe(true)
+  expect(f.clock.tick).toBe(9600)
+  expect(lengths.at(-1)).toBe(13440)
+  expect(f.project.lengthTicks).toBe(7680)
+  f.clock.recording = false
+  f.scheduler.tick()
+  expect(f.clock.playing).toBe(false)
+})

@@ -54,6 +54,11 @@ export class Scheduler {
   private actionSerial = 0
   private holdRaw: number | null = null
   private ticking = false
+  private recordEnd = 0
+  onRecordExtend: (lengthTicks: number) => void = () => undefined
+  get lengthTicks(): number {
+    return Math.max(this.project?.lengthTicks ?? 0, this.recordEnd)
+  }
   following = false
   timeline?: SchedulerTimeline
   onBoundary: () => void = () => undefined
@@ -209,6 +214,16 @@ export class Scheduler {
   private schedule(lookahead: number): void {
     const now = this.clock.now()
     this.output.collect(now)
+    if (!this.clock.recording || this.clock.loopRange.enabled) this.recordEnd = 0
+    else if (this.project && this.clock.playing) {
+      const next = this.clock.map.nextBar(this.clock.tick)
+      let end = this.lengthTicks
+      while (end <= next) end = this.clock.map.nextBar(end)
+      if (end > this.lengthTicks) {
+        this.recordEnd = end
+        this.onRecordExtend(end)
+      }
+    }
     if (!this.clock.playing || this.clock.holding) return
     let rawNow = this.clock.raw
     let boundary = this.timeline?.next() ?? null
@@ -257,7 +272,7 @@ export class Scheduler {
     if (!this.clock.loopRange.enabled && this.project)
       until = Math.min(
         until,
-        this.clock.map.tickToSec(this.project.lengthTicks),
+        this.clock.map.tickToSec(this.lengthTicks),
       )
     if (this.needChase) {
       this.chase(rawNow, Math.max(now, this.clock.contextAt(rawNow)))
@@ -346,7 +361,7 @@ export class Scheduler {
     if (
       !loop.enabled &&
       this.project &&
-      rawNow >= this.clock.map.tickToSec(this.project.lengthTicks) - 1e-9
+      rawNow >= this.clock.map.tickToSec(this.lengthTicks) - 1e-9
     ) {
       this.output.boundary(now)
       this.clock.pause()
@@ -372,7 +387,7 @@ export class Scheduler {
     const wait = this.timeline?.next(true)
     if (wait) targets.push(wait.raw)
     if (!this.clock.loopRange.enabled && this.project)
-      targets.push(this.clock.map.tickToSec(this.project.lengthTicks))
+      targets.push(this.clock.map.tickToSec(this.lengthTicks))
     return targets.length ? this.clock.contextAt(Math.min(...targets)) : null
   }
   nextDeadline(): number | null {
@@ -382,7 +397,7 @@ export class Scheduler {
       this.timeline?.next()?.raw,
     ].filter((v): v is number => typeof v === 'number')
     if (!this.clock.loopRange.enabled && this.project)
-      candidates.push(this.clock.map.tickToSec(this.project.lengthTicks))
+      candidates.push(this.clock.map.tickToSec(this.lengthTicks))
     if (!this.clock.playing || this.clock.holding || !candidates.length)
       return null
     return this.clock.contextAt(Math.min(...candidates))

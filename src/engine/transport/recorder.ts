@@ -296,6 +296,7 @@ export class Recorder {
           takeId: `take-${++this.serial}`,
           scope: this.scope,
           mode: 'replace',
+          stopTick: end,
           tracks: [...this.collected.values()],
         })
       return
@@ -313,7 +314,7 @@ export class Recorder {
       }))
     this.takes.clear()
     if (tracks.length)
-      this.emit({ takeId: `take-${++this.serial}`, scope: this.scope, tracks })
+      this.emit({ takeId: `take-${++this.serial}`, scope: this.scope, ...(final && { stopTick: end }), tracks })
   }
   private advance(raw: number): void {
     const length =
