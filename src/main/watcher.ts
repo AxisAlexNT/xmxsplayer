@@ -16,6 +16,8 @@ export class ProjectWatcher {
     const folder = io.folder
     const seen = { ...io.hashes }
     const watcher = watch(folder, {
+      backend: process.platform === 'linux' ? 'polling' : 'auto',
+      pollingInterval: 300,
       ignored: (path) => path.split(/[\\/]/).includes('.xmxs'),
       ignoreInitial: true,
       atomic: true,

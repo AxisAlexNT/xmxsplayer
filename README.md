@@ -70,7 +70,7 @@ Bindings can vary by controller and scene, with conditions and beat/bar timing. 
 ## Known limits
 
 - The new orchestra pad layout needs a physical KeyLab pass in DAWs mode, including bank B beat retention across bank switches. Preset ranges need listening checks on FluidR3_GM and MuseScore_General.
-- Linux Chromium may print `inotify_init failed: Too many open files` while the player still starts. It can indicate exhaustion of the per-user inotify instance limit or the process file-descriptor limit. Check `/proc/sys/fs/inotify/max_user_instances` and `ulimit -n`. Close unused watcher-heavy applications. For project file watching on a constrained workstation, launch with `CHOKIDAR_USEPOLLING=1`.
+- Linux Chromium may print `inotify_init failed: Too many open files` while the player still starts. It can indicate exhaustion of the per-user inotify instance limit or the process file-descriptor limit. Check `/proc/sys/fs/inotify/max_user_instances` and `ulimit -n`. Close unused watcher-heavy applications. The player uses polling for Linux project files by default.
 
 
 - Recorded and edited MIDI parts support single or grand staff, hand splits, and up to two voices. Polished engraving comes from the linked score. Only the map-owner score renders as staves; other linked scores use the piano roll. D.C./D.S./Coda jumps are not unrolled.
