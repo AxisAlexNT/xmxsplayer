@@ -90,6 +90,7 @@ export class Transport {
       () => this.project,
       () => this.inputLatencyMs,
       (take) => this.bus()?.send('recorded', take),
+      (progress) => this.bus()?.send('record:progress', progress),
     )
     this.metronome = new Metronome(graph)
     this.grid = new BeatGrid(

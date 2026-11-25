@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from '../i18n'
+const { t } = useI18n()
 import {
   inject,
   onMounted,
@@ -36,6 +38,11 @@ let observer: IntersectionObserver | undefined,
   visible = true
 const autoRange = computed(() => {
   const keys = props.track.notes.map((n) => n[2])
+  const live = runtime.liveTake?.tracks.find(t => t.trackId === props.track.id)
+  if (live) {
+    for (const note of live.closed) keys.push(note[2])
+    for (const note of live.open) keys.push(note.key)
+  }
   if (!keys.length) return [48, 72]
   const lo = Math.max(0, keys.reduce((a, b) => Math.min(a, b), 127) - 2),
     hi = Math.min(127, keys.reduce((a, b) => Math.max(a, b), 0) + 2)
@@ -210,6 +217,22 @@ function draw(): void {
     ctx.beginPath()
     ctx.rect(origin + 96, 0, w - 96, h)
     ctx.clip()
+    const live = runtime.liveTake?.tracks.find(t => t.trackId === props.track.id)
+    if (live) {
+      ctx.fillStyle = props.track.color
+      for (const note of live.closed) {
+        const r = rectangle(note, page)
+        if (r) ctx.fillRect(r.x, r.y, r.w, r.h)
+      }
+      for (const note of live.open) {
+        const r = rectangle([note.tick, Math.max(1, frame.tick - note.tick), note.key, note.vel], page)
+        if (!r) continue
+        ctx.strokeStyle = props.track.color
+        ctx.strokeRect(r.x, r.y, r.w, r.h)
+        ctx.fillStyle = '#ff5268'
+        ctx.fillRect(r.x + r.w - 2, r.y, 2, r.h)
+      }
+    }
     for (const note of selectedNotes.value) {
       const r = rectangle(note, page)
       if (!r) continue
@@ -644,7 +667,7 @@ onUnmounted(() => {
       <select
         v-model.number="editor.snap"
         :aria-label="`${track.name} snap grid`"
-        title="Snap grid"
+        :title="t('timeline.snapGrid')"
       >
         <option
           v-for="[label, ticks] in snapOptions"
@@ -655,8 +678,8 @@ onUnmounted(() => {
         </option>
       </select>
       <button
-        aria-label="Quantize notes"
-        title="Quantize selection or last take"
+        :aria-label="t('timeline.quantizeNotes')"
+        :title="t('timeline.quantizeSelectionOrLastTake')"
         @click="editor.quantize()"
       >
         <i class="bi bi-grid-3x2" />
@@ -679,6 +702,6 @@ onUnmounted(() => {
       :style="
         editor.activeTrackId === track.id ? { top: 'auto', bottom: '6px' } : {}
       "
-    >Piano roll · Staff view coming later</span>
+    >{{ t('timeline.pianoRollStaffViewComingLater') }}</span>
   </div>
 </template>

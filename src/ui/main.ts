@@ -31,6 +31,8 @@ function sync(force = false): void {
   if (force || audioScope !== doc.folder) {
     bus.send('audio:scope', { folder: doc.folder })
     audioScope = doc.folder
+    runtime.liveLengthTicks = 0
+    runtime.liveTake = undefined
     runtime.clipErrors = {}
     runtime.clipAudition = { state: 'stopped', error: '' }
     runtime.audioPeaks = {}
@@ -147,6 +149,10 @@ watch(engineBus, (bus) => {
       runtime.log({ level: 'error', source: 'engine', message: String(error) })
     }
   })
+  bus.on('record:extend', ({lengthTicks}) => { runtime.liveLengthTicks = lengthTicks })
+  bus.on('record:progress', frame => {
+    if (frame.scope === doc.folder) runtime.liveTake = frame
+  })
   bus.on('recorded', (value) => {
     try {
       if ('tracks' in value && value.scope !== doc.folder) return
@@ -167,9 +173,11 @@ watch(engineBus, (bus) => {
             (a, b) => a.tick - b.tick,
           )
           if (track.link) track.link.state = 'ahead'
-          d.lengthTicks = recordedLength(d.lengthTicks, data.notes, new TimeMap(d))
+          if (!d.loop.enabled) d.lengthTicks = recordedLength(d.lengthTicks, data.notes, new TimeMap(d))
         }
       })
+      runtime.liveLengthTicks = 0
+      runtime.liveTake = undefined
       runtime.lastTake = tracks.map((t) => ({
         trackId: t.trackId,
         notes: t.notes,
@@ -188,6 +196,10 @@ watch(engineBus, (bus) => {
     }
   })
   bus.on('transport', (value) => {
+    if (!value.recording) {
+      runtime.liveTake = undefined
+      runtime.liveLengthTicks = 0
+    }
     runtime.transport = value
   })
   bus.on('runtime', (value) => {

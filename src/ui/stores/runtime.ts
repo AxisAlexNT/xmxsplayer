@@ -20,6 +20,8 @@ export const useRuntimeStore = defineStore('runtime', () => {
   const audioStates = ref<
     Record<string, import('../../shared/protocol').EventMap['audio:state']>
   >({})
+  const liveLengthTicks = ref(0)
+  const liveTake = shallowRef<import('../../shared/recording').RecordingProgress>()
   const lastTake = shallowRef<
     { trackId: string; notes: import('../../shared/model').Note[] }[]
   >([])
@@ -95,6 +97,8 @@ export const useRuntimeStore = defineStore('runtime', () => {
     activity,
     feedback,
     controls,
+    liveLengthTicks,
+    liveTake,
     lastTake,
     tapMap,
     selectedAudioId,

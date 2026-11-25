@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from '../i18n'
+const { t } = useI18n()
 defineOptions({ name: 'TrackTimeline' })
 import StaffLane from '../lanes/StaffLane.vue'
 import { NotationService, notationKey } from '../notation/notation-service'
@@ -17,6 +19,7 @@ import { usePerformanceStore } from '../stores/performance'
 import { liveProject } from '../../shared/template'
 import { uniqueId } from '../../shared/ids'
 import type { Track } from '../../shared/model'
+import { useDisplayProject } from '../stores/display'
 import { TimeMap } from '../../shared/time-map'
 import { useProjectStore } from '../stores/project'
 import { useEditorStore } from '../stores/editor'
@@ -65,7 +68,19 @@ function addMidiTrack(){
     if(instrument)p.base.patch.push({id:uniqueId(track.id,p.base.patch.map(c=>c.id)),trackId:track.id,instrumentId:instrument.id})
   })
 }
-const map = computed(() => new TimeMap(doc.project)),
+let recordingId: string | undefined
+let lastStaffBar = -Infinity
+const recentStaffNotes = new Map<string, number>()
+let barsPerRebuild = 1
+notation.onRebuilt = duration => {
+  if (!runtime.liveTake) return
+  const slow = duration > 200 && barsPerRebuild === 1
+  if (slow) barsPerRebuild = 2
+  runtime.log({ level: 'info', source: 'notation', message:
+    `Recording layout took ${Math.round(duration)} ms.${slow ? ' Updating every two bars.' : ''}` })
+}
+const display = useDisplayProject()
+const map = computed(() => new TimeMap(display.value)),
   axis = computed<TimeAxis>(() =>
     hasStaves.value && notation.axis.value
       ? notation.axis.value
@@ -73,7 +88,7 @@ const map = computed(() => new TimeMap(doc.project)),
           editor.activeTrackId
             ? new TimeMap({
                 ...doc.project,
-                lengthTicks: map.value.nextBar(doc.project.lengthTicks),
+                lengthTicks: map.value.nextBar(display.value.lengthTicks),
               })
             : map.value,
           width.value,
@@ -111,9 +126,9 @@ watch(
       doc.project.tempos,
       doc.project.timeSigs,
       doc.project.keySigs,
-      doc.project.lengthTicks,
+      display.value.lengthTicks,
       sources.musicxml[doc.project.mapOwner ?? ''],
-      doc.project.tracks
+      display.value.tracks
         .filter((t) => t.kind === 'midi')
         .map((t) => [
           t.id,
@@ -128,9 +143,27 @@ watch(
       doc.project.instruments.map((i) => [i.id, i.isDrum]),
     ]),
   () => {
+    const take = runtime.liveTake
+    if (take?.takeId !== recordingId) {
+      recentStaffNotes.clear()
+      recordingId = take?.takeId
+      lastStaffBar = -Infinity
+      barsPerRebuild = 1
+    }
+    if (take) {
+      const bar = map.value.tickToBarBeat(take.barEnd).bar
+      if (bar >= lastStaffBar && bar < lastStaffBar + barsPerRebuild) return
+      const since = map.value.barToTick(Math.max(1, bar - barsPerRebuild))
+      const until = performance.now() + 2000
+      for (const track of take.tracks)
+        for (const [tick, , key] of track.closed)
+          if (tick >= since && tick < take.barEnd)
+            recentStaffNotes.set(`${track.trackId}:${tick}:${key}`, until)
+      lastStaffBar = bar
+    }
     if (doc.project.tracks.some(wantsStaff))
       notation.schedule(
-        doc.project,
+        display.value,
         sources.musicxml[doc.project.mapOwner ?? ''],
         { pageWidth: width.value, scale: doc.project.view.staffScale },
       )
@@ -260,6 +293,8 @@ function update(): void {
       runtime.heldKeys,
       runtime.state.expectedNext?.notes ?? [],
       displayedMode,
+      recentStaffNotes,
+      runtime.transport.covered,
     )
   }
   frame.value = viewport.frame(
@@ -550,7 +585,7 @@ onUnmounted(() => {
       >
         <div
           class="xm-th"
-          title="Double-click to expand or restore lane"
+          :title="t('timeline.doubleClickToExpandOrRestoreLane')"
           @dblclick="
             !($event.target as HTMLElement).closest(
               'button,select,input[type=range]',
@@ -566,7 +601,7 @@ onUnmounted(() => {
             <button
               class="xm-grip xm-grip-button"
               :aria-label="`Reorder ${track.name}`"
-              title="Drag to reorder · Alt+↑/↓"
+              :title="t('timeline.dragToReorderAlt')"
               @pointerdown="reorder($event, track.id)"
               @keydown="reorderKey($event, track.id)"
             >
@@ -645,7 +680,7 @@ onUnmounted(() => {
                 })
               "
             >
-              S
+              {{ t('timeline.s') }}
             </button><button
               v-if="track.kind === 'midi'"
               class="xm-sq"
@@ -666,7 +701,7 @@ onUnmounted(() => {
               :class="{ 'is-on': track.leads }"
               :aria-label="`${track.name} leads follow`"
               :aria-pressed="track.leads"
-              title="Lead the follow mode"
+              :title="t('timeline.leadTheFollowMode')"
               @click="
                 edit(track.id, (t) => {
                   if (t.kind === 'midi') t.leads = !t.leads
@@ -734,7 +769,7 @@ onUnmounted(() => {
               step=".01"
               :value="track.pan"
               :aria-label="`${track.name} pan`"
-              title="Pan"
+              :title="t('timeline.pan')"
               @change="
                 edit(track.id, (t) => {
                   t.pan = Number(($event.target as HTMLInputElement).value)
@@ -760,7 +795,7 @@ onUnmounted(() => {
         />
         <div
           class="xm-lane-resize"
-          title="Drag to resize lane"
+          :title="t('timeline.dragToResizeLane')"
           @pointerdown="resize($event, track)"
         />
       </div>
@@ -768,14 +803,14 @@ onUnmounted(() => {
         v-if="hasStaves"
         class="xm-staff-tools"
       >
-        <label>Staff scale
+        <label>{{ t('timeline.staffScale') }}
           <input
             type="range"
             min="20"
             max="100"
             step="1"
             :value="doc.project.view.staffScale"
-            aria-label="Staff scale"
+            :aria-label="t('timeline.staffScale')"
             @input="
               doc.update((d) => {
                 d.view.staffScale = Number(
@@ -807,19 +842,19 @@ onUnmounted(() => {
           class="btn btn-sm btn-ghost"
           @click="addMidiTrack"
         >
-          <i class="bi bi-plus-lg" /> MIDI track
+          <i class="bi bi-plus-lg" /> {{ t('timeline.midiTrack') }}
         </button>
         <button
           class="btn btn-sm btn-ghost"
           @click="emit('command', 'import:audio')"
         >
-          <i class="bi bi-plus-lg" /> Audio track
+          <i class="bi bi-plus-lg" /> {{ t('timeline.audioTrack') }}
         </button>
         <button
           class="btn btn-sm btn-ghost"
           @click="emit('command', 'appendBar')"
         >
-          <i class="bi bi-plus-lg" /> Bars
+          <i class="bi bi-plus-lg" /> {{ t('timeline.bars') }}
         </button>
       </div>
       <div
@@ -827,20 +862,20 @@ onUnmounted(() => {
         class="xm-empty"
       >
         <h1 class="h5 mb-0">
-          Start a project
+          {{ t('timeline.startAProject') }}
         </h1>
-        <span>Open a project folder or create one to begin.</span>
+        <span>{{ t('timeline.openAProjectFolderOrCreateOneToBegin') }}</span>
         <div class="xm-row">
           <button
             class="btn btn-primary"
             @click="emit('command', 'new')"
           >
-            New project
+            {{ t('timeline.newProject') }}
           </button><button
             class="btn btn-xm"
             @click="emit('command', 'open')"
           >
-            Open project
+            {{ t('timeline.openProject') }}
           </button>
         </div>
       </div>

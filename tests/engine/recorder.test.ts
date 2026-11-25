@@ -3,7 +3,7 @@ import { Recorder } from '../../src/engine/transport/recorder'
 import { TransportClock } from '../../src/engine/transport/clock'
 import { TimeMap } from '../../src/shared/time-map'
 import { liveProject } from '../../src/shared/template'
-import type { RecordedTake } from '../../src/shared/recording'
+import type { RecordedTake, RecordingProgress } from '../../src/shared/recording'
 function rig(latency = 0) {
   const p = liveProject('Record')
   const track = p.tracks[0]
@@ -11,12 +11,14 @@ function rig(latency = 0) {
   track.armed = true
   let now = 0
   const clock = new TransportClock(new TimeMap(p), () => now),
+    progress: RecordingProgress[] = [],
     takes: RecordedTake[] = [],
     recorder = new Recorder(
       clock,
       () => p,
       () => latency,
       (t) => takes.push(t),
+      frame => progress.push(frame),
     )
   recorder.setScope('project')
   const note = (on: boolean, key = 60, id = 'key') =>
@@ -35,6 +37,7 @@ function rig(latency = 0) {
     clock,
     recorder,
     takes,
+    progress,
     note,
     set: (t: number) => {
       now = t
@@ -236,5 +239,41 @@ it('starts coverage and accepts notes only from the punch tick', () => {
   expect(r.takes[0].tracks[0]).toMatchObject({
     covered: [[960, 1440]],
     notes: [],
+  })
+})
+it('publishes open notes at bar boundaries and coalesces closes during fast playing', () => {
+  const r = rig()
+  r.start(1, 1)
+  r.set(0.3)
+  r.recorder.tick()
+  expect(r.progress).toHaveLength(0)
+  r.set(2.99)
+  r.note(true)
+  r.set(3)
+  r.recorder.tick()
+  expect(r.progress.at(-1)).toMatchObject({ barEnd: 1920, tracks: [{open:[{key:60}], closed:[]}] })
+  const count = r.progress.length
+  r.set(3.01)
+  r.note(false)
+  expect(r.progress).toHaveLength(count)
+  r.set(3.11)
+  r.recorder.tick()
+  expect(r.progress.at(-1)?.tracks[0].open).toEqual([])
+  expect(r.progress.at(-1)?.tracks[0].closed).toHaveLength(1)
+  r.stop()
+  expect(r.takes[0].takeId).toBe(r.progress.at(-1)?.takeId)
+})
+
+it('reopens held keys at the loop start in the next progress snapshot', () => {
+  const r = rig()
+  r.clock.setLoop({ enabled: true, startTick: 480, endTick: 960 })
+  r.start()
+  r.set(0.75)
+  r.note(true)
+  r.set(1)
+  r.recorder.tick()
+  expect(r.takes[0].tracks[0].notes).toEqual([[720, 240, 60, 100]])
+  expect(r.progress.at(-1)?.tracks[0]).toMatchObject({
+    closed: [], open: [{key:60, tick:480, vel:100}],
   })
 })

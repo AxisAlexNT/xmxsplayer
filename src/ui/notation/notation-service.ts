@@ -33,6 +33,7 @@ export class NotationService {
   private live = true
   private fonts = new Map<string, Promise<void>>()
   private faces: FontFace[] = []
+  onRebuilt?: (durationMs: number) => void
   private expectedSignature = ''
   schedule(
     project: Project,
@@ -54,6 +55,7 @@ export class NotationService {
     revision: number,
   ): Promise<void> {
     try {
+      const started = performance.now()
       const merged = mergeNotation(project, ownerXml)
       if (!merged.staffTrackIds.length) {
         if (revision === this.revision) {
@@ -74,6 +76,7 @@ export class NotationService {
       this.info.value = info
       this.serial++
       await this.ensure(this.target)
+      if (revision === this.revision && this.live) this.onRebuilt?.(performance.now() - started)
     } catch (error) {
       if (revision === this.revision && this.live) {
         this.error.value = String(error)
@@ -190,6 +193,8 @@ export class NotationService {
     held: { key: number; trackIds: string[] }[],
     expected: { tick: number; key: number; trackId: string }[],
     modeOf: (track: Track) => Track['mode'] = (track) => track.mode,
+    recent?: ReadonlyMap<string, number>,
+    replaced?: [number, number][],
   ): void {
     const info = this.info.value,
       tracks = this.merged.value?.staffTrackIds
@@ -231,7 +236,8 @@ export class NotationService {
             : playing && atPlayhead)
         if (note.el.classList.contains('is-sounding') !== !!on)
           note.el.classList.toggle('is-sounding', !!on)
-        const base = on ? track!.color : 'inherit'
+        const highlighted = recent?.get(`${trackId}:${Math.round(entry.qstamp * 480)}:${entry.key}`)
+        const base = highlighted && highlighted > performance.now() ? 'var(--xm-accent)' : on ? track!.color : 'inherit'
         const color =
           on &&
           project.view.staffTheme === 'paper' &&
@@ -245,6 +251,11 @@ export class NotationService {
                 )
                 .join('')
             : base
+        const onset = Math.round(entry.qstamp * 480)
+        const faded = track?.kind === 'midi' && track.armed &&
+          replaced?.some(([start, end]) => onset >= start && onset < end) &&
+          track.notes.some(n => n[0] === onset && n[2] === entry.key)
+        note.el.classList.toggle('is-record-replaced', !!faded)
         if (note.el.getAttribute('color') !== color)
           note.el.setAttribute('color', color)
         if (expectedChanged && isExpected) {

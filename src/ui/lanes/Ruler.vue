@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from '../i18n'
+const { t } = useI18n()
 defineOptions({ name: 'TimelineRuler' })
 import { computed, inject, ref, onBeforeUnmount } from 'vue'
 import { timelineKey } from '../timeline/context'
@@ -247,7 +249,13 @@ function dragAnchor(event: PointerEvent, index: number): void {
 <template>
   <div class="xm-rowgrid xm-ruler">
     <div class="xm-corner">
-      <BarGridTools />
+      <span
+        v-if="runtime.transport.recording && runtime.liveLengthTicks > doc.project.lengthTicks"
+        class="xm-rec-chip"
+      >
+        <i class="xm-dot" />{{ t('timeline.addingBars') }}
+      </span>
+      <BarGridTools v-else />
 
       <Teleport to="body">
         <form
@@ -257,40 +265,40 @@ function dragAnchor(event: PointerEvent, index: number): void {
           @submit.prevent="applyEdit"
           @keydown.esc="menu = undefined"
         >
-          <strong>Bar {{ menu.bar }}</strong>
+          <strong>{{ t('timeline.bar') }} {{ menu.bar }}</strong>
           <select
             v-model="operation"
-            aria-label="Measure operation"
+            :aria-label="t('timeline.measureOperation')"
           >
             <option value="insertBefore">
-              Insert bars before
+              {{ t('timeline.insertBarsBefore') }}
             </option>
             <option value="insertAfter">
-              Insert bars after
+              {{ t('timeline.insertBarsAfter') }}
             </option>
             <option value="delete">
-              Delete bars
+              {{ t('timeline.deleteBars') }}
             </option>
             <option
               v-if="doc.project.loop.enabled"
               value="loop"
             >
-              Delete loop range bars
+              {{ t('timeline.deleteLoopRangeBars') }}
             </option>
             <option value="signature">
-              Time signature from here
+              {{ t('timeline.timeSignatureFromHere') }}
             </option>
             <option value="tempo">
-              Tempo from here
+              {{ t('timeline.tempoFromHere') }}
             </option>
           </select>
-          <label v-if="operation === 'tempo'">BPM <input
+          <label v-if="operation === 'tempo'">{{ t('timeline.bpm') }} <input
             v-model.number="bpm"
             type="number"
             min="1"
             required
           ></label>
-          <label v-else-if="operation === 'signature'">Signature
+          <label v-else-if="operation === 'signature'">{{ t('timeline.signature') }}
             <input
               v-model.number="numerator"
               type="number"
@@ -307,7 +315,7 @@ function dragAnchor(event: PointerEvent, index: number): void {
                 {{ d }}
               </option>
             </select></label>
-          <label v-else-if="operation !== 'loop'">Bars <input
+          <label v-else-if="operation !== 'loop'">{{ t('timeline.bars') }} <input
             v-model.number="count"
             type="number"
             min="1"
@@ -315,13 +323,13 @@ function dragAnchor(event: PointerEvent, index: number): void {
           ></label>
           <div>
             <button type="submit">
-              Apply
+              {{ t('timeline.apply') }}
             </button>
             <button
               type="button"
               @click="menu = undefined"
             >
-              Cancel
+              {{ t('timeline.cancel') }}
             </button>
           </div>
           <span role="status">{{ message }}</span>
@@ -332,14 +340,14 @@ function dragAnchor(event: PointerEvent, index: number): void {
           style="bottom: 1rem; right: 1rem"
           @click="message = ''"
         >
-          {{ message }} ×
+          {{ message }} {{ t('timeline.close') }}
         </button>
       </Teleport>
     </div>
     <div
       ref="surface"
       class="xm-lanearea xm-ruler-surface"
-      title="Drag to seek · Shift-drag to set loop"
+      :title="t('timeline.dragToSeekShiftDragToSetLoop')"
       @contextmenu.prevent="openMenu"
       @pointerdown="drag"
     >
@@ -351,7 +359,7 @@ function dragAnchor(event: PointerEvent, index: number): void {
           v-for="(x, i) in m.beats"
           :key="i"
           class="xm-ruler-tick"
-          :class="{ 'is-bar': i === 0 }"
+          :class="{ 'is-bar': i === 0, 'is-recorded-extension': m.start >= doc.project.lengthTicks && m.start < runtime.liveLengthTicks }"
           :style="{ left: `${x}px` }"
         ><b v-if="i === 0">{{ m.bar }}</b></span>
       </template>
@@ -366,7 +374,7 @@ function dragAnchor(event: PointerEvent, index: number): void {
         @keydown.delete.prevent="removeAnchor(index)"
         @contextmenu.prevent="removeAnchor(index)"
       >
-        ◆
+        {{ t('timeline.anchor') }}
       </button>
     </div>
   </div>

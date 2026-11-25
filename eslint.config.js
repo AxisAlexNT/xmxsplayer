@@ -10,7 +10,7 @@ export default tseslint.config(
     languageOptions: { parserOptions: { parser: tseslint.parser } },
   },
   {
-    files: ['src/ui/components/ConflictBanner.vue'],
+    files: ['src/ui/components/ConflictBanner.vue', 'src/ui/lanes/PianoRollLane.vue', 'src/ui/lanes/Ruler.vue', 'src/ui/timeline/Timeline.vue'],
     rules: { 'vue/no-bare-strings-in-template': 'error' },
   },
 )

@@ -230,3 +230,19 @@ it('extends a recording by bars at half speed while normal playback stops at the
   f.scheduler.tick()
   expect(f.clock.playing).toBe(false)
 })
+
+it('keeps looped recording inside the project at double speed', () => {
+  const f = fixture()
+  const lengths: number[] = []
+  f.scheduler.onRecordExtend = length => lengths.push(length)
+  f.clock.setLoop({ enabled: true, startTick: 5760, endTick: 7680 })
+  f.clock.seek(7550)
+  f.clock.setRate(2)
+  f.clock.recording = true
+  f.clock.play()
+  f.setNow(3)
+  f.scheduler.tick()
+  expect(f.clock.tick).toBeLessThan(7680)
+  expect(lengths).toEqual([])
+  expect(f.clock.playing).toBe(true)
+})

@@ -3,6 +3,7 @@ import type { Project } from '../../shared/model'
 import type {
   RecordedTake,
   RecordedTrack,
+  RecordingProgress,
   RoutedNote,
 } from '../../shared/recording'
 import type { TimeMap } from '../../shared/time-map'
@@ -44,12 +45,16 @@ export class Recorder {
   private replace = false
   private collected = new Map<string, RecordedTrack>()
   private serial = 0
+  private barEnd = -1
+  private progressDirty = false
+  private lastProgress = -Infinity
   private startContext = 0
   constructor(
     private clock: TransportClock,
     private project: () => Project | undefined,
     private latencyMs: () => number,
     private emit: (take: RecordedTake) => void,
+    private progress?: (value: RecordingProgress) => void,
   ) {
     this.map = clock.map
     this.clockChanged()
@@ -154,6 +159,10 @@ export class Recorder {
       this.spans.shift()
     if (wants && !this.enabled) {
       this.enabled = true
+      this.serial++
+      this.barEnd = -1
+      this.progressDirty = false
+      this.lastProgress = -Infinity
       this.startContext = Math.max(now, this.clock.contextAt(this.clock.raw))
       if (jumped) this.clock.punchRaw = this.clock.raw
       this.setup(this.corrected())
@@ -217,6 +226,8 @@ export class Recorder {
       this.close(held, this.tickAt(raw))
       this.held.delete(note.id)
     }
+    this.progressDirty = true
+    this.reportProgress(raw, when)
   }
   control(
     source: string,
@@ -293,7 +304,7 @@ export class Recorder {
       this.takes.clear()
       if (final && this.collected.size)
         this.emit({
-          takeId: `take-${++this.serial}`,
+          takeId: `take-${this.serial}`,
           scope: this.scope,
           mode: 'replace',
           stopTick: end,
@@ -314,7 +325,7 @@ export class Recorder {
       }))
     this.takes.clear()
     if (tracks.length)
-      this.emit({ takeId: `take-${++this.serial}`, scope: this.scope, ...(final && { stopTick: end }), tracks })
+      this.emit({ takeId: `take-${this.serial}`, scope: this.scope, ...(final && { stopTick: end }), tracks })
   }
   private advance(raw: number): void {
     const length =
@@ -324,6 +335,9 @@ export class Recorder {
       for (const held of this.held.values()) this.close(held, this.loop.endTick)
       this.releasePedals(this.loop.endTick)
       this.send(this.loop.endTick, false)
+      if (!this.replace) this.serial++
+      this.barEnd = -1
+      this.progressDirty = true
       this.passStart = this.loop.startTick
       for (const held of this.held.values()) {
         held.tick = this.loop.startTick
@@ -343,8 +357,27 @@ export class Recorder {
     const prior = this.collected.values().next().value?.covered ?? []
     return [...prior, [this.passStart, this.tickAt(raw)]]
   }
+  private reportProgress(raw: number, when: number): void {
+    if (!this.progress || !this.ready(when)) return
+    const map = this.map
+    const boundary = map.barToTick(map.tickToBarBeat(this.tickAt(raw)).bar)
+    if (boundary === this.barEnd && (!this.progressDirty || when - this.lastProgress < 0.1)) return
+    this.barEnd = boundary
+    this.lastProgress = when
+    this.progressDirty = false
+    const tracks = [...this.takes.values()].map(take => ({
+      trackId: take.trackId,
+      closed: take.notes.slice(),
+      open: [...this.held.values()].filter(h => h.trackId === take.trackId)
+        .map(h => ({ key: h.key, tick: h.tick, vel: h.velocity })),
+    }))
+    this.progress({ takeId: `take-${this.serial}`, scope: this.scope, barEnd: boundary, tracks })
+  }
   tick(): void {
-    if (this.enabled) this.advance(this.corrected())
+    if (!this.enabled) return
+    const raw = this.corrected()
+    this.advance(raw)
+    this.reportProgress(raw, this.clock.now())
   }
   private finish(raw: number): void {
     this.advance(raw)
@@ -361,6 +394,7 @@ export class Recorder {
     for (const [id, held] of this.held)
       if (held.source === source) {
         this.close(held, this.tickAt(raw))
+        this.progressDirty = true
         this.held.delete(id)
       }
     for (const [id, state] of this.controllers)

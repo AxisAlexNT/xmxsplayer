@@ -6,6 +6,16 @@ export interface RecordedTrack {
   notes: Note[]
   events: MidiTrack['events']
 }
+export interface RecordingProgress {
+  takeId: string
+  scope: string
+  barEnd: number
+  tracks: {
+    trackId: string
+    closed: Note[]
+    open: { key: number; tick: number; vel: number }[]
+  }[]
+}
 export interface RecordedTake {
   stopTick?: number
   mode?: 'replace' | 'overdub'

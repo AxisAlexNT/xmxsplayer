@@ -1,7 +1,7 @@
 import type { ScriptStatus } from './script-api'
 import type { ActivityState } from './activity'
 import type { DeviceFeedback } from './feedback'
-import type { RecordedTake } from './recording'
+import type { RecordedTake, RecordingProgress } from './recording'
 import type { AudioPeaks, AudioSource } from './audio'
 import type {
   Action,
@@ -156,6 +156,7 @@ export interface EventMap {
   'learn:captured': { deviceId: string; control: ControlDef }
   keys: { held: { key: number; trackIds: Id[] }[] }
   activity: ActivityState
+  'record:progress': RecordingProgress
   'record:extend': { lengthTicks: number }
   recorded: { trackId: Id; notes: Note[] } | RecordedTake
   'doc:patch': Partial<Project>

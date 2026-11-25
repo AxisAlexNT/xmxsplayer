@@ -12,6 +12,8 @@ The Orchestra panel provides four range-aware presets, section registers and con
 
 Right-click or long-press the timeline ruler to insert or delete measures or change the tempo or signature from a bar. Use **+ Bars** below the tracks to extend the project. Each edit supports Undo.
 
+With the loop off, recording can start at the end and continue into new bars. The piano roll shows held notes as you play. The staff updates as bars finish. Stop keeps one empty bar after the last recorded note, and Undo restores the notes and song length together.
+
 Choose Replace in the transport to re-record from the playhead through Stop, including silence. Shift+R switches between Replace and Overdub. Recording settings also offer up to four bars of pre-roll.
 
 Version 0.1.0 is in release validation. The software is implemented; it is not yet a fully verified release. Ubuntu 24.04 checks cover built-in SF2/SF3 synthesis, MIDI/audio import, recording/editing, shared staff/roll/audio timing, clips, scenes/registers/cues, scripted routing, follow modes, linked MuseScore 3 conversion, FluidSynth recovery and external MIDI routing. Tests use muted audio and simulated ports where physical interaction is unnecessary.

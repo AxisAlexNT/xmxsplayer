@@ -194,3 +194,15 @@ body { background: var(--xm-bg-0); color: var(--xm-text); font-family: var(--xm-
 
 /* Add-track row under the last track */
 .xm-addrow { display: flex; gap: var(--xm-s2); padding: var(--xm-s3); padding-left: calc(var(--xm-s3) + 4px); }
+
+.xm-ruler-tick.is-recorded-extension,
+.xm-ruler-tick.is-recorded-extension b {
+  color: var(--xm-rec);
+  border-color: currentColor;
+}
+
+.xm-rec-chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 999px; background: rgba(255, 77, 94, 0.14); border: 1px solid var(--xm-rec); color: var(--xm-rec); font: 700 var(--xm-fs-xs) var(--xm-font); letter-spacing: .6px; }
+.xm-rec-chip .xm-dot { background: var(--xm-rec); animation: xm-blink 1s steps(2) infinite; }
+@keyframes xm-blink { 50% { opacity: .25; } }
+
+.xm-vrv-page .is-record-replaced { opacity: .3; }
