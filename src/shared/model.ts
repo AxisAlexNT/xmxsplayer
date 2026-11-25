@@ -383,6 +383,7 @@ export interface ControlDef {
 
 export type TempoMode = 'scale' | 'rewrite' | 'section'
 export interface Settings {
+  tutorials?: { progress: Record<string, number>; done: string[]; offered: boolean }
   carlaPath?: string
   tempoMode?: TempoMode
   locale?: string

@@ -3,6 +3,8 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { en, formatMessage, translate } from '../../src/shared/i18n-en'
 
+import { tours } from '../../src/ui/tutorial/tours'
+
 function* sources(dir: string): Generator<string> {
   for (const item of readdirSync(dir, { withFileTypes: true })) {
     const path = join(dir, item.name)
@@ -14,6 +16,13 @@ function* sources(dir: string): Generator<string> {
 describe('English catalogue', () => {
   it('uses every key and supplies each named placeholder', () => {
     const used = new Set<string>()
+    for (const tour of tours) {
+      for (const key of [tour.titleKey, ...tour.steps.flatMap(step => [step.titleKey, step.bodyKey])]) {
+        expect(en[key]).toBeTruthy()
+        expect(en[key]).not.toMatch(/\{\w+\}/)
+        used.add(key)
+      }
+    }
     for (const source of sources('src')) {
       for (const match of source.matchAll(/\bt\(\s*['"]([\w.]+)['"](?:\s*,\s*\{([^}]*)\})?/g)) {
         const key = match[1] as keyof typeof en

@@ -309,6 +309,7 @@ onUnmounted(() => {
       <button
         v-if="control.mode !== 'momentary'"
         class="btn btn-sm btn-xm"
+        data-tour="roll"
         @click="drumRoll"
       >
         Drum roll
@@ -319,6 +320,7 @@ onUnmounted(() => {
       >
         <select
           class="form-select form-select-sm"
+          data-tour="filter-instrument"
           aria-label="Filter sweep instrument"
           :value="sweepTarget.id"
           @change="sweepInstrument=($event.target as HTMLSelectElement).value"
@@ -333,6 +335,7 @@ onUnmounted(() => {
         </select>
         <button
           class="btn btn-sm btn-xm"
+          data-tour="sweep"
           @click="filterSweep"
         >
           Filter sweep
@@ -360,6 +363,7 @@ onUnmounted(() => {
         <div class="col-5">
           <label class="form-label">Timing</label><select
             class="form-select form-select-sm"
+            data-tour="timing"
             aria-label="Binding timing"
             :value="draft.at ?? 'now'"
             @change="
@@ -408,6 +412,7 @@ onUnmounted(() => {
       <div v-if="edge === 'change' && draft.action.type === 'note'">
         <span class="form-label">Hit preview · move the control</span>
         <div
+          data-tour="hits"
           class="xm-ticks"
           role="img"
           :aria-label="`Recent hits: ${hits.length}, last velocity: ${hits.at(-1) ?? 0}`"

@@ -317,7 +317,10 @@ onUnmounted(() => {
         </option>
       </select>
     </div>
-    <div class="xm-keybed">
+    <div
+      data-tour="keyboard"
+      class="xm-keybed"
+    >
       <svg
         :viewBox="`0 0 ${white.length * 50} 100`"
         preserveAspectRatio="none"

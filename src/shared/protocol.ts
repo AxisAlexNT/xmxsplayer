@@ -148,6 +148,7 @@ export interface EventMap {
   }
   'binding:hit': { deviceId: string; controlId: string; velocity: number }
   control: {
+    controlKind?: ControlDef['kind']
     deviceId: string
     controlId: string
     value: number

@@ -63,6 +63,7 @@ export function installMenu(ui: BrowserWindow): void {
       {
         label: t('menu.help'),
         submenu: [
+          action(t('tutorial.pickerTitle'), 'tutorials', 'F1'),
           {
             label: t('menu.aboutXmxsplayer'),
             click: () => ui.webContents.send('app:menu', 'about'),

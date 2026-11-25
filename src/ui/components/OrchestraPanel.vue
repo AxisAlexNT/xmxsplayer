@@ -122,6 +122,7 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
 <template>
   <div class="orchestra-panel">
     <select
+      data-tour="preset"
       aria-label="Add orchestra preset"
       value=""
       @change="add"
@@ -146,6 +147,7 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
         v-for="o in doc.project.orchestras"
         :key="o.id"
         v-mappable="{label:o.name,continuous:{type:'param',target:'orchestra.volume',id:o.id,min:0,max:1},action:{type:'orchestra',cmd:'select',orchestraId:o.id}}"
+        data-tour="orchestra"
         draggable="true"
         title="Select orchestra, or drag to a controller pad"
         :aria-pressed="o.id === current?.id"
@@ -157,7 +159,7 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
       </button>
     </div>
     <template v-if="current">
-      <label>Layers per key
+      <label data-tour="layers">Layers per key
         <select
           :value="current.maxLayers"
           @change="edit((o) => (o.maxLayers = value($event)))"
@@ -191,6 +193,7 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
       >
         <summary
           v-mappable="s.register === null ? undefined : {label:s.name,continuous:{type:'param',target:'section.gain',id:'section:'+current.id+':'+i,min:0,max:1},action:{type:'register',cmd:'toggle',index:s.register}}"
+          data-tour="section"
           :draggable="s.register !== null"
           @dragstart="s.register !== null && dragPadSource($event, 'section:' + current.id + ':' + i)"
         >
@@ -225,7 +228,10 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
             {{
               doc.project.instruments.find((v) => v.id === m.instrumentId)?.name
             }}</label>
-          <div class="range-keyboard">
+          <div
+            data-tour="range"
+            class="range-keyboard"
+          >
             <span
               v-for="n in 128"
               :key="n"
@@ -254,7 +260,7 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
               />
             </div>
           </div>
-          <label>Balance by
+          <label data-tour="balance">Balance by
             <select
               :value="m.balance ?? 'volume'"
               @change="edit(o => { o.sections[i].members[j].balance = ($event.target as HTMLSelectElement).value as OrchestraMember['balance'] })"
@@ -319,7 +325,10 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
           </label>
         </div>
       </details>
-      <div class="xm-macro">
+      <div
+        data-tour="macros"
+        class="xm-macro"
+      >
         <label
           v-for="key in orchestraControls"
           :key="key"

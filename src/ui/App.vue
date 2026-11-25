@@ -19,7 +19,7 @@ import PatchPanel from './components/PatchPanel.vue'
 import ScenesPanel from './components/ScenesPanel.vue'
 import OrchestraPanel from './components/OrchestraPanel.vue'
 import RegistersPanel from './components/RegistersPanel.vue'
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, provide, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useProjectStore } from './stores/project'
 import { useRuntimeStore } from './stores/runtime'
 import { useEditorStore } from './stores/editor'
@@ -34,6 +34,8 @@ import InstrumentPicker from './components/InstrumentPicker.vue'
 import AudioSettings from './components/AudioSettings.vue'
 import DevicesPanel from './components/DevicesPanel.vue'
 import ControlsPanel from './components/ControlsPanel.vue'
+import { openTutorialsKey, type TutorialTopic } from './tutorial/entry'
+import TutorialSession from './tutorial/TutorialSession.vue'
 import Timeline from './timeline/Timeline.vue'
 import { appendBars, deleteBars, insertBars } from '../shared/bar-edit'
 import { TimeMap } from '../shared/time-map'
@@ -152,6 +154,23 @@ watch(
 )
 const toast = ref('')
 const pickerId = ref<string | null>(null)
+const showTutorials = ref(false)
+const tutorialTopic = ref<TutorialTopic>()
+const tutorialOffer = ref(false)
+function openTutorials(topic?: TutorialTopic) {
+  if (showTutorials.value) return
+  tutorialOffer.value = false
+  tutorialTopic.value = topic
+  showTutorials.value = true
+}
+provide(openTutorialsKey, openTutorials)
+watch(() => [settings.loaded, doc.folder] as const, async ([loaded, folder]) => {
+  if (!loaded || !folder || settings.value.tutorials?.offered || tutorialOffer.value) return
+  tutorialOffer.value = !showTutorials.value
+  const tutorials = settings.value.tutorials ?? { progress: {}, done: [] }
+  try { await settings.save({ ...settings.value, tutorials: { ...tutorials, offered: true } }) }
+  catch (error) { fail(error) }
+}, { immediate: true })
 const showAudio = ref(false)
 let toastTimer: ReturnType<typeof setTimeout>
 const sections = [
@@ -388,6 +407,10 @@ function fail(error: unknown): void {
 }
 async function command(cmd: string): Promise<void> {
   try {
+    if (cmd === 'tutorials') {
+      openTutorials()
+      return
+    }
     if (cmd === 'record:armRequired') {
       notify('Arm a MIDI track before recording')
       return
@@ -589,6 +612,12 @@ onUnmounted(() => {
 
 <template>
   <ScriptTrust />
+  <TutorialSession
+    v-if="showTutorials"
+    :topic="tutorialTopic"
+    @close="showTutorials=false"
+    @error="fail"
+  />
   <div
     class="xm-app"
     :class="{
@@ -601,11 +630,15 @@ onUnmounted(() => {
     @dragover.prevent
     @drop.prevent="drop"
   >
-    <header class="xm-transport">
+    <header
+      data-tour="transport"
+      class="xm-transport"
+    >
       <MapMode @edit="(deviceId,controlId)=>flowSelect({kind:'control',deviceId,controlId},{right:24,top:96})" />
       <button
         class="xm-tbtn"
         :aria-pressed="mapActive"
+        data-tour="map"
         :title="t('control.mapMode')"
         :aria-label="t('control.mapMode')"
         @click="mapActive=!mapActive"
@@ -622,6 +655,7 @@ onUnmounted(() => {
           <i class="bi bi-list" />
         </button>
         <input
+          data-tour="name"
           class="xm-name"
           :aria-label="t('control.projectName')"
           :value="p.name"
@@ -855,28 +889,57 @@ onUnmounted(() => {
       </button>
     </header>
 
+    <aside
+      v-if="tutorialOffer"
+      class="tutorial-offer"
+      :aria-label="t('tutorial.pickerTitle')"
+    >
+      <span>{{ t('tutorial.offer') }}</span>
+      <button
+        class="btn btn-sm btn-xm"
+        @click="openTutorials('first')"
+      >
+        {{ t('tutorial.pickerTitle') }}
+      </button>
+      <button
+        class="btn btn-sm btn-ghost"
+        @click="tutorialOffer=false"
+      >
+        {{ t('tutorial.dismiss') }}
+      </button>
+    </aside>
     <aside class="xm-left">
       <section
         v-for="section in sections"
         :key="section"
         class="xm-sec"
       >
-        <button
-          class="xm-sec-h"
-          :aria-expanded="settings.sections[section] !== false"
-          @click="settings.toggle(section)"
-        >
-          <i
-            :class="`bi bi-chevron-${settings.sections[section] === false ? 'right' : 'down'}`"
-          />
-          <h6>{{ section }}</h6>
-          <span
-            v-if="section === 'Log'"
-            class="xm-count"
-          >{{
-            runtime.logs.length
-          }}</span>
-        </button>
+        <div class="section-heading">
+          <button
+            class="xm-sec-h"
+            :aria-expanded="settings.sections[section] !== false"
+            @click="settings.toggle(section)"
+          >
+            <i
+              :class="`bi bi-chevron-${settings.sections[section] === false ? 'right' : 'down'}`"
+            />
+            <h6>{{ section }}</h6>
+            <span
+              v-if="section === 'Log'"
+              class="xm-count"
+            >{{
+              runtime.logs.length
+            }}</span>
+          </button>
+          <button
+            v-if="section==='Controls' || section==='Orchestra'"
+            class="tutorial-chip"
+            :aria-label="t('tutorial.sectionHelp', {section})"
+            @click="openTutorials(section==='Controls'?'pads':'orchestra')"
+          >
+            ?
+          </button>
+        </div>
         <div
           v-if="settings.sections[section] !== false"
           class="xm-sec-b"
@@ -983,3 +1046,10 @@ onUnmounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.section-heading { display:flex; align-items:center; }
+.section-heading .xm-sec-h { flex:1; min-width:0; }
+.tutorial-chip { border:1px solid var(--xm-border); border-radius:50%; margin-right:.7rem; width:1.6rem; height:1.6rem; color:var(--xm-text-muted); background:transparent; }
+.tutorial-offer { position:fixed; right:1rem; top:4rem; z-index:20; display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; max-width:calc(100vw - 2rem); padding:.6rem; background:var(--xm-panel,#242d31); border:1px solid var(--xm-border); border-radius:.4rem; }
+</style>

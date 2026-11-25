@@ -561,6 +561,7 @@ onUnmounted(() => {
 <template>
   <main
     ref="root"
+    data-tour="timeline"
     class="xm-main"
     @wheel="zoom"
     @pointerdown="selectLoop"

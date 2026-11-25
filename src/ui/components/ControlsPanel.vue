@@ -336,6 +336,10 @@ function relearn(): void {
             <button
               v-for="control in group.controls"
               :key="control.id"
+              data-tour="control"
+              :data-control-kind="control.kind"
+              :data-control-id="control.id"
+              :data-device-id="device.id"
               :class="[
                 control.kind === 'pad'
                   ? 'xm-pad'

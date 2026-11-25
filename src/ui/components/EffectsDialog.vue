@@ -15,7 +15,9 @@ function setSidechain(index: number, trackId: string) {
     if (selector) effect.params[selector.index] = trackId ? 2 : selector.initial
   })
 }
-import { computed, ref } from 'vue'
+import { openTutorialsKey } from '../tutorial/entry'
+import { t } from '../i18n'
+import { computed, inject, ref } from 'vue'
 import {
   effectDefaults,
   controlsForEffect,
@@ -27,6 +29,7 @@ import { uniqueId } from '../../shared/ids'
 import { useProjectStore } from '../stores/project'
 import { useSettingsStore } from '../stores/settings'
 
+const openTutorials = inject(openTutorialsKey)
 const props = defineProps<{
   instrumentId?: string
   orchestraId?: string
@@ -183,6 +186,7 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
 </script>
 <template>
   <button
+    data-tour="fx-open"
     class="xm-chip is-sm"
     :aria-label="`Effects chain · ${name}`"
     @click="dialog?.showModal()"
@@ -196,6 +200,14 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
   >
     <div class="xm-dialog-h">
       <h5>Effects chain · {{ name }}</h5>
+      <button
+        v-if="openTutorials"
+        class="btn btn-sm btn-ghost"
+        :aria-label="t('tutorial.effectsHelp')"
+        @click="dialog?.close(); openTutorials('effects')"
+      >
+        ?
+      </button>
     </div>
     <div
       v-if="native && instrument"
@@ -236,6 +248,7 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
       <section
         v-for="(fx, i) in chain"
         :key="fx.id"
+        data-tour="fx-card"
         class="xm-fxcard"
         @dragover.prevent
         @drop.prevent="move(dragged, i)"
@@ -249,6 +262,7 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
           >⠿</span>
           <strong>{{ fx.plugin?.name ?? names[fx.type] }}</strong>
           <button
+            data-tour="fx-power"
             class="xm-pwr"
             :class="{'is-on':fx.enabled}"
             :title="fx.enabled ? 'Bypass effect' : 'Enable effect'"
@@ -358,6 +372,7 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
         <select
           v-if="fx.type!=='plugin'"
           class="form-select form-select-sm"
+          data-tour="fx-preset"
           aria-label="Effect presets"
           value=""
           @change="preset($event, i)"
@@ -418,6 +433,7 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
         </footer>
       </section>
       <select
+        data-tour="fx-add"
         aria-label="Add effect"
         class="xm-fx-add form-select form-select-sm"
         value=""

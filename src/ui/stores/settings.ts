@@ -14,12 +14,14 @@ function readSections(): Record<string, boolean> {
   }
 }
 export const useSettingsStore = defineStore('settings', () => {
+  const loaded = ref(false)
   const value = shallowRef(defaultSettings())
   const sections = ref<Record<string, boolean>>(readSections())
   const collapsed = ref(localStorage.getItem('collapsed') === 'true')
   const leftWidth = ref(Number(localStorage.getItem('leftWidth')) || 372)
   async function load(): Promise<void> {
     value.value = await window.xm.settings.get()
+    loaded.value = true
   }
   async function save(next: Settings): Promise<void> {
     const parsed = settingsSchema.parse(next)
@@ -34,5 +36,5 @@ export const useSettingsStore = defineStore('settings', () => {
     collapsed.value = !collapsed.value
     localStorage.setItem('collapsed', String(collapsed.value))
   }
-  return { value, sections, collapsed, leftWidth, load, save, toggle, collapse }
+  return { value, loaded, sections, collapsed, leftWidth, load, save, toggle, collapse }
 })

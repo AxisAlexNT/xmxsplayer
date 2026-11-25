@@ -12,6 +12,7 @@ export const builtinProfiles: DeviceProfile[] = [arturia, axiom, generic].map(
 export interface ControlEvent {
   deviceId: string
   controlId: string
+  controlKind?: ControlDef['kind']
   value: number
   pressed: boolean
   edge: 'press' | 'release' | 'change'
@@ -140,6 +141,7 @@ export class ProfileDecoder {
         event: {
           deviceId: this.deviceId,
           controlId: control.id,
+          controlKind: control.kind,
           value,
           pressed,
           edge,
