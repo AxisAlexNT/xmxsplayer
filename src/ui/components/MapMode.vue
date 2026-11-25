@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { computed, onMounted, onUnmounted, shallowRef, ref, watch } from 'vue'
 import type { Binding } from '../../shared/model'
 import { effectiveSetup, isUnbound, unbound } from '../../shared/overlay'
@@ -215,20 +216,20 @@ onUnmounted(() => {
     ref="bubble"
     popover="manual"
     class="xm-map-prompt"
-    aria-label="Map controls"
+    :aria-label="t('controlsPanel.mapControls')"
   >
     <strong>{{ mapTarget?.label ?? mapMenu?.label ?? 'Map controls' }}</strong>
     <template v-if="pending?.existing">
-      <span>{{ pending.binding.control }} currently controls
+      <span>{{ pending.binding.control }} {{ t('mapMode.currentlyControls') }}
         {{ actionLabel(pending.existing.action, doc.project) }}.</span>
       <button @click="save">
-        Replace
+        {{ t('mapMode.replace') }}
       </button><button @click="cancel">
-        Cancel
+        {{ t('picker.cancel') }}
       </button>
     </template>
     <template v-else-if="mapMenu">
-      <span v-if="!menuBindings.length">No assigned control.</span>
+      <span v-if="!menuBindings.length">{{ t('mapMode.noAssignedControl') }}</span>
       <div
         v-for="{ device, binding } in menuBindings"
         :key="device.id + binding.control + binding.edge"
@@ -237,12 +238,12 @@ onUnmounted(() => {
         <button
           @click="removeMapping(device.profileId,binding)"
         >
-          Unmap
+          {{ t('mapMode.unmap') }}
         </button>
         <button
           @click="editMapping(device.id,binding.control)"
         >
-          Edit
+          {{ t('menu.edit') }}
         </button>
       </div>
     </template>
@@ -256,7 +257,7 @@ onUnmounted(() => {
           : 'Select an outlined control.')
     }}</span>
     <button @click="mapActive = false">
-      Done
+      {{ t('library.done') }}
     </button>
   </aside>
 </template>

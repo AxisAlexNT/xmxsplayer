@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../../i18n'
 import type { AudioTrack } from '../../../shared/model'
 import { useProjectStore } from '../../stores/project'
 const props = defineProps<{ track: AudioTrack }>(),
@@ -24,7 +25,7 @@ function spectrum(change: Partial<NonNullable<AudioTrack['spectrum']>>) {
 </script>
 <template>
   <div class="xm-audio-controls">
-    <label>View
+    <label>{{ t('menu.view') }}
       <select
         :value="track.display ?? 'wave'"
         @change="
@@ -35,12 +36,12 @@ function spectrum(change: Partial<NonNullable<AudioTrack['spectrum']>>) {
           )
         "
       >
-        <option value="wave">Wave</option>
-        <option value="spectrum">Spectrum</option>
-        <option value="both">Both</option>
+        <option value="wave">{{ t('audioTrackControls.wave') }}</option>
+        <option value="spectrum">{{ t('audioTrackControls.spectrum') }}</option>
+        <option value="both">{{ t('bindingEditor.both') }}</option>
       </select></label>
     <template v-if="track.display && track.display !== 'wave'">
-      <label>Floor
+      <label>{{ t('audioTrackControls.floor') }}
         <input
           type="range"
           min="-90"
@@ -52,7 +53,7 @@ function spectrum(change: Partial<NonNullable<AudioTrack['spectrum']>>) {
             })
           "
         ></label>
-      <label>Gain
+      <label>{{ t('fluidSettings.gain') }}
         <input
           type="range"
           min="-48"
@@ -64,7 +65,7 @@ function spectrum(change: Partial<NonNullable<AudioTrack['spectrum']>>) {
             })
           "
         ></label>
-      <label>Palette
+      <label>{{ t('audioTrackControls.palette') }}
         <select
           :value="track.spectrum?.palette ?? 'magma'"
           @change="
@@ -74,10 +75,10 @@ function spectrum(change: Partial<NonNullable<AudioTrack['spectrum']>>) {
             })
           "
         >
-          <option>magma</option>
-          <option>gray</option>
+          <option value="magma">{{ t('audioTrackControls.magma') }}</option>
+          <option value="gray">{{ t('audioTrackControls.gray') }}</option>
         </select></label>
-      <label>Overlay
+      <label>{{ t('audioTrackControls.overlay') }}
         <select
           :value="track.spectrum?.overlayTrackId ?? ''"
           @change="
@@ -87,27 +88,27 @@ function spectrum(change: Partial<NonNullable<AudioTrack['spectrum']>>) {
             })
           "
         >
-          <option value="">None</option>
+          <option value="">{{ t('effectsDialog.none') }}</option>
           <option
-            v-for="t in doc.project.tracks.filter((t) => t.kind === 'midi')"
-            :key="t.id"
-            :value="t.id"
+            v-for="midiTrack in doc.project.tracks.filter((midiTrack) => midiTrack.kind === 'midi')"
+            :key="midiTrack.id"
+            :value="midiTrack.id"
           >
-            {{ t.name }}
+            {{ midiTrack.name }}
           </option>
         </select></label>
       <label><input
-        type="checkbox"
-        :checked="track.spectrum?.pitchAligned"
-        @change="
-          spectrum({
-            pitchAligned: ($event.target as HTMLInputElement).checked,
-          })
-        "
-      >
-        Match pitch range</label>
+               type="checkbox"
+               :checked="track.spectrum?.pitchAligned"
+               @change="
+                 spectrum({
+                   pitchAligned: ($event.target as HTMLInputElement).checked,
+                 })
+               "
+             >
+        {{ t('audioTrackControls.matchPitchRange') }}</label>
     </template>
-    <label title="Pitch in semitones"><input
+    <label :title="t('audioTrackControls.pitchInSemitones')"><input
       type="number"
       min="-12"
       max="12"
@@ -122,8 +123,8 @@ function spectrum(change: Partial<NonNullable<AudioTrack['spectrum']>>) {
           )
         })
       "
-    >st</label>
-    <label title="Fine pitch in cents"><input
+    >{{ t('clipEditor.st') }}</label>
+    <label :title="t('audioTrackControls.finePitchInCents')"><input
       type="number"
       min="-50"
       max="50"
@@ -138,7 +139,7 @@ function spectrum(change: Partial<NonNullable<AudioTrack['spectrum']>>) {
           )
         })
       "
-    >ct</label>
+    >{{ t('audioTrackControls.ct') }}</label>
     <select
       :value="track.channelMode"
       :aria-label="`${track.name} channel mode`"
@@ -150,19 +151,19 @@ function spectrum(change: Partial<NonNullable<AudioTrack['spectrum']>>) {
       "
     >
       <option value="stereo">
-        L+R
+        {{ t('audioTrackControls.lR') }}
       </option>
       <option value="left">
-        Left
+        {{ t('audioTrackControls.left') }}
       </option>
       <option value="right">
-        Right
+        {{ t('audioTrackControls.right') }}
       </option>
       <option value="mid">
-        Mid
+        {{ t('audioTrackControls.mid') }}
       </option>
       <option value="side">
-        Side
+        {{ t('audioTrackControls.side') }}
       </option>
     </select>
     <button
@@ -170,7 +171,7 @@ function spectrum(change: Partial<NonNullable<AudioTrack['spectrum']>>) {
       :class="{ 'is-on': track.toCue }"
       :aria-label="`${track.name} to cue`"
       :aria-pressed="track.toCue"
-      title="To cue output"
+      :title="t('audioTrackControls.toCueOutput')"
       @click="
         edit((t) => {
           t.toCue = !t.toCue
@@ -184,22 +185,22 @@ function spectrum(change: Partial<NonNullable<AudioTrack['spectrum']>>) {
         class="xm-sq"
         :class="{ 'is-on': track.filter.enabled }"
         :aria-label="`${track.name} filter`"
-        title="Filter"
+        :title="t('audioTrackControls.filter')"
       >
         <i class="bi bi-funnel" />
       </summary>
       <div class="xm-filter-popover">
         <label><input
-          type="checkbox"
-          :checked="track.filter.enabled"
-          @change="
-            edit((t) => {
-              t.filter.enabled = ($event.target as HTMLInputElement).checked
-            })
-          "
-        >
-          Filter</label>
-        <label>Type<select
+                 type="checkbox"
+                 :checked="track.filter.enabled"
+                 @change="
+                   edit((t) => {
+                     t.filter.enabled = ($event.target as HTMLInputElement).checked
+                   })
+                 "
+               >
+          {{ t('audioTrackControls.filter') }}</label>
+        <label>{{ t('audioTrackControls.type') }}<select
           :value="track.filter.type"
           @change="
             edit((t) => {
@@ -208,11 +209,11 @@ function spectrum(change: Partial<NonNullable<AudioTrack['spectrum']>>) {
             })
           "
         >
-          <option value="lowpass">Low-pass</option>
-          <option value="highpass">High-pass</option>
-          <option value="bandpass">Band-pass</option>
+          <option value="lowpass">{{ t('audioTrackControls.lowPass') }}</option>
+          <option value="highpass">{{ t('audioTrackControls.highPass') }}</option>
+          <option value="bandpass">{{ t('audioTrackControls.bandPass') }}</option>
         </select></label>
-        <label>Frequency {{ Math.round(track.filter.freq) }} Hz<input
+        <label>{{ t('audioTrackControls.frequency') }} {{ Math.round(track.filter.freq) }} {{ t('audioTrackControls.hz') }}<input
           type="range"
           min="1.30103"
           max="4.30103"
@@ -225,7 +226,7 @@ function spectrum(change: Partial<NonNullable<AudioTrack['spectrum']>>) {
             })
           "
         ></label>
-        <label>Q {{ track.filter.q.toFixed(1)
+        <label>{{ t('audioTrackControls.q') }} {{ track.filter.q.toFixed(1)
         }}<input
           type="range"
           min=".1"

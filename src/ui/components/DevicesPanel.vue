@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { computed, ref, shallowRef, watch } from 'vue'
 import type { DeviceProfile } from '../../shared/model'
 import { engineBus } from '../bus'
@@ -93,10 +94,10 @@ defineExpose({ learn })
           :aria-label="`Learn ${device.name} controls`"
           @click="learn(device.id)"
         >
-          Learn…
+          {{ t('devicesPanel.learn') }}
         </button>
       </div>
-      <label class="xm-muted">Profile<select
+      <label class="xm-muted">{{ t('devicesPanel.profile') }}<select
         class="form-select form-select-sm"
         :aria-label="`${device.name} profile`"
         :value="device.profileId"
@@ -114,8 +115,8 @@ defineExpose({ learn })
       </select></label><span
         v-if="device.profile"
         class="xm-faint"
-      >{{ device.profile.controls.filter((c) => c.msg).length }} of
-        {{ device.profile.controls.length }} controls learned</span><span
+      >{{ device.profile.controls.filter((c) => c.msg).length }} {{ t('devicesPanel.of') }}
+        {{ device.profile.controls.length }} {{ t('devicesPanel.controlsLearned') }}</span><span
         v-if="device.profile?.feedback"
         class="xm-faint"
         :class="{
@@ -131,15 +132,14 @@ defineExpose({ learn })
       v-if="!devices.length"
       class="xm-faint"
     >
-      No controller connected
+      {{ t('devicesPanel.noControllerConnected') }}
     </div>
   </div>
   <p
     v-if="devices.some((d) => d.profile?.feedback === 'arturia-mk3')"
     class="xm-faint mt-2"
   >
-    For KeyLab pad colours and display text, select DAWs on the keyboard.
-    Leave automatic Arturia program selection off to keep DAWs selected.
+    {{ t('devicesPanel.forKeyLabPadColoursAndDisplayTextSelectDAWsOn') }}
   </p>
   <label
     v-if="devices.some((d) => d.profile?.feedback === 'arturia-mk3')"
@@ -148,12 +148,12 @@ defineExpose({ learn })
     type="checkbox"
     :checked="settings.value.devices.arturiaForceProgram"
     @change="forceProgram"
-  >Select Arturia program on connect</label>
+  >{{ t('devicesPanel.selectArturiaProgramOnConnect') }}</label>
   <p
     v-if="settings.value.devices.arturiaForceProgram"
     class="xm-faint mt-1"
   >
-    Changes the keyboard's active program.
+    {{ t('devicesPanel.changesTheKeyboardSActiveProgram') }}
   </p>
   <div
     v-if="error"

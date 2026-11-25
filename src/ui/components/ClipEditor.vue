@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Clip } from '../../shared/model'
 import type { RequestMap } from '../../shared/protocol'
@@ -201,10 +202,10 @@ onUnmounted(() => {
         v-model="draft.color"
         type="color"
         class="xm-clip-colour"
-        aria-label="Clip colour"
+        :aria-label="t('clipEditor.clipColour')"
       >
       <h5 id="clip-title">
-        Clip — {{ draft.name }}
+        {{ t('clipEditor.clip') }} {{ draft.name }}
       </h5>
       <button
         class="btn btn-sm btn-xm"
@@ -215,7 +216,7 @@ onUnmounted(() => {
         {{ auditioning ? 'Stop audition' : 'Audition' }}
       </button><button
         class="btn btn-sm btn-ghost"
-        aria-label="Close clip editor"
+        :aria-label="t('clipEditor.closeClipEditor')"
         @click="close"
       >
         <i class="bi bi-x-lg" />
@@ -225,17 +226,17 @@ onUnmounted(() => {
       <div class="xm-row xm-clip-meta">
         <span class="xm-muted flex-grow-1">{{ draft.file
         }}<template v-if="source">
-          · {{ (source.sampleRate / 1000).toFixed(1) }} kHz
+          · {{ (source.sampleRate / 1000).toFixed(1) }} {{ t('clipEditor.kHz') }}
           {{ source.channels === 1 ? 'mono' : 'stereo' }} ·
-          {{ source.durationSec.toFixed(3) }} s</template></span><span class="xm-mono xm-muted">Length
-          {{ Math.max(0, draft.endSec - draft.startSec).toFixed(3) }} s</span>
+          {{ source.durationSec.toFixed(3) }} {{ t('clipEditor.s') }}</template></span><span class="xm-mono xm-muted">{{ t('clipEditor.length') }}
+          {{ Math.max(0, draft.endSec - draft.startSec).toFixed(3) }} {{ t('clipEditor.s') }}</span>
       </div>
       <p
         v-if="loading"
         class="xm-faint"
         role="status"
       >
-        Loading waveform…
+        {{ t('clipEditor.loadingWaveform') }}
       </p>
       <ClipWave
         v-if="source"
@@ -247,7 +248,7 @@ onUnmounted(() => {
         @commit="snap"
       />
       <div class="xm-row xm-clip-range">
-        <label>Start
+        <label>{{ t('clipEditor.start') }}
           <input
             v-model.number="draft.startSec"
             type="number"
@@ -255,8 +256,8 @@ onUnmounted(() => {
             :max="draft.endSec"
             step="0.001"
             class="form-control xm-mono"
-            aria-label="Clip start seconds"
-          ></label><label>End
+            :aria-label="t('clipEditor.clipStartSeconds')"
+          ></label><label>{{ t('clipEditor.end') }}
           <input
             v-model.number="draft.endSec"
             type="number"
@@ -264,7 +265,7 @@ onUnmounted(() => {
             :max="source?.durationSec"
             step="0.001"
             class="form-control xm-mono"
-            aria-label="Clip end seconds"
+            :aria-label="t('clipEditor.clipEndSeconds')"
           ></label><span class="xm-faint">{{
           snapClipBar(doc.project, draft.file, 0) === null
             ? 'Edges snap to nearby zero crossings'
@@ -272,46 +273,46 @@ onUnmounted(() => {
         }}</span><span
           v-if="snapping"
           class="xm-faint"
-        >Snapping…</span>
+        >{{ t('clipEditor.snapping') }}</span>
       </div>
       <div class="row g-3 xm-clip-fields">
         <div class="col-6 col-md-3">
           <label
             class="form-label"
             for="clip-name"
-          >Name</label><input
+          >{{ t('picker.name') }}</label><input
             id="clip-name"
             v-model="draft.name"
             class="form-control"
-            aria-label="Clip name"
+            :aria-label="t('clipEditor.clipName')"
           >
         </div>
         <div class="col-6 col-md-3">
           <label
             class="form-label"
             for="clip-launch"
-          >Launch (pads)</label><select
+          >{{ t('clipEditor.launchPads') }}</label><select
             id="clip-launch"
             v-model="draft.launch"
             class="form-select"
-            aria-label="Clip launch mode"
+            :aria-label="t('clipEditor.clipLaunchMode')"
           >
             <option value="toggle">
-              Toggle
+              {{ t('clipEditor.toggle') }}
             </option>
             <option value="hold">
-              Hold
+              {{ t('clipEditor.hold') }}
             </option>
             <option value="oneShot">
-              One-shot
+              {{ t('clipEditor.oneShot') }}
             </option>
             <option value="retrigger">
-              Retrigger
+              {{ t('clipEditor.retrigger') }}
             </option>
           </select>
         </div>
         <div class="col-6 col-md-3">
-          <label class="form-label">Start / stop on</label>
+          <label class="form-label">{{ t('clipEditor.startStopOn') }}</label>
           <div class="xm-seg">
             <button
               v-for="at in ['now', 'beat', 'bar'] as const"
@@ -328,73 +329,73 @@ onUnmounted(() => {
           <label
             class="form-label"
             for="clip-group"
-          >Exclusive group</label><input
+          >{{ t('clipEditor.exclusiveGroup') }}</label><input
             id="clip-group"
             v-model="draft.group"
             class="form-control"
-            aria-label="Clip exclusive group"
+            :aria-label="t('clipEditor.clipExclusiveGroup')"
           >
         </div>
         <div class="col-12 col-md-4">
-          <label class="form-label">Tempo sync</label>
+          <label class="form-label">{{ t('clipEditor.tempoSync') }}</label>
           <div class="xm-row">
             <label
               class="xm-clip-sync-toggle form-switch"
-              title="Tempo sync"
+              :title="t('clipEditor.tempoSync')"
             >
               <input
                 v-model="draft.sync"
                 type="checkbox"
                 role="switch"
                 class="form-check-input"
-                aria-label="Clip tempo sync"
+                :aria-label="t('clipEditor.clipTempoSync')"
                 @change="sync"
-              ><span class="visually-hidden">Tempo sync</span></label><input
+              ><span class="visually-hidden">{{ t('clipEditor.tempoSync') }}</span></label><input
               v-model.number="draft.beats"
               type="number"
               min="0.0001"
               step="0.25"
               class="form-control xm-mono xm-clip-small"
-              aria-label="Clip beat length"
+              :aria-label="t('clipEditor.clipBeatLength')"
               :disabled="!draft.sync"
-            ><span class="xm-muted">beats</span><button
+            ><span class="xm-muted">{{ t('clipEditor.beats') }}</span><button
               class="btn btn-sm btn-ghost"
               :disabled="!draft.sync"
-              title="Detect from fragment length at current tempo"
+              :title="t('clipEditor.detectFromFragmentLengthAtCurrentTempo')"
               @click="detect"
             >
-              Detect
+              {{ t('library.detect') }}
             </button>
           </div>
         </div>
         <div class="col-12 col-md-5">
-          <label class="form-label">Pitch</label>
+          <label class="form-label">{{ t('clipEditor.pitch') }}</label>
           <div class="xm-row">
             <input
               v-model.number="draft.semitones"
               type="number"
               step="0.1"
               class="form-control xm-mono xm-clip-small"
-              aria-label="Clip semitones"
-            ><span class="xm-muted">st</span>
+              :aria-label="t('clipEditor.clipSemitones')"
+            ><span class="xm-muted">{{ t('clipEditor.st') }}</span>
             <div class="xm-seg">
               <button
                 :class="{ 'is-on': draft.pitchMode === 'keepTempo' }"
                 @click="draft.pitchMode = 'keepTempo'"
               >
-                Keep tempo
+                {{ t('clipEditor.keepTempo') }}
               </button><button
                 :class="{ 'is-on': draft.pitchMode === 'tape' }"
                 :disabled="draft.sync"
                 @click="draft.pitchMode = 'tape'"
               >
-                Tape (pitch + speed)
+                {{ t('clipEditor.tapePitchSpeed') }}
               </button>
             </div>
           </div>
         </div>
         <div class="col-12 col-md-3">
-          <label class="form-label">Gain · Pan</label>
+          <label class="form-label">{{ t('clipEditor.gainPan') }}</label>
           <div class="xm-row">
             <input
               v-model.number="draft.gain"
@@ -403,7 +404,7 @@ onUnmounted(() => {
               max="1"
               step="0.01"
               class="form-range"
-              aria-label="Clip gain"
+              :aria-label="t('clipEditor.clipGain')"
             ><input
               v-model.number="draft.pan"
               type="range"
@@ -411,12 +412,12 @@ onUnmounted(() => {
               max="1"
               step="0.01"
               class="form-range"
-              aria-label="Clip pan"
+              :aria-label="t('clipEditor.clipPan')"
             >
           </div>
         </div>
         <div class="col-12">
-          <label class="form-label">Options</label>
+          <label class="form-label">{{ t('clipEditor.options') }}</label>
           <div class="xm-wrap">
             <button
               v-for="option in [
@@ -432,25 +433,25 @@ onUnmounted(() => {
               @click="draft[option.key] = !draft[option.key]"
             >
               {{ option.label }}
-            </button><label class="xm-row ms-auto">Fade
+            </button><label class="xm-row ms-auto">{{ t('clipEditor.fade') }}
               <input
                 v-model.number="draft.fadeMs"
                 type="number"
                 min="0"
                 step="1"
                 class="form-control xm-mono xm-clip-small"
-                aria-label="Clip fade milliseconds"
+                :aria-label="t('clipEditor.clipFadeMilliseconds')"
               >
-              ms</label>
+              {{ t('control.ms') }}</label>
           </div>
           <small
             v-if="draft.toCue && settings.value.audio.cue.mode === 'device'"
             class="xm-faint"
-          >Separate-device cue timing is approximate.</small>
+          >{{ t('clipEditor.separateDeviceCueTimingIsApproximate') }}</small>
         </div>
         <div class="col-12">
           <hr class="xm-clip-divider">
-          <label class="form-label">On a fader or knob</label>
+          <label class="form-label">{{ t('clipEditor.onAFaderOrKnob') }}</label>
           <div class="xm-row xm-clip-sweep">
             <div class="xm-seg">
               <button
@@ -467,34 +468,34 @@ onUnmounted(() => {
                 {{ mode.label }}
               </button>
             </div>
-            <label class="xm-row">Range
+            <label class="xm-row">{{ t('clipEditor.range') }}
               <input
                 v-model.number="draft.sweep.range[0]"
                 type="number"
                 class="form-control xm-mono xm-clip-small"
-                aria-label="Clip sweep minimum semitones"
-              ></label><label class="xm-row">to
+                :aria-label="t('clipEditor.clipSweepMinimumSemitones')"
+              ></label><label class="xm-row">{{ t('clipEditor.to') }}
               <input
                 v-model.number="draft.sweep.range[1]"
                 type="number"
                 class="form-control xm-mono xm-clip-small"
-                aria-label="Clip sweep maximum semitones"
+                :aria-label="t('clipEditor.clipSweepMaximumSemitones')"
               >
-              st</label><label
+              {{ t('clipEditor.st') }}</label><label
               v-if="draft.sweep.mode === 'moving'"
               class="xm-row"
-            >Release
+            >{{ t('clipEditor.release') }}
               <input
                 v-model.number="draft.sweep.releaseMs"
                 type="number"
                 min="0"
                 class="form-control xm-mono xm-clip-small"
-                aria-label="Clip sweep release milliseconds"
+                :aria-label="t('clipEditor.clipSweepReleaseMilliseconds')"
               >
-              ms</label><label
+              {{ t('control.ms') }}</label><label
               v-if="draft.sweep.mode === 'position'"
               class="xm-row"
-            >Off below
+            >{{ t('clipEditor.offBelow') }}
               <input
                 v-model.number="draft.sweep.offBelow"
                 type="number"
@@ -502,7 +503,7 @@ onUnmounted(() => {
                 max="1"
                 step="0.01"
                 class="form-control xm-mono xm-clip-small"
-                aria-label="Clip sweep off threshold"
+                :aria-label="t('clipEditor.clipSweepOffThreshold')"
               ></label>
           </div>
         </div>
@@ -521,18 +522,18 @@ onUnmounted(() => {
         class="btn btn-ghost text-danger me-auto"
         @click="remove"
       >
-        <i class="bi bi-trash" /> Delete clip
-      </button><span class="xm-faint xm-clip-bound">Bound to: {{ bound || '—' }}</span><button
+        <i class="bi bi-trash" /> {{ t('clipEditor.deleteClip') }}
+      </button><span class="xm-faint xm-clip-bound">{{ t('clipEditor.boundTo') }} {{ bound || '—' }}</span><button
         class="btn btn-xm"
         @click="close"
       >
-        Cancel
+        {{ t('picker.cancel') }}
       </button><button
         class="btn btn-primary"
         :disabled="loading || snapping || !valid"
         @click="done"
       >
-        Done
+        {{ t('library.done') }}
       </button>
     </div>
   </dialog>

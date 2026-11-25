@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { computed } from 'vue'
 import type { Condition, Project } from '../../shared/model'
 const props = defineProps<{ modelValue?: Condition; project: Project }>(),
@@ -67,33 +68,33 @@ function child(index: number, value: Condition | undefined): void {
   <div class="xm-condition-editor">
     <select
       class="form-select form-select-sm"
-      aria-label="Condition type"
+      :aria-label="t('conditionEditor.conditionType')"
       :value="kind"
       @change="choose(($event.target as HTMLSelectElement).value)"
     >
       <option value="always">
-        Always
+        {{ t('conditionEditor.always') }}
       </option>
       <option value="reg">
-        Register
+        {{ t('conditionEditor.register') }}
       </option>
       <option value="scene">
-        Scene
+        {{ t('conditionEditor.scene') }}
       </option>
       <option value="bars">
-        Bar range
+        {{ t('conditionEditor.barRange') }}
       </option>
       <option value="playing">
-        Playing state
+        {{ t('conditionEditor.playingState') }}
       </option>
       <option value="all">
-        All conditions
+        {{ t('conditionEditor.allConditions') }}
       </option>
       <option value="any">
-        Any condition
+        {{ t('conditionEditor.anyCondition') }}
       </option>
       <option value="not">
-        Not
+        {{ t('conditionEditor.not') }}
       </option>
     </select>
     <div
@@ -102,7 +103,7 @@ function child(index: number, value: Condition | undefined): void {
     >
       <select
         class="form-select form-select-sm"
-        aria-label="Condition register"
+        :aria-label="t('conditionEditor.conditionRegister')"
         :value="modelValue.reg"
         @change="
           emit('update:modelValue', {
@@ -120,7 +121,7 @@ function child(index: number, value: Condition | undefined): void {
         </option>
       </select><select
         class="form-select form-select-sm"
-        aria-label="Register condition state"
+        :aria-label="t('conditionEditor.registerConditionState')"
         :value="String(modelValue.on)"
         @change="
           emit('update:modelValue', {
@@ -130,17 +131,17 @@ function child(index: number, value: Condition | undefined): void {
         "
       >
         <option value="true">
-          On
+          {{ t('actionPicker.on') }}
         </option>
         <option value="false">
-          Off
+          {{ t('actionPicker.off') }}
         </option>
       </select>
     </div>
     <select
       v-else-if="modelValue && 'scene' in modelValue"
       class="form-select form-select-sm mt-2"
-      aria-label="Condition scene"
+      :aria-label="t('conditionEditor.conditionScene')"
       :value="modelValue.scene"
       @change="
         emit('update:modelValue', {
@@ -152,7 +153,7 @@ function child(index: number, value: Condition | undefined): void {
         value=""
         disabled
       >
-        Select scene
+        {{ t('actionPicker.selectScene') }}
       </option>
       <option
         v-for="scene in project.scenes"
@@ -170,7 +171,7 @@ function child(index: number, value: Condition | undefined): void {
         class="form-control form-control-sm"
         type="number"
         min="1"
-        aria-label="First bar"
+        :aria-label="t('conditionEditor.firstBar')"
         :value="modelValue.bars[0]"
         @change="
           emit('update:modelValue', {
@@ -180,11 +181,11 @@ function child(index: number, value: Condition | undefined): void {
             ],
           })
         "
-      ><span>to</span><input
+      ><span>{{ t('clipEditor.to') }}</span><input
         class="form-control form-control-sm"
         type="number"
         min="1"
-        aria-label="Last bar"
+        :aria-label="t('conditionEditor.lastBar')"
         :value="modelValue.bars[1]"
         @change="
           emit('update:modelValue', {
@@ -199,7 +200,7 @@ function child(index: number, value: Condition | undefined): void {
     <select
       v-else-if="modelValue && 'playing' in modelValue"
       class="form-select form-select-sm mt-2"
-      aria-label="Playing condition"
+      :aria-label="t('conditionEditor.playingCondition')"
       :value="String(modelValue.playing)"
       @change="
         emit('update:modelValue', {
@@ -208,10 +209,10 @@ function child(index: number, value: Condition | undefined): void {
       "
     >
       <option value="true">
-        Playing
+        {{ t('conditionEditor.playing') }}
       </option>
       <option value="false">
-        Stopped
+        {{ t('conditionEditor.stopped') }}
       </option>
     </select>
     <div
@@ -229,7 +230,7 @@ function child(index: number, value: Condition | undefined): void {
         class="btn btn-sm btn-ghost"
         @click="child(children.length, { playing: true })"
       >
-        + Add condition
+        {{ t('conditionEditor.addCondition') }}
       </button>
     </div>
   </div>

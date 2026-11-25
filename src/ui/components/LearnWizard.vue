@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import type { ControlDef, DeviceProfile } from '../../shared/model'
 import { controlMessages, sameControlMessage } from '../../shared/control-messages'
@@ -180,11 +181,11 @@ onUnmounted(() => {
   >
     <div class="xm-dialog-h">
       <h5 id="learn-title">
-        Learn controls — {{ profile.name }}
+        {{ t('learnWizard.learnControls') }} {{ profile.name }}
       </h5>
       <span class="xm-muted xm-mono">{{ Math.min(index + 1, items.length) }} / {{ items.length }}</span><button
         class="btn btn-sm btn-ghost"
-        aria-label="Close learn controls"
+        :aria-label="t('learnWizard.closeLearnControls')"
         :disabled="busy"
         @click="emit('close')"
       >
@@ -194,7 +195,7 @@ onUnmounted(() => {
     <div class="xm-dialog-b xm-learn-body">
       <template v-if="current">
         <div class="xm-faint xm-learn-eyebrow">
-          Now press or move
+          {{ t('learnWizard.nowPressOrMove') }}
         </div>
         <h2>{{ current.label }}</h2>
         <div class="xm-ctl-row xm-learn-progress">
@@ -237,7 +238,7 @@ onUnmounted(() => {
           <label
             for="learn-mode"
             class="form-label"
-          >Detected mode · correct if needed</label><select
+          >{{ t('learnWizard.detectedModeCorrectIfNeeded') }}</label><select
             id="learn-mode"
             class="form-select"
             :value="pending.mode"
@@ -250,10 +251,10 @@ onUnmounted(() => {
             "
           >
             <option value="absolute">
-              Absolute
+              {{ t('learnWizard.absolute') }}
             </option>
             <option value="relative64">
-              Relative around 64
+              {{ t('learnWizard.relativeAround64') }}
             </option>
           </select>
         </div>
@@ -262,19 +263,19 @@ onUnmounted(() => {
           class="btn btn-sm btn-xm mt-3"
           @click="begin"
         >
-          Re-learn this control
+          {{ t('learnWizard.reLearnThisControl') }}
         </button>
       </template>
       <template v-else-if="completed">
-        <h2>Controls captured</h2>
+        <h2>{{ t('learnWizard.controlsCaptured') }}</h2>
         <p class="xm-muted">
-          Finish to save this controller profile.
+          {{ t('learnWizard.finishToSaveThisControllerProfile') }}
         </p>
       </template>
       <template v-else>
-        <h2>Add a control</h2>
+        <h2>{{ t('learnWizard.addAControl') }}</h2>
         <p class="xm-muted">
-          Choose a control type, then press or move it.
+          {{ t('learnWizard.chooseAControlTypeThenPressOrMoveIt') }}
         </p>
       </template>
       <div
@@ -284,7 +285,7 @@ onUnmounted(() => {
         <select
           v-model="newKind"
           class="form-select"
-          aria-label="New control type"
+          :aria-label="t('learnWizard.newControlType')"
         >
           <option
             v-for="kind in ['pad', 'button', 'knob', 'fader', 'encoder']"
@@ -297,14 +298,14 @@ onUnmounted(() => {
           class="btn btn-xm"
           @click="add"
         >
-          Add control
+          {{ t('learnWizard.addControl') }}
         </button>
       </div>
       <div
         v-if="last"
         class="xm-faint mt-3"
       >
-        Last captured: {{ last }}
+        {{ t('learnWizard.lastCaptured') }} {{ last }}
       </div>
       <div
         v-if="error"
@@ -320,27 +321,27 @@ onUnmounted(() => {
         :disabled="busy || index === 0"
         @click="back"
       >
-        Back
+        {{ t('tutorial.back') }}
       </button><button
         v-if="current"
         class="btn btn-xm"
         :disabled="busy"
         @click="next(true)"
       >
-        Skip
+        {{ t('learnWizard.skip') }}
       </button><button
         v-if="current"
         class="btn btn-xm"
         :disabled="busy || !pending"
         @click="next()"
       >
-        Next
+        {{ t('tutorial.next') }}
       </button><button
         class="btn btn-primary"
         :disabled="busy"
         @click="finish"
       >
-        Finish
+        {{ t('tutorial.finish') }}
       </button>
     </div>
   </dialog>

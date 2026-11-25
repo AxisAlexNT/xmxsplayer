@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { computed, nextTick, ref } from 'vue'
 import type { Scene, Timing } from '../../shared/model'
 import { uniqueId } from '../../shared/ids'
@@ -108,13 +109,13 @@ function remove(): void {
   <div class="xm-row justify-content-between mb-2">
     <div
       class="xm-seg"
-      aria-label="Store performance edits in"
+      :aria-label="t('scenesPanel.storePerformanceEditsIn')"
     >
       <button
         :class="{ 'is-on': !performance.editScene }"
         @click="performance.editScene = false"
       >
-        Base
+        {{ t('scenesPanel.base') }}
       </button>
       <button
         :disabled="!performance.scene"
@@ -127,16 +128,16 @@ function remove(): void {
     <select
       v-model="timing"
       class="form-select xm-scene-timing"
-      aria-label="Scene activation timing"
+      :aria-label="t('scenesPanel.sceneActivationTiming')"
     >
       <option value="now">
-        Now
+        {{ t('bindingEditor.now') }}
       </option>
       <option value="beat">
-        Beat
+        {{ t('control.beat') }}
       </option>
       <option value="bar">
-        Bar
+        {{ t('timeline.bar') }}
       </option>
     </select>
   </div>
@@ -144,10 +145,10 @@ function remove(): void {
     <button
       class="xm-chip"
       :class="{ 'is-active': runtime.state.activeSceneId === null }"
-      aria-label="Activate base setup"
+      :aria-label="t('scenesPanel.activateBaseSetup')"
       @click="activate(null)"
     >
-      Base
+      {{ t('scenesPanel.base') }}
     </button>
     <div
       v-for="scene in doc.project.scenes"
@@ -178,28 +179,28 @@ function remove(): void {
       class="xm-chip is-add"
       @click="capture"
     >
-      <i class="bi bi-camera" />Capture
+      <i class="bi bi-camera" />{{ t('scenesPanel.capture') }}
     </button>
   </div>
   <p
     v-if="!doc.project.scenes.length"
     class="xm-faint mt-2 mb-0"
   >
-    Capture the current zones, patch and registers as a scene.
+    {{ t('scenesPanel.captureTheCurrentZonesPatchAndRegistersAsAScene') }}
   </p>
   <EditorPopover
     v-if="selected"
-    title="Scene"
+    :title="t('conditionEditor.scene')"
     :anchor="anchor"
     @close="selectedId = null"
   >
-    <label class="form-label">Name<input
+    <label class="form-label">{{ t('picker.name') }}<input
       class="form-control"
-      aria-label="Scene name"
+      :aria-label="t('scenesPanel.sceneName')"
       :value="selected.name"
       @change="update({ name: ($event.target as HTMLInputElement).value })"
     ></label>
-    <label class="form-label mt-2">Colour</label>
+    <label class="form-label mt-2">{{ t('scenesPanel.colour') }}</label>
     <div class="xm-wrap mb-3">
       <button
         v-for="color in palette"
@@ -216,19 +217,19 @@ function remove(): void {
         class="btn btn-sm btn-ghost"
         @click="duplicate"
       >
-        <i class="bi bi-copy" /> Duplicate
+        <i class="bi bi-copy" /> {{ t('scenesPanel.duplicate') }}
       </button><button
         class="btn btn-sm btn-ghost"
         @click="reset"
       >
-        <i class="bi bi-arrow-counterclockwise" /> Reset to base
+        <i class="bi bi-arrow-counterclockwise" /> {{ t('scenesPanel.resetToBase') }}
       </button>
     </div>
     <button
       class="btn btn-sm btn-ghost text-danger"
       @click="remove"
     >
-      <i class="bi bi-trash" /> Delete scene
+      <i class="bi bi-trash" /> {{ t('scenesPanel.deleteScene') }}
     </button>
     <p
       v-if="error"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { AudioPeaks } from '../../shared/audio'
 import { PEAK_FRAMES } from '../../shared/audio'
@@ -239,7 +240,7 @@ onUnmounted(() => {
   >
     <canvas
       ref="canvas"
-      aria-label="Clip source waveform; drag to pan, wheel or pinch to zoom"
+      :aria-label="t('clipWave.clipSourceWaveformDragToPanWheelOrPinchTo')"
       @pointerdown="begin"
       @pointermove="pan"
       @pointerup="endGesture"
@@ -257,7 +258,7 @@ onUnmounted(() => {
       class="xm-clip-handle is-start"
       :style="handleStyle(start)"
       role="slider"
-      aria-label="Clip start handle"
+      :aria-label="t('clipWave.clipStartHandle')"
       :aria-valuenow="start"
       :aria-valuemin="0"
       :aria-valuemax="end"
@@ -271,7 +272,7 @@ onUnmounted(() => {
       class="xm-clip-handle is-end"
       :style="handleStyle(end)"
       role="slider"
-      aria-label="Clip end handle"
+      :aria-label="t('clipWave.clipEndHandle')"
       :aria-valuenow="end"
       :aria-valuemin="start"
       :aria-valuemax="source.durationSec"
@@ -282,15 +283,15 @@ onUnmounted(() => {
     </button>
   </div>
   <div class="xm-row xm-clip-wave-tools">
-    <small class="xm-faint flex-grow-1">Drag edges · Scroll or pinch to zoom · Drag background to pan</small><button
+    <small class="xm-faint flex-grow-1">{{ t('clipWave.dragEdgesScrollOrPinchToZoomDragBackgroundTo') }}</small><button
       class="btn btn-sm btn-ghost"
-      aria-label="Zoom waveform out"
+      :aria-label="t('clipWave.zoomWaveformOut')"
       @click="zoom(2)"
     >
       −
     </button><button
       class="btn btn-sm btn-ghost"
-      aria-label="Zoom waveform in"
+      :aria-label="t('clipWave.zoomWaveformIn')"
       @click="zoom(0.5)"
     >
       +
@@ -298,7 +299,7 @@ onUnmounted(() => {
       class="btn btn-sm btn-ghost"
       @click="fit"
     >
-      Fit
+      {{ t('clipWave.fit') }}
     </button>
   </div>
 </template>

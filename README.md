@@ -4,7 +4,7 @@ A desktop workspace for transcribing music by ear and performing arrangements wi
 
 ## Status
 
-The native menus and file-conflict messages share an English translation catalogue.
+Press **F1** for six guided tutorials, including practice copies and on-screen controls. Import PDF sheet music into a resizable timeline lane or right pane, then use bar markers, pads, or cues to turn pages. The [quick start](docs/quick-start.md) walks through recording, notation, and score navigation.
 
 Audio tracks offer Wave, Spectrum and Both views with channel isolation, note overlays and a project-local analysis cache.
 
@@ -73,7 +73,7 @@ Bindings can vary by controller and scene, with conditions and beat/bar timing. 
 - Linux Chromium may print `inotify_init failed: Too many open files` while the player still starts. It can indicate exhaustion of the per-user inotify instance limit or the process file-descriptor limit. Check `/proc/sys/fs/inotify/max_user_instances` and `ulimit -n`. Close unused watcher-heavy applications. For project file watching on a constrained workstation, launch with `CHOKIDAR_USEPOLLING=1`.
 
 
-- Recorded/edited staves use automatic single-voice notation. Polished engraving comes from the linked score. Only the map-owner score renders as staves; other linked scores use the piano roll. D.C./D.S./Coda jumps are not unrolled.
+- Recorded and edited MIDI parts support single or grand staff, hand splits, and up to two voices. Polished engraving comes from the linked score. Only the map-owner score renders as staves; other linked scores use the piano roll. D.C./D.S./Coda jumps are not unrolled.
 - App-to-MuseScore transfer uses exported MIDI that you open/import in MuseScore; it does not reload an already open MuseScore document. YAML comments are lost when rewritten.
 - FluidSynth sequenced events use a 1 ms due timer and can incur roughly 1–4 ms scheduling jitter; this is not a measured hardware guarantee. Live events dispatch immediately to its managed stdin path. Its tested stdin interface lacks instrument aftertouch; use Built-in for pressure-sensitive synth parts.
 - Separate-device cue audio has approximate sync and realigns every five seconds. Neither software latency readout measures keyboard-to-speaker delay. High output latency can put audible-beat pad feedback behind the on-screen transport lamps.

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import type { AudioTrack, Clip } from '../../shared/model'
 import type { RequestMap } from '../../shared/protocol'
@@ -193,23 +194,23 @@ onUnmounted(() => {
       :disabled="busy || !doc.folder || !runtime.connected"
       @click="create(false)"
     >
-      + From file
+      {{ t('clipsPanel.fromFile') }}
     </button>
     <button
       class="btn btn-sm btn-ghost"
       :disabled="
         busy || !audio || !doc.project.loop.enabled || !runtime.connected
       "
-      title="Use the loop range of the selected audio track"
+      :title="t('clipsPanel.useTheLoopRangeOfTheSelectedAudioTrack')"
       @click="create(true)"
     >
-      From loop
+      {{ t('clipsPanel.fromLoop') }}
     </button>
     <span
       v-if="busy"
       class="xm-faint"
       role="status"
-    >Loading…</span>
+    >{{ t('clipsPanel.loading') }}</span>
   </div>
   <div
     class="xm-clips"
@@ -261,11 +262,11 @@ onUnmounted(() => {
   <span
     v-if="!doc.project.clips.length"
     class="xm-faint"
-  >Add a file or use a loop from an audio track.</span>
+  >{{ t('clipsPanel.addAFileOrUseALoopFromAnAudio') }}</span>
   <small
     v-else
     class="xm-faint d-block mt-2"
-  >Tap to launch · Pencil to edit · Drag onto a control to bind</small>
+  >{{ t('clipsPanel.tapToLaunchPencilToEditDragOntoAControl') }}</small>
   <p
     v-for="clip in doc.project.clips.filter((c) => runtime.clipErrors[c.id])"
     :key="clip.id"

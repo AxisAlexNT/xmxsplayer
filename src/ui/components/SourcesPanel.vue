@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { useProjectStore } from '../stores/project'
 import { useSourcesStore } from '../stores/sources'
 const doc = useProjectStore(),
@@ -32,7 +33,7 @@ async function open(file: string): Promise<void> {
             >{{ sources.busy[source.id] ? 'syncing…' : source.error ? 'error' : source.lastSync ? `synced ${new Date(source.lastSync).toLocaleTimeString()}` : 'not synced' }}</span> <span
               v-if="modified(source.id)"
               class="xm-badge is-ahead"
-            >{{ modified(source.id) }} modified here</span><small class="xm-faint d-block">{{ doc.project.mapOwner === source.id ? 'Owns tempo, time and key' : 'Notes only' }}</small>
+            >{{ modified(source.id) }} {{ t('sourcesPanel.modifiedHere') }}</span><small class="xm-faint d-block">{{ doc.project.mapOwner === source.id ? 'Owns tempo, time and key' : 'Notes only' }}</small>
           </div>
         </div>
       </div>
@@ -49,17 +50,17 @@ async function open(file: string): Promise<void> {
           :disabled="sources.busy[source.id]"
           @click="sources.sync(source.id)"
         >
-          Re-sync
+          {{ t('sourcesPanel.reSync') }}
         </button><button
           class="btn btn-sm btn-ghost"
           @click="open(source.file)"
         >
-          Open in MuseScore
+          {{ t('sourcesPanel.openInMuseScore') }}
         </button><button
           class="btn btn-sm btn-ghost text-danger"
           @click="sources.unlink(source.id)"
         >
-          Unlink
+          {{ t('sourcesPanel.unlink') }}
         </button>
       </div>
     </div>
@@ -68,17 +69,17 @@ async function open(file: string): Promise<void> {
       class="btn btn-sm btn-xm mb-2"
       @click="sources.exportForScore().catch(emit.bind(null, 'error'))"
     >
-      Export MIDI for MuseScore
+      {{ t('menu.exportMidiForMusescore') }}
     </button>
     <span
       v-if="!doc.project.sources.length"
       class="xm-faint"
-    >No linked scores</span>
+    >{{ t('sourcesPanel.noLinkedScores') }}</span>
     <button
       class="btn btn-sm btn-ghost mt-2"
       @click="sources.link().catch(emit.bind(null, 'error'))"
     >
-      + Link score
+      {{ t('sourcesPanel.linkScore') }}
     </button>
   </div>
 </template>

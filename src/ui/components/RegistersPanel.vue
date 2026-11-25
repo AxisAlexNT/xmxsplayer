@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { computed, onUnmounted, ref } from 'vue'
 import type { RegisterDef } from '../../shared/model'
 import { registerColor } from '../../shared/register-colors'
@@ -81,7 +82,7 @@ onUnmounted(stop)
       <button
         :aria-label="`Register ${index + 1}: ${reg.name}`"
         :aria-pressed="runtime.state.registers[index]"
-        title="Click to toggle; right-click, hold or press F2 to edit"
+        :title="t('registersPanel.clickToToggleRightClickHoldOrPressF2To')"
         @pointerdown="down($event, index)"
         @pointerup="stop"
         @pointercancel="stop"
@@ -105,20 +106,20 @@ onUnmounted(stop)
   </div>
   <EditorPopover
     v-if="selected !== null"
-    title="Register"
+    :title="t('conditionEditor.register')"
     :anchor="anchor"
     @close="selected = null"
   >
-    <label class="form-label">Name<input
+    <label class="form-label">{{ t('picker.name') }}<input
       class="form-control"
-      aria-label="Register name"
+      :aria-label="t('registersPanel.registerName')"
       :value="doc.project.registers[selected].name"
       @change="update({ name: ($event.target as HTMLInputElement).value })"
     ></label>
     <div class="row g-2 mt-1">
-      <label class="col form-label">Mode<select
+      <label class="col form-label">{{ t('registersPanel.mode') }}<select
         class="form-select"
-        aria-label="Register mode"
+        :aria-label="t('registersPanel.registerMode')"
         :value="doc.project.registers[selected].mode"
         @change="
           update({
@@ -127,12 +128,12 @@ onUnmounted(stop)
           })
         "
       >
-        <option value="toggle">Toggle</option>
-        <option value="exclusive">Exclusive</option>
+        <option value="toggle">{{ t('clipEditor.toggle') }}</option>
+        <option value="exclusive">{{ t('registersPanel.exclusive') }}</option>
       </select></label>
-      <label class="col form-label">Group<input
+      <label class="col form-label">{{ t('registersPanel.group') }}<input
         class="form-control"
-        aria-label="Register group"
+        :aria-label="t('registersPanel.registerGroup')"
         :disabled="doc.project.registers[selected].mode !== 'exclusive'"
         :value="doc.project.registers[selected].group ?? ''"
         @change="
@@ -144,7 +145,7 @@ onUnmounted(stop)
       ></label>
     </div>
     <p class="xm-faint mb-0">
-      Exclusive registers in the same group share one colour.
+      {{ t('registersPanel.exclusiveRegistersInTheSameGroupShareOneColour') }}
     </p>
     <p
       v-if="error"

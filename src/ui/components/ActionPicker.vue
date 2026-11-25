@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { orchestraSections } from '../../shared/orchestra'
 import { effectOwners } from '../../shared/effect-targets'
 import { controlsForEffect } from '../../shared/effects'
@@ -236,7 +237,7 @@ const targets: ParamTarget[] = [
 ]
 </script>
 <template>
-  <label v-if="a.type==='orchestra' && a.cmd==='select'">Orchestra <select
+  <label v-if="a.type==='orchestra' && a.cmd==='select'">{{ t('actionPicker.orchestra') }} <select
     :value="a.orchestraId"
     @change="patch({orchestraId:($event.target as HTMLSelectElement).value})"
   ><option
@@ -247,9 +248,9 @@ const targets: ParamTarget[] = [
   <div class="xm-action-picker">
     <div class="row g-2">
       <div class="col-6">
-        <label class="form-label">Action</label><select
+        <label class="form-label">{{ t('actionPicker.action') }}</label><select
           class="form-select form-select-sm"
-          aria-label="Action type"
+          :aria-label="t('actionPicker.actionType')"
           :value="unbound ? '' : a.type"
           @change="
             choose(
@@ -261,7 +262,7 @@ const targets: ParamTarget[] = [
             v-if="allowUnbound"
             value=""
           >
-            Unbound
+            {{ t('actionPicker.unbound') }}
           </option>
           <option
             v-for="type in types"
@@ -276,9 +277,9 @@ const targets: ParamTarget[] = [
         v-if="commands.length && !unbound"
         class="col-6"
       >
-        <label class="form-label">Command</label><select
+        <label class="form-label">{{ t('actionPicker.command') }}</label><select
           class="form-select form-select-sm"
-          aria-label="Action command"
+          :aria-label="t('actionPicker.actionCommand')"
           :value="'cmd' in a ? a.cmd : ''"
           @change="command(($event.target as HTMLSelectElement).value)"
         >
@@ -301,12 +302,12 @@ const targets: ParamTarget[] = [
       class="xm-action-fields mt-2"
     >
       <template v-if="a.type==='pdf'">
-        <label>PDF score
+        <label>{{ t('actionPicker.pdfScore') }}
           <select
             :value="a.documentId ?? ''"
             @change="patch({documentId:($event.target as HTMLSelectElement).value || undefined})"
           >
-            <option value="">Active score</option>
+            <option value="">{{ t('actionPicker.activeScore') }}</option>
             <option
               v-for="sheet in project.documents"
               :key="sheet.id"
@@ -314,7 +315,7 @@ const targets: ParamTarget[] = [
             >{{ sheet.name }}</option>
           </select>
         </label>
-        <label v-if="a.cmd==='scroll'">Scroll distance (pixels)
+        <label v-if="a.cmd==='scroll'">{{ t('actionPicker.scrollDistancePixels') }}
           <input
             type="number"
             :value="a.amount ?? 160"
@@ -323,9 +324,9 @@ const targets: ParamTarget[] = [
         </label>
       </template>
       <template v-if="a.type === 'param'">
-        <label class="form-label">Parameter</label><select
+        <label class="form-label">{{ t('actionPicker.parameter') }}</label><select
           class="form-select form-select-sm"
-          aria-label="Parameter target"
+          :aria-label="t('actionPicker.parameterTarget')"
           :value="a.target"
           @change="
             target(($event.target as HTMLSelectElement).value as ParamTarget)
@@ -343,7 +344,7 @@ const targets: ParamTarget[] = [
         <label
           v-if="a.target.startsWith('orchestra.')"
           class="form-label"
-        >Orchestra
+        >{{ t('actionPicker.orchestra') }}
           <select
             class="form-select"
             :value="a.id"
@@ -359,7 +360,7 @@ const targets: ParamTarget[] = [
         <label
           v-if="a.target==='section.gain'"
           class="form-label"
-        >Orchestra section
+        >{{ t('actionPicker.orchestraSection') }}
           <select
             class="form-select"
             :value="a.id"
@@ -375,7 +376,7 @@ const targets: ParamTarget[] = [
         <label
           v-if="a.target==='instrument.cc'"
           class="form-label"
-        >MIDI controller number
+        >{{ t('actionPicker.midiControllerNumber') }}
           <input
             type="number"
             min="0"
@@ -388,10 +389,10 @@ const targets: ParamTarget[] = [
         <label
           v-if="a.target==='effect.param'"
           class="form-label mt-2"
-        >Effect parameter
+        >{{ t('actionPicker.effectParameter') }}
           <select
             class="form-select form-select-sm"
-            aria-label="Effect parameter"
+            :aria-label="t('actionPicker.effectParameter')"
             :value="selectedEffect"
             @change="selectEffect(Number(($event.target as HTMLSelectElement).value))"
           >
@@ -404,7 +405,7 @@ const targets: ParamTarget[] = [
         </label><label
           v-if="a.target==='instrument.pluginParam'"
           class="form-label mt-2"
-        >Plugin control<select
+        >{{ t('actionPicker.pluginControl') }}<select
           class="form-select"
           :value="pluginControls.findIndex(p=>a.type==='param' && p.id===a.id && p.param===a.param)"
           @change="selectPlugin(Number(($event.target as HTMLSelectElement).value))"
@@ -417,16 +418,16 @@ const targets: ParamTarget[] = [
         </select></label><label
           v-else-if="a.target.startsWith('instrument.')"
           class="form-label mt-2"
-        >Instrument<select
+        >{{ t('actionPicker.instrument') }}<select
           class="form-select form-select-sm"
-          aria-label="Parameter instrument"
+          :aria-label="t('actionPicker.parameterInstrument')"
           :value="a.id ?? ''"
           @change="patch({ id: ($event.target as HTMLSelectElement).value })"
         >
           <option
             value=""
             disabled
-          >Select instrument</option>
+          >{{ t('actionPicker.selectInstrument') }}</option>
           <option
             v-for="instrument in project.instruments"
             :key="instrument.id"
@@ -439,9 +440,9 @@ const targets: ParamTarget[] = [
             a.target.startsWith('track.') || a.target.startsWith('audio.')
           "
           class="form-label mt-2"
-        >Track<select
+        >{{ t('actionPicker.track') }}<select
           class="form-select form-select-sm"
-          aria-label="Parameter track"
+          :aria-label="t('actionPicker.parameterTrack')"
           :value="a.id ?? ''"
           @change="
             patch({
@@ -449,7 +450,7 @@ const targets: ParamTarget[] = [
             })
           "
         >
-          <option value="">By fader order</option>
+          <option value="">{{ t('actionPicker.byFaderOrder') }}</option>
           <option
             v-for="track in project.tracks.filter(
               (t) =>
@@ -463,20 +464,20 @@ const targets: ParamTarget[] = [
           </option>
         </select></label>
         <div class="xm-row mt-2">
-          <label class="form-label">Minimum<input
+          <label class="form-label">{{ t('actionPicker.minimum') }}<input
             class="form-control form-control-sm"
             type="number"
-            aria-label="Parameter minimum"
+            :aria-label="t('actionPicker.parameterMinimum')"
             :value="a.min"
             @change="
               patch({
                 min: Number(($event.target as HTMLInputElement).value),
               })
             "
-          ></label><label class="form-label">Maximum<input
+          ></label><label class="form-label">{{ t('actionPicker.maximum') }}<input
             class="form-control form-control-sm"
             type="number"
-            aria-label="Parameter maximum"
+            :aria-label="t('actionPicker.parameterMaximum')"
             :value="a.max"
             @change="
               patch({
@@ -489,7 +490,7 @@ const targets: ParamTarget[] = [
       <template v-if="a.type === 'note' || a.type === 'trackMode'">
         <label class="form-label">{{ a.type === 'note' ? 'Play through' : 'Track' }}<select
           class="form-select form-select-sm"
-          aria-label="Action track"
+          :aria-label="t('actionPicker.actionTrack')"
           :value="a.type === 'note' && a.instrumentId ? 'instrument:' + a.instrumentId : a.trackId"
           @change="selectNoteTarget(($event.target as HTMLSelectElement).value)"
         >
@@ -506,7 +507,7 @@ const targets: ParamTarget[] = [
           <option
             value=""
             disabled
-          >Select track</option>
+          >{{ t('actionPicker.selectTrack') }}</option>
           <option
             v-for="track in project.tracks.filter(
               (t) => a.type !== 'note' || t.kind === 'midi',
@@ -518,21 +519,21 @@ const targets: ParamTarget[] = [
           </option>
         </select></label><template v-if="a.type === 'note'">
           <div class="xm-row mt-2">
-            <label class="form-label">MIDI key<input
+            <label class="form-label">{{ t('actionPicker.midiKey') }}<input
               class="form-control form-control-sm"
               type="number"
               min="0"
               max="127"
-              aria-label="Note key"
+              :aria-label="t('actionPicker.noteKey')"
               :value="a.key"
               @change="
                 patch({
                   key: Number(($event.target as HTMLInputElement).value),
                 })
               "
-            ></label><label class="form-label">Velocity<select
+            ></label><label class="form-label">{{ t('actionPicker.velocity') }}<select
               class="form-select form-select-sm"
-              aria-label="Note velocity source"
+              :aria-label="t('actionPicker.noteVelocitySource')"
               :value="typeof a.velocity === 'number' ? 'fixed' : a.velocity"
               @change="
                 patch({
@@ -543,16 +544,16 @@ const targets: ParamTarget[] = [
                 })
               "
             >
-              <option value="control">Control</option>
-              <option value="speed">Movement speed</option>
-              <option value="fixed">Fixed</option>
+              <option value="control">{{ t('actionPicker.control') }}</option>
+              <option value="speed">{{ t('actionPicker.movementSpeed') }}</option>
+              <option value="fixed">{{ t('actionPicker.fixed') }}</option>
             </select></label><input
               v-if="typeof a.velocity === 'number'"
               class="form-control form-control-sm"
               type="number"
               min="1"
               max="127"
-              aria-label="Note velocity"
+              :aria-label="t('actionPicker.noteVelocity')"
               :value="a.velocity"
               @change="
                 patch({
@@ -560,12 +561,12 @@ const targets: ParamTarget[] = [
                 })
               "
             >
-            <label class="form-label">Auto-release (ms)
+            <label class="form-label">{{ t('actionPicker.autoReleaseMs') }}
               <input
                 type="number"
                 min="1"
                 class="form-control form-control-sm"
-                placeholder="On release"
+                :placeholder="t('actionPicker.onRelease')"
                 :value="a.gateMs"
                 @change="patch({gateMs:Number(($event.target as HTMLInputElement).value) || undefined})"
               >
@@ -574,7 +575,7 @@ const targets: ParamTarget[] = [
         </template><select
           v-else
           class="form-select form-select-sm mt-2"
-          aria-label="Track mode action"
+          :aria-label="t('actionPicker.trackModeAction')"
           :value="a.mode"
           @change="patch({ mode: ($event.target as HTMLSelectElement).value })"
         >
@@ -590,7 +591,7 @@ const targets: ParamTarget[] = [
       <template v-if="a.type === 'register'">
         <select
           class="form-select form-select-sm"
-          aria-label="Action register"
+          :aria-label="t('actionPicker.actionRegister')"
           :value="a.index"
           @change="
             patch({ index: Number(($event.target as HTMLSelectElement).value) })
@@ -606,24 +607,24 @@ const targets: ParamTarget[] = [
         </select><select
           v-if="a.cmd === 'set'"
           class="form-select form-select-sm mt-2"
-          aria-label="Register action state"
+          :aria-label="t('actionPicker.registerActionState')"
           :value="String(a.on ?? true)"
           @change="
             patch({ on: ($event.target as HTMLSelectElement).value === 'true' })
           "
         >
           <option value="true">
-            On
+            {{ t('actionPicker.on') }}
           </option>
           <option value="false">
-            Off
+            {{ t('actionPicker.off') }}
           </option>
         </select>
       </template>
       <select
         v-if="a.type === 'scene' && a.cmd === 'activate'"
         class="form-select form-select-sm"
-        aria-label="Action scene"
+        :aria-label="t('actionPicker.actionScene')"
         :value="a.sceneId ?? ''"
         @change="patch({ sceneId: ($event.target as HTMLSelectElement).value })"
       >
@@ -631,7 +632,7 @@ const targets: ParamTarget[] = [
           value=""
           disabled
         >
-          Select scene
+          {{ t('actionPicker.selectScene') }}
         </option>
         <option
           v-for="scene in project.scenes"
@@ -644,7 +645,7 @@ const targets: ParamTarget[] = [
       <select
         v-if="a.type === 'follow'"
         class="form-select form-select-sm"
-        aria-label="Follow action mode"
+        :aria-label="t('actionPicker.followActionMode')"
         :value="a.mode"
         @change="patch({ mode: ($event.target as HTMLSelectElement).value })"
       >
@@ -659,7 +660,7 @@ const targets: ParamTarget[] = [
       <select
         v-if="a.type === 'cue' && a.cmd === 'fire'"
         class="form-select form-select-sm"
-        aria-label="Action cue"
+        :aria-label="t('actionPicker.actionCue')"
         :value="a.cueId ?? ''"
         @change="patch({ cueId: ($event.target as HTMLSelectElement).value })"
       >
@@ -667,7 +668,7 @@ const targets: ParamTarget[] = [
           value=""
           disabled
         >
-          Select cue
+          {{ t('actionPicker.selectCue') }}
         </option>
         <option
           v-for="cue in project.cues"
@@ -681,14 +682,14 @@ const targets: ParamTarget[] = [
         <input
           v-if="a.cmd === 'stopGroup'"
           class="form-control form-control-sm"
-          aria-label="Clip group"
-          placeholder="Group name"
+          :aria-label="t('actionPicker.clipGroup')"
+          :placeholder="t('actionPicker.groupName')"
           :value="a.group ?? ''"
           @change="patch({ group: ($event.target as HTMLInputElement).value })"
         ><select
           v-else-if="a.cmd !== 'stopAll'"
           class="form-select form-select-sm"
-          aria-label="Action clip"
+          :aria-label="t('actionPicker.actionClip')"
           :value="a.clipId ?? ''"
           @change="
             patch({ clipId: ($event.target as HTMLSelectElement).value })
@@ -698,7 +699,7 @@ const targets: ParamTarget[] = [
             value=""
             disabled
           >
-            Select clip
+            {{ t('actionPicker.selectClip') }}
           </option>
           <option
             v-for="clip in project.clips"
@@ -712,8 +713,8 @@ const targets: ParamTarget[] = [
       <input
         v-if="a.type === 'script'"
         class="form-control form-control-sm"
-        aria-label="Script function"
-        placeholder="Function name"
+        :aria-label="t('actionPicker.scriptFunction')"
+        :placeholder="t('actionPicker.functionName')"
         :value="a.fn"
         @change="patch({ fn: ($event.target as HTMLInputElement).value })"
       >

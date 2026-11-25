@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { EditorState } from '@codemirror/state'
 import {
@@ -104,11 +105,11 @@ onUnmounted(() => view?.destroy())
 <template>
   <div class="xm-script-panel">
     <div class="xm-row mb-2">
-      <span class="xm-faint flex-grow-1">script.ts
+      <span class="xm-faint flex-grow-1">{{ t('scriptPanel.scriptTs') }}
         <span
           v-if="scripts.dirty"
-          aria-label="Unapplied script changes"
-        >●</span></span>
+          :aria-label="t('scriptPanel.unappliedScriptChanges')"
+        >{{ t('scriptPanel.symbol') }}</span></span>
       <span
         class="xm-script-status"
         :class="`is-${runtime.scriptStatus.state}`"
@@ -118,16 +119,16 @@ onUnmounted(() => view?.destroy())
         :aria-expanded="reference"
         @click="reference = !reference"
       >
-        API
+        {{ t('scriptPanel.aPI') }}
       </button>
       <button
         class="btn btn-sm btn-primary"
         :disabled="!runtime.connected"
-        title="Apply script (Ctrl+Enter)"
-        aria-label="Apply script"
+        :title="t('scriptPanel.applyScriptCtrlEnter')"
+        :aria-label="t('scriptPanel.applyScript')"
         @click="scripts.apply"
       >
-        Apply <span class="xm-kbd">Ctrl ↵</span>
+        {{ t('timeline.apply') }} <span class="xm-kbd">{{ t('scriptPanel.ctrl') }}</span>
       </button>
     </div>
     <div
@@ -135,12 +136,12 @@ onUnmounted(() => view?.destroy())
       class="xm-script-conflict"
       role="status"
     >
-      script.ts changed outside this draft. Apply replaces it with your draft.
+      {{ t('scriptPanel.scriptTsChangedOutsideThisDraftApplyReplacesItWith') }}
       <button
         class="btn btn-sm btn-ghost"
         @click="scripts.takeProject"
       >
-        Use project version
+        {{ t('scriptPanel.useProjectVersion') }}
       </button>
     </div>
     <div
@@ -152,12 +153,11 @@ onUnmounted(() => view?.destroy())
       class="xm-script-reference"
     >
       <p class="xm-faint">
-        Synchronous hooks. Registers: 0–7. Pads: 1–16. Note durations: quarter
-        beats. Runtime routing resets on scene activation or script reload.
+        {{ t('scriptPanel.synchronousHooksRegisters07Pads116NoteDurations') }}
       </p>
       <pre
         tabindex="0"
-        aria-label="Script API reference"
+        :aria-label="t('scriptPanel.scriptAPIReference')"
       >{{
         scriptDeclarations
       }}</pre>
@@ -172,13 +172,13 @@ onUnmounted(() => view?.destroy())
         :disabled="runtime.scriptStatus.state !== 'running'"
         @click="scripts.disable"
       >
-        Disable
+        {{ t('scriptPanel.disable') }}
       </button>
     </div>
     <div
       v-if="runtime.logs.some((e) => e.source === 'script')"
       class="xm-log xm-script-log"
-      aria-label="Script log"
+      :aria-label="t('scriptPanel.scriptLog')"
       aria-live="polite"
     >
       <div
@@ -189,7 +189,7 @@ onUnmounted(() => view?.destroy())
       >
         <span class="xm-faint">{{ entry.time }} </span><span
           :class="`xm-log-${entry.level}`"
-        >script </span>{{ entry.message }}
+        >{{ t('scriptPanel.script') }} </span>{{ entry.message }}
       </div>
     </div>
   </div>

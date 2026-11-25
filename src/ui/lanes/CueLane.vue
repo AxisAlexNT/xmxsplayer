@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { computed, inject, ref } from 'vue'
 import { timelineKey } from '../timeline/context'
 import { useProjectStore } from '../stores/project'
@@ -141,16 +142,16 @@ async function chase(event: Event): Promise<void> {
 <template>
   <div class="xm-rowgrid xm-cues">
     <div class="xm-corner">
-      <span class="flex-grow-1">Cues</span><button
+      <span class="flex-grow-1">{{ t('cueLane.cues') }}</span><button
         class="xm-cue-tool"
-        aria-label="Add cue at playhead"
-        title="Add cue at playhead"
+        :aria-label="t('cueLane.addCueAtPlayhead')"
+        :title="t('cueLane.addCueAtPlayhead')"
         @click="add()"
       >
         <i class="bi bi-plus-lg" />
       </button><button
         class="xm-cue-tool"
-        aria-label="Cue options"
+        :aria-label="t('cueLane.cueOptions')"
         @click="options"
       >
         <i class="bi bi-three-dots" />
@@ -196,7 +197,7 @@ async function chase(event: Event): Promise<void> {
     />
     <EditorPopover
       v-if="menu"
-      title="Cue options"
+      :title="t('cueLane.cueOptions')"
       :anchor="anchor"
       @close="menu = false"
     >
@@ -205,10 +206,9 @@ async function chase(event: Event): Promise<void> {
         type="checkbox"
         :checked="settings.value.chaseCuesOnSeek ?? true"
         @change="chase"
-      >Chase cues on seek</label>
+      >{{ t('cueLane.chaseCuesOnSeek') }}</label>
       <p class="xm-faint mt-2">
-        On seek, restore the scene, registers and track modes from the last
-        scene-affecting cue before the playhead.
+        {{ t('cueLane.onSeekRestoreTheSceneRegistersAndTrackModesFrom') }}
       </p>
       <button
         class="btn btn-sm btn-ghost"
@@ -218,7 +218,7 @@ async function chase(event: Event): Promise<void> {
           })
         "
       >
-        <i class="bi bi-play-fill" /> Fire next cue
+        <i class="bi bi-play-fill" /> {{ t('cueLane.fireNextCue') }}
       </button><button
         class="btn btn-sm btn-ghost"
         @click="
@@ -227,7 +227,7 @@ async function chase(event: Event): Promise<void> {
           })
         "
       >
-        Skip hold
+        {{ t('followControl.skipHold') }}
       </button>
     </EditorPopover>
   </div>

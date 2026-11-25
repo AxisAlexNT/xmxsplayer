@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { computed, onMounted, ref, shallowRef } from 'vue'
 import {
   pluginKey,
@@ -97,7 +98,7 @@ onMounted(() => {
   <dialog
     ref="dialog"
     class="xm-dialog xm-plugin-browser"
-    aria-label="Plugins"
+    :aria-label="t('pluginBrowser.plugins')"
     @cancel.prevent="emit('close')"
   >
     <div class="xm-dialog-h">
@@ -106,8 +107,8 @@ onMounted(() => {
         v-model="search"
         type="search"
         class="form-control"
-        placeholder="Search plugins"
-        aria-label="Search plugins"
+        :placeholder="t('pluginBrowser.searchPlugins')"
+        :aria-label="t('pluginBrowser.searchPlugins')"
       >
     </div>
     <div class="xm-dialog-b">
@@ -115,7 +116,7 @@ onMounted(() => {
         v-if="busy"
         role="status"
       >
-        Scanning installed plugins…
+        {{ t('pluginBrowser.scanningInstalledPlugins') }}
       </p>
       <template v-else>
         <button
@@ -124,11 +125,10 @@ onMounted(() => {
           class="xm-list-button"
           @click="select(p)"
         >
-          <strong>{{ p.name }}</strong> · {{ p.format.toUpperCase() }} ·
-          Installed
+          <strong>{{ p.name }}</strong> · {{ p.format.toUpperCase() }} {{ t('pluginBrowser.installed') }}
         </button>
         <p v-if="!rows.length">
-          No matching installed plugins.
+          {{ t('pluginBrowser.noMatchingInstalledPlugins') }}
         </p>
         <div
           v-for="n in missing.filter((n) =>
@@ -149,12 +149,12 @@ onMounted(() => {
     </div>
     <div class="xm-dialog-f">
       <details>
-        <summary>Plugin host {{ host }}</summary>
-        <label>Carla executable<input
+        <summary>{{ t('pluginBrowser.pluginHost') }} {{ host }}</summary>
+        <label>{{ t('pluginBrowser.carlaExecutable') }}<input
           v-model="path"
-          placeholder="Find automatically"
+          :placeholder="t('pluginBrowser.findAutomatically')"
         ></label><button @click="applyPath">
-          Detect
+          {{ t('library.detect') }}
         </button>
       </details>
       <button
@@ -162,12 +162,12 @@ onMounted(() => {
         :disabled="busy"
         @click="scan(true)"
       >
-        Rescan
+        {{ t('library.rescan') }}
       </button><button
         class="btn btn-primary"
         @click="emit('close')"
       >
-        Close
+        {{ t('pluginBrowser.close') }}
       </button>
     </div>
   </dialog>

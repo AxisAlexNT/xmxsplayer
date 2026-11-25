@@ -7,11 +7,27 @@
 5. In **Roll**, select, draw or erase with the lane tools. Drag selected notes to move them, their edge handles to resize, or Alt-drag vertically to edit velocity. Ctrl+D duplicates; Delete removes; arrow keys nudge. Quantize applies the snap grid to selected notes, or the latest recorded take if nothing is selected. Shift-wheel pans; two-finger gestures pan and zoom. Pen input draws notes, not handwritten notation.
 6. Choose **Staff** for automatic notation or [link a MuseScore score](musescore-link.md) for engraved parts and watched saves. Page view advances pages at the right edge; Center keeps the playhead in the middle. Choose Staff/Roll globally or per track. Both share the same bars with reference audio.
 7. Split or layer the keyboard by editing its zones, and route each track through Patch. Capture a scene for another section, or use registers to gate accompaniment. [Live performance](live-performance.md) explains cues, conditions and held-note behavior. Learn the controls and bindings in [Controllers](controllers.md).
-8. Save with Ctrl+S. Close and reopen the project folder to check restoration. To move studios, copy the whole folder, choose the corresponding soundfonts/outputs and configure this computer's settings. Projects do not bundle fonts or external instruments.
+8. Save with Ctrl+S. Close and reopen the project folder to check restoration. To move the arrangement and its referenced soundfonts to another computer, use **File → Export portable project…**. On the destination computer choose **File → Open portable project…**, select the archive, then choose an empty project folder. Select the local audio and MIDI outputs and install any required plugins.
 
 Use [clips](clips.md) for independent audio fragments and pad loops, [follow modes](follow-modes.md) for accompaniment that waits or follows your tempo, and [scripts](scripting.md) for conditions beyond the binding editor.
 
 Project edits are explicit-save. External YAML changes apply live when valid; conflicts offer **Keep mine** or **Take file**. Ctrl+Z/Ctrl+Y undo and redo document edits. Log names invalid files and retains the previous working document. YAML comments are not retained after an app save.
+
+## Practice slowly or change the written tempo
+
+For a reference recording at roughly one-third speed, set **Speed** to **33%**, record along with it, then click the percentage to return to **100%**. The recorded notes keep their positions on the musical grid. Use **File → Export MIDI for MuseScore** after quantizing the take.
+
+To change the written tempo, click the **BPM** value in the transport. **Scale all** adjusts every tempo proportionally and preserves tempo changes. **Rewrite all** sets one tempo for the song. **This section** shows the affected bars and uses the enabled loop, or the current tempo segment when looping is off. Double-click the BPM value to type a number. A linked score or a tapped beat map controls its own tempo.
+
+## Find an instrument sound
+
+In **Soundfonts → Manage sound library…**, open **Folders**, choose **Add folder…**, and **Rescan**. Open **All found**, search for a font, then choose **Add**. Enable **Copy added soundfonts into this project** when you want a local copy. In a track’s instrument picker, audition the preset and choose **Use preset**.
+
+## Record beyond the last bar and read a piano part
+
+Turn looping off, arm a live MIDI track, and keep recording past the final bar. Stop after releasing the last note. The timeline extends to fit the recorded notes. Use **+ Bars** if you want to add empty measures ahead of time.
+
+For a recorded piano part, switch the track to **Staff** and choose **Grand**. Under **Hands split**, start with **Auto**, select **At C4**, or choose **Pick…** and press the desired split key. Enable **2 voices** for overlapping rhythms and **Pedal marks** to display recorded sustain.
 
 ## Edit bars and record a replacement
 

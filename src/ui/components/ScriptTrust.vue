@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { nextTick, ref, watch } from 'vue'
 import { useRuntimeStore } from '../stores/runtime'
 import { useSettingsStore } from '../stores/settings'
@@ -83,20 +84,18 @@ async function enable(): Promise<void> {
   >
     <div class="xm-dialog-h">
       <h5 id="script-trust-title">
-        Enable this project's script?
+        {{ t('scriptTrust.enableThisProjectSScript') }}
       </h5>
     </div>
     <div class="xm-dialog-b">
       <p>
-        The script can change notes, routing, playback and controller feedback.
-        Enable it only if you trust its source.
+        {{ t('scriptTrust.theScriptCanChangeNotesRoutingPlaybackAndControllerFeedback') }}
       </p>
       <p class="xm-faint">
-        {{ doc.project.name }} · script.ts
+        {{ doc.project.name }} {{ t('scriptTrust.scriptTs') }}
       </p>
       <p class="xm-faint">
-        A changed script needs approval again. Your choice applies to this exact
-        version.
+        {{ t('scriptTrust.aChangedScriptNeedsApprovalAgainYourChoiceAppliesTo') }}
       </p>
       <p
         v-if="error"
@@ -112,7 +111,7 @@ async function enable(): Promise<void> {
         :disabled="busy"
         @click="reject"
       >
-        Keep disabled
+        {{ t('scriptTrust.keepDisabled') }}
       </button><button
         class="btn btn-sm btn-primary"
         :disabled="busy"

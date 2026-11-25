@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Action, Cue } from '../../shared/model'
 import { TimeMap } from '../../shared/time-map'
@@ -165,11 +166,11 @@ onUnmounted(() => {
     <div class="xm-dialog-h">
       <i class="bi bi-flag-fill text-warning" />
       <h5 id="cue-title">
-        Cue — {{ draft.name || 'New cue' }}
+        {{ t('cueEditor.cue') }} {{ draft.name || 'New cue' }}
       </h5>
       <button
         class="btn btn-sm btn-ghost"
-        aria-label="Close cue editor"
+        :aria-label="t('cueEditor.closeCueEditor')"
         @click="emit('close')"
       >
         <i class="bi bi-x-lg" />
@@ -177,30 +178,30 @@ onUnmounted(() => {
     </div>
     <div class="xm-dialog-b">
       <div class="row g-2">
-        <label class="col-6 form-label">Name<input
+        <label class="col-6 form-label">{{ t('picker.name') }}<input
           v-model="draft.name"
           class="form-control"
-          aria-label="Cue name"
+          :aria-label="t('cueEditor.cueName')"
         ></label>
-        <label class="col-3 form-label">Bar<input
+        <label class="col-3 form-label">{{ t('timeline.bar') }}<input
           v-model.number="bar"
           class="form-control xm-mono"
           type="number"
           min="1"
           step="1"
-          aria-label="Cue bar"
+          :aria-label="t('cueEditor.cueBar')"
         ></label>
-        <label class="col-3 form-label">Beat<input
+        <label class="col-3 form-label">{{ t('control.beat') }}<input
           v-model.number="beat"
           class="form-control xm-mono"
           type="number"
           min="1"
           :max="beatCount + 0.75"
           step="0.25"
-          aria-label="Cue beat"
+          :aria-label="t('cueEditor.cueBeat')"
         ></label>
         <div class="col-12">
-          <label class="form-label">Trigger</label>
+          <label class="form-label">{{ t('cueEditor.trigger') }}</label>
           <div class="xm-seg xm-cue-triggers">
             <button
               v-for="item in [
@@ -220,13 +221,13 @@ onUnmounted(() => {
         <label
           v-if="draft.trigger !== 'auto'"
           class="col-6 form-label"
-        >Control
+        >{{ t('actionPicker.control') }}
           <div class="xm-row">
             <input
               v-model="draft.control"
               class="form-control"
-              aria-label="Cue control"
-              placeholder="pad.2"
+              :aria-label="t('cueEditor.cueControl')"
+              :placeholder="t('cueEditor.pad2')"
             ><button
               class="btn btn-sm btn-ghost"
               :aria-pressed="learning"
@@ -238,7 +239,7 @@ onUnmounted(() => {
             </button>
           </div></label>
         <div class="col-6">
-          <label class="form-label">Then fire</label>
+          <label class="form-label">{{ t('cueEditor.thenFire') }}</label>
           <div class="xm-seg">
             <button
               v-for="at in ['now', 'beat', 'bar'] as const"
@@ -257,8 +258,7 @@ onUnmounted(() => {
         class="xm-faint mt-2"
         role="status"
       >
-        Press a learned controller button or pad. Its normal action is suspended
-        while learning.
+        {{ t('cueEditor.pressALearnedControllerButtonOrPadItsNormalAction') }}
       </p>
       <p
         v-else-if="draft.trigger !== 'auto' && !draft.control"
@@ -270,7 +270,7 @@ onUnmounted(() => {
             : 'No control: use Fire next cue or a cue binding.'
         }}
       </p>
-      <label class="form-label mt-3">Actions</label>
+      <label class="form-label mt-3">{{ t('cueEditor.actions') }}</label>
       <div class="xm-list xm-cue-actions">
         <div
           v-for="(action, index) in draft.actions"
@@ -312,14 +312,14 @@ onUnmounted(() => {
           v-if="!draft.actions.length"
           class="xm-faint p-2 mb-0"
         >
-          No actions
+          {{ t('cueEditor.noActions') }}
         </p>
       </div>
       <button
         class="btn btn-sm btn-ghost my-2"
         @click="add"
       >
-        <i class="bi bi-plus-lg" /> Add action
+        <i class="bi bi-plus-lg" /> {{ t('cueEditor.addAction') }}
       </button>
       <ActionPicker
         v-if="editing !== null && draft.actions[editing]"
@@ -331,7 +331,7 @@ onUnmounted(() => {
         v-if="draft.actions.some((a) => a.type === 'note')"
         class="xm-faint mt-2"
       >
-        Cue note actions tap a note for one quarter of a beat.
+        {{ t('cueEditor.cueNoteActionsTapANoteForOneQuarterOf') }}
       </p>
       <p
         v-if="error"
@@ -347,17 +347,17 @@ onUnmounted(() => {
         class="btn btn-sm btn-ghost text-danger me-auto"
         @click="remove"
       >
-        <i class="bi bi-trash" /> Delete cue
+        <i class="bi bi-trash" /> {{ t('cueEditor.deleteCue') }}
       </button><button
         class="btn btn-sm btn-ghost"
         @click="emit('close')"
       >
-        Cancel
+        {{ t('picker.cancel') }}
       </button><button
         class="btn btn-sm btn-primary"
         @click="done"
       >
-        Done
+        {{ t('library.done') }}
       </button>
     </div>
   </dialog>

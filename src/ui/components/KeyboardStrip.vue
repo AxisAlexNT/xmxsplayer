@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useProjectStore } from '../stores/project'
 import { useRuntimeStore } from '../stores/runtime'
@@ -302,10 +303,10 @@ onUnmounted(() => {
       <span
         v-if="!zones.length"
         class="xm-faint"
-      >No zones</span><select
+      >{{ t('keyboardStrip.noZones') }}</span><select
         v-model.number="count"
         class="xm-key-count"
-        aria-label="Keyboard range"
+        :aria-label="t('keyboardStrip.keyboardRange')"
         @change="keyCount"
       >
         <option
@@ -313,7 +314,7 @@ onUnmounted(() => {
           :key="size"
           :value="size"
         >
-          {{ size }} keys
+          {{ size }} {{ t('keyboardStrip.keys') }}
         </option>
       </select>
     </div>
@@ -325,7 +326,7 @@ onUnmounted(() => {
         :viewBox="`0 0 ${white.length * 50} 100`"
         preserveAspectRatio="none"
         role="group"
-        aria-label="Playable keyboard"
+        :aria-label="t('keyboardStrip.playableKeyboard')"
         @pointerdown.prevent="pointerDown"
         @pointermove.prevent="pointerMove"
         @pointerup="release(`pointer-${$event.pointerId}`)"

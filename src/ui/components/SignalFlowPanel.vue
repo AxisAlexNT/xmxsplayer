@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { TimeMap } from '../../shared/time-map'
 import { computed, useId } from 'vue'
 import {
@@ -66,14 +67,14 @@ function edgeLabel(edge: FlowEdge): string {
   <div
     class="xm-flow-viewport"
     tabindex="0"
-    aria-label="Signal flow; scroll to see all routes"
+    :aria-label="t('signalFlowPanel.signalFlowScrollToSeeAllRoutes')"
   >
     <svg
       class="flow xm-flow"
       :viewBox="`0 0 ${graph.width} ${graph.height}`"
       :style="{ height: `${graph.height}px` }"
       role="group"
-      aria-label="Effective signal flow"
+      :aria-label="t('signalFlowPanel.effectiveSignalFlow')"
     >
       <text
         v-for="(label, index) in [
@@ -182,7 +183,6 @@ function edgeLabel(edge: FlowEdge): string {
     </svg>
   </div>
   <p class="xm-faint xm-flow-help">
-    Scroll to see all routes. Click a box to edit it; dashed lines are
-    conditional.
+    {{ t('signalFlowPanel.scrollToSeeAllRoutesClickABoxToEdit') }}
   </p>
 </template>

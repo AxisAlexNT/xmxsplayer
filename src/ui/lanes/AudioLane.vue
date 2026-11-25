@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import {
   computed,
   shallowRef,
@@ -389,7 +390,7 @@ onUnmounted(() => observer?.disconnect())
       ref="canvas"
       class="xm-roll-canvas"
       :aria-label="`${track.name} waveform`"
-      title="Drag to move audio · Shift-drag to set loop"
+      :title="t('audioLane.dragToMoveAudioShiftDragToSetLoop')"
       @pointermove="pitchAt"
       @pointerleave="hover = ''"
       @pointerdown="drag"
@@ -405,9 +406,9 @@ onUnmounted(() => observer?.disconnect())
     >{{ error }}</span><span
       v-else-if="runtime.audioStates[track.id]?.loading"
       class="xm-roll-label"
-    >Loading audio…</span><span
+    >{{ t('audioLane.loadingAudio') }}</span><span
       v-if="previewOffset !== null"
       class="xm-roll-label"
-    >{{ offset.toFixed(3) }} s</span>
+    >{{ offset.toFixed(3) }} {{ t('clipEditor.s') }}</span>
   </div>
 </template>

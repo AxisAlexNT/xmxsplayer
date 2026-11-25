@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import {
   computed,
   nextTick,
@@ -249,7 +250,7 @@ onUnmounted(() => {
       ref="pop"
       popover="auto"
       class="xm-pop xm-binding-pop"
-      aria-label="Binding editor"
+      :aria-label="t('bindingEditor.bindingEditor')"
       role="dialog"
       @toggle="($event as ToggleEvent).newState === 'closed' && emit('close')"
     >
@@ -272,13 +273,13 @@ onUnmounted(() => {
         </div>
         <button
           class="btn btn-sm btn-ghost"
-          aria-label="Close binding editor"
+          :aria-label="t('bindingEditor.closeBindingEditor')"
           @click="emit('close')"
         >
           <i class="bi bi-x-lg" />
         </button>
       </div>
-      <label class="form-label">On</label>
+      <label class="form-label">{{ t('actionPicker.on') }}</label>
       <div class="xm-seg mb-3">
         <button
           v-for="value in ['press', 'release', 'change'] as const"
@@ -289,20 +290,20 @@ onUnmounted(() => {
           {{ value[0].toUpperCase() + value.slice(1) }}
         </button>
       </div>
-      <label class="form-label">Binding recipe
+      <label class="form-label">{{ t('bindingEditor.bindingRecipe') }}
         <select
           class="form-select"
           @change="chooseRecipe"
         >
-          <option value="">Choose a recipe…</option>
+          <option value="">{{ t('bindingEditor.chooseARecipe') }}</option>
           <template v-if="control.mode === 'momentary'">
-            <option value="orchestra">Switch orchestra</option>
-            <option value="section">Toggle section</option>
+            <option value="orchestra">{{ t('bindingEditor.switchOrchestra') }}</option>
+            <option value="section">{{ t('bindingEditor.toggleSection') }}</option>
           </template>
           <template v-else>
-            <option value="volume">Volume</option>
-            <option value="reverb">Reverb amount</option>
-            <option value="effect">Effect knob</option>
+            <option value="volume">{{ t('bindingEditor.volume') }}</option>
+            <option value="reverb">{{ t('bindingEditor.reverbAmount') }}</option>
+            <option value="effect">{{ t('bindingEditor.effectKnob') }}</option>
           </template>
         </select>
       </label>
@@ -312,7 +313,7 @@ onUnmounted(() => {
         data-tour="roll"
         @click="drumRoll"
       >
-        Drum roll
+        {{ t('bindingEditor.drumRoll') }}
       </button>
       <div
         v-if="control.mode !== 'momentary' && sweepTarget"
@@ -321,7 +322,7 @@ onUnmounted(() => {
         <select
           class="form-select form-select-sm"
           data-tour="filter-instrument"
-          aria-label="Filter sweep instrument"
+          :aria-label="t('bindingEditor.filterSweepInstrument')"
           :value="sweepTarget.id"
           @change="sweepInstrument=($event.target as HTMLSelectElement).value"
         >
@@ -338,7 +339,7 @@ onUnmounted(() => {
           data-tour="sweep"
           @click="filterSweep"
         >
-          Filter sweep
+          {{ t('bindingEditor.filterSweep') }}
         </button>
       </div>
       <ActionPicker
@@ -354,17 +355,17 @@ onUnmounted(() => {
         class="row g-2 mt-1"
       >
         <div class="col-7">
-          <label class="form-label">Only when</label><ConditionEditor
+          <label class="form-label">{{ t('bindingEditor.onlyWhen') }}</label><ConditionEditor
             :model-value="draft.when"
             :project="doc.project"
             @update:model-value="apply({ ...draft, when: $event })"
           />
         </div>
         <div class="col-5">
-          <label class="form-label">Timing</label><select
+          <label class="form-label">{{ t('bindingEditor.timing') }}</label><select
             class="form-select form-select-sm"
             data-tour="timing"
-            aria-label="Binding timing"
+            :aria-label="t('bindingEditor.bindingTiming')"
             :value="draft.at ?? 'now'"
             @change="
               apply({
@@ -374,13 +375,13 @@ onUnmounted(() => {
             "
           >
             <option value="now">
-              Now
+              {{ t('bindingEditor.now') }}
             </option>
             <option value="beat">
-              Beat
+              {{ t('control.beat') }}
             </option>
             <option value="bar">
-              Bar
+              {{ t('timeline.bar') }}
             </option>
           </select>
         </div>
@@ -389,28 +390,28 @@ onUnmounted(() => {
         v-if="enabled && edge === 'change'"
         class="row g-2"
       >
-        <label class="col form-label">Trigger every (MIDI steps)
+        <label class="col form-label">{{ t('bindingEditor.triggerEveryMIDISteps') }}
           <input
             type="number"
             min="1"
             class="form-control"
-            placeholder="Each change"
+            :placeholder="t('bindingEditor.eachChange')"
             :value="draft.every"
             @change="apply({...draft, every: Number(($event.target as HTMLInputElement).value) || undefined})"
           >
         </label>
-        <label class="col form-label">Direction
+        <label class="col form-label">{{ t('bindingEditor.direction') }}
           <select
             class="form-select"
             :value="draft.direction ?? 'any'"
             @change="apply({...draft, direction: ($event.target as HTMLSelectElement).value as Binding['direction']})"
           >
-            <option value="any">Both</option><option value="up">Up</option><option value="down">Down</option>
+            <option value="any">{{ t('bindingEditor.both') }}</option><option value="up">{{ t('bindingEditor.up') }}</option><option value="down">{{ t('bindingEditor.down') }}</option>
           </select>
         </label>
       </div>
       <div v-if="edge === 'change' && draft.action.type === 'note'">
-        <span class="form-label">Hit preview · move the control</span>
+        <span class="form-label">{{ t('bindingEditor.hitPreviewMoveTheControl') }}</span>
         <div
           data-tour="hits"
           class="xm-ticks"
@@ -425,18 +426,18 @@ onUnmounted(() => {
           />
         </div>
       </div>
-      <label class="form-label mt-3">Store in</label>
+      <label class="form-label mt-3">{{ t('bindingEditor.storeIn') }}</label>
       <div class="xm-seg">
         <button
           :class="{ 'is-on': kind === 'shared' }"
           @click="kind = 'shared'"
         >
-          Shared
+          {{ t('bindingEditor.shared') }}
         </button><button
           :class="{ 'is-on': kind === 'controller' }"
           @click="kind = 'controller'"
         >
-          This controller
+          {{ t('bindingEditor.thisController') }}
         </button><button
           :class="{ 'is-on': kind === 'scene' }"
           :disabled="!scene"
@@ -449,12 +450,12 @@ onUnmounted(() => {
         v-if="kind === 'controller' && scene"
         class="d-flex gap-2 mt-2 xm-muted"
       ><input
-        v-model="controllerScene"
-        type="checkbox"
-      >Only in
+         v-model="controllerScene"
+         type="checkbox"
+       >{{ t('bindingEditor.onlyIn') }}
         {{ scene.name }}</label>
       <template v-if="control.kind === 'pad'">
-        <label class="form-label mt-3">Pad colour</label>
+        <label class="form-label mt-3">{{ t('bindingEditor.padColour') }}</label>
         <div class="xm-colours">
           <button
             v-for="value in palette"
@@ -465,11 +466,11 @@ onUnmounted(() => {
             @click="color(value)"
           /><button
             class="btn btn-sm btn-ghost"
-            title="Use inherited colour"
-            aria-label="Use inherited pad colour"
+            :title="t('bindingEditor.useInheritedColour')"
+            :aria-label="t('bindingEditor.useInheritedPadColour')"
             @click="color(null)"
           >
-            ⊘
+            {{ t('bindingEditor.symbol') }}
           </button>
         </div>
       </template>
@@ -485,12 +486,12 @@ onUnmounted(() => {
           class="btn btn-sm btn-ghost text-danger"
           @click="apply(unbound(control.id, edge))"
         >
-          Unbind
+          {{ t('bindingEditor.unbind') }}
         </button><button
           class="btn btn-sm btn-xm"
           @click="emit('learn')"
         >
-          Re-learn control
+          {{ t('bindingEditor.reLearnControl') }}
         </button>
       </div>
     </div>

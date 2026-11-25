@@ -199,7 +199,7 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
     :aria-label="`Effects chain · ${name}`"
   >
     <div class="xm-dialog-h">
-      <h5>Effects chain · {{ name }}</h5>
+      <h5>{{ t('effectsDialog.effectsChain') }} {{ name }}</h5>
       <button
         v-if="openTutorials"
         class="btn btn-sm btn-ghost"
@@ -226,13 +226,13 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
           @change="nativeParam(key, $event)"
         >
       </label>
-      <p>Insert effects for FluidSynth run in the plugin host.</p>
+      <p>{{ t('effectsDialog.insertEffectsForFluidSynthRunInThePluginHost') }}</p>
     </div>
     <p
       v-else-if="external"
       class="xm-dialog-b"
     >
-      Set effects on the external MIDI instrument.
+      {{ t('effectsDialog.setEffectsOnTheExternalMIDIInstrument') }}
     </p>
     <div
       v-else
@@ -243,7 +243,7 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
         class="btn btn-sm btn-xm"
         @click="pluginWindow('instrument-'+instrument.id)"
       >
-        Instrument window
+        {{ t('effectsDialog.instrumentWindow') }}
       </button>
       <section
         v-for="(fx, i) in chain"
@@ -256,10 +256,10 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
         <header class="xm-fxh">
           <span
             draggable="true"
-            title="Drag to reorder"
+            :title="t('effectsDialog.dragToReorder')"
             @dragstart="dragged = i"
             @dragend="dragged = -1"
-          >⠿</span>
+          >{{ t('effectsDialog.symbol') }}</span>
           <strong>{{ fx.plugin?.name ?? names[fx.type] }}</strong>
           <button
             data-tour="fx-power"
@@ -280,21 +280,21 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
           class="btn btn-sm btn-xm"
           @click="pluginWindow((isMaster?'master':'instrument-'+instrument?.id)+'-insert-'+i)"
         >
-          Plugin window
+          {{ t('effectsDialog.pluginWindow') }}
         </button>
-        <label v-if="fx.type==='plugin' && fx.plugin?.hasSidechain !== false">Sidechain track
+        <label v-if="fx.type==='plugin' && fx.plugin?.hasSidechain !== false">{{ t('effectsDialog.sidechainTrack') }}
           <select
             :value="fx.sidechain?.trackId ?? ''"
             @change="setSidechain(i, ($event.target as HTMLSelectElement).value)"
           >
-            <option value="">None</option><option
+            <option value="">{{ t('effectsDialog.none') }}</option><option
               v-for="track in doc.project.tracks.filter(t=>t.kind==='midi')"
               :key="track.id"
               :value="track.id"
             >{{ track.name }}</option>
           </select>
         </label>
-        <label v-if="fx.type === 'pump'">Trigger track
+        <label v-if="fx.type === 'pump'">{{ t('effectsDialog.triggerTrack') }}
           <select
             :value="fx.trigger?.trackId ?? ''"
             @change="
@@ -304,7 +304,7 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
               })
             "
           >
-            <option value="">Select track…</option>
+            <option value="">{{ t('effectsDialog.selectTrack') }}</option>
             <option
               v-for="track in doc.project.tracks.filter(
                 (t) => t.kind === 'midi',
@@ -373,7 +373,7 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
           v-if="fx.type!=='plugin'"
           class="form-select form-select-sm"
           data-tour="fx-preset"
-          aria-label="Effect presets"
+          :aria-label="t('effectsDialog.effectPresets')"
           value=""
           @change="preset($event, i)"
         >
@@ -381,7 +381,7 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
             {{ fx.preset ?? 'Presets…' }}
           </option>
           <option value="save">
-            Save preset…
+            {{ t('effectsDialog.savePreset') }}
           </option>
           <template
             v-for="(p, n) in settings.value.effectPresets"
@@ -399,51 +399,51 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
           v-if="savingPreset === fx.id"
           @submit.prevent="savePreset(i)"
         >
-          <label>Preset name<input
+          <label>{{ t('effectsDialog.presetName') }}<input
             v-model="presetName"
             required
           ></label>
           <button type="submit">
-            Save
+            {{ t('menu.save') }}
           </button><button
             type="button"
             @click="savingPreset = ''"
           >
-            Cancel
+            {{ t('picker.cancel') }}
           </button>
         </form>
         <footer>
           <button
             :disabled="i === 0"
-            aria-label="Move earlier"
+            :aria-label="t('effectsDialog.moveEarlier')"
             @click="move(i, i - 1)"
           >
-            ←
+            {{ t('effectsDialog.symbol2') }}
           </button>
           <button
             :disabled="i === chain.length - 1"
-            aria-label="Move later"
+            :aria-label="t('effectsDialog.moveLater')"
             @click="move(i, i + 1)"
           >
-            →
+            {{ t('effectsDialog.symbol3') }}
           </button>
           <button @click="edit((list) => list.splice(i, 1))">
-            Remove
+            {{ t('effectsDialog.remove') }}
           </button>
         </footer>
       </section>
       <select
         data-tour="fx-add"
-        aria-label="Add effect"
+        :aria-label="t('effectsDialog.addEffect')"
         class="xm-fx-add form-select form-select-sm"
         value=""
         @change="add"
       >
         <option value="plugin">
-          Plugin effect…
+          {{ t('effectsDialog.pluginEffect') }}
         </option>
         <option value="">
-          + Add effect…
+          {{ t('effectsDialog.addEffect2') }}
         </option>
         <optgroup
           v-for="(types, group) in groups"
@@ -474,7 +474,7 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
         class="btn btn-primary"
         @click="dialog?.close()"
       >
-        Done
+        {{ t('library.done') }}
       </button>
     </div>
   </dialog>

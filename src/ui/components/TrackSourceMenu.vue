@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { ref } from 'vue'
 import type { MidiTrack } from '../../shared/model'
 import { useSourcesStore } from '../stores/sources'
@@ -27,7 +28,7 @@ async function run(action: 'export' | 'discard' | 'detach'): Promise<void> {
   <button
     class="btn btn-sm btn-ghost xm-source-menu"
     :aria-label="`${track.name} score actions`"
-    title="Score actions"
+    :title="t('trackSourceMenu.scoreActions')"
     @click="open"
   >
     <i class="bi bi-three-dots" />
@@ -35,7 +36,7 @@ async function run(action: 'export' | 'discard' | 'detach'): Promise<void> {
   <EditorPopover
     v-if="anchor"
     :anchor="anchor"
-    title="Score actions"
+    :title="t('trackSourceMenu.scoreActions')"
     style="width: 280px"
     @close="anchor = null"
   >
@@ -44,20 +45,20 @@ async function run(action: 'export' | 'discard' | 'detach'): Promise<void> {
         class="btn btn-xm text-start"
         @click="run('export')"
       >
-        Export MIDI for MuseScore
+        {{ t('menu.exportMidiForMusescore') }}
       </button><button
         v-if="track.link"
         class="btn btn-xm text-start"
         :disabled="sources.busy[track.link.sourceId]"
         @click="run('discard')"
       >
-        Discard &amp; re-sync
+        {{ t('trackSourceMenu.discardReSync') }}
       </button><button
         v-if="track.link"
         class="btn btn-ghost text-start"
         @click="run('detach')"
       >
-        Detach
+        {{ t('trackSourceMenu.detach') }}
       </button>
     </div>
   </EditorPopover>

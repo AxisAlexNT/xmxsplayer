@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { dragPadSource } from '../bindings/pad-drop'
 import { orchestraControls, orchestraDefaults, unsupportedMembers } from '../../shared/orchestra-controls'
 import EffectsDialog from "./EffectsDialog.vue"
@@ -123,12 +124,12 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
   <div class="orchestra-panel">
     <select
       data-tour="preset"
-      aria-label="Add orchestra preset"
+      :aria-label="t('orchestraPanel.addOrchestraPreset')"
       value=""
       @change="add"
     >
       <option value="">
-        + Preset
+        {{ t('orchestraPanel.preset') }}
       </option>
       <option
         v-for="(p, id) in presets"
@@ -149,7 +150,7 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
         v-mappable="{label:o.name,continuous:{type:'param',target:'orchestra.volume',id:o.id,min:0,max:1},action:{type:'orchestra',cmd:'select',orchestraId:o.id}}"
         data-tour="orchestra"
         draggable="true"
-        title="Select orchestra, or drag to a controller pad"
+        :title="t('orchestraPanel.selectOrchestraOrDragToAControllerPad')"
         :aria-pressed="o.id === current?.id"
         :style="{ borderColor: o.color }"
         @dragstart="dragPadSource($event, 'orchestra:' + o.id)"
@@ -159,7 +160,7 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
       </button>
     </div>
     <template v-if="current">
-      <label data-tour="layers">Layers per key
+      <label data-tour="layers">{{ t('orchestraPanel.layersPerKey') }}
         <select
           :value="current.maxLayers"
           @change="edit((o) => (o.maxLayers = value($event)))"
@@ -172,7 +173,7 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
             {{ n || 'All' }}
           </option>
         </select></label>
-      <label>Outside ranges
+      <label>{{ t('orchestraPanel.outsideRanges') }}
         <select
           :value="current.outOfRange"
           @change="
@@ -183,8 +184,8 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
             )
           "
         >
-          <option value="silent">Silent</option>
-          <option value="nearest">Nearest octave</option>
+          <option value="silent">{{ t('orchestraPanel.silent') }}</option>
+          <option value="nearest">{{ t('orchestraPanel.nearestOctave') }}</option>
         </select></label>
       <details
         v-for="(s, i) in current.sections"
@@ -199,7 +200,7 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
         >
           {{ s.name }} · {{ s.register === null ? 'Always on' : 'Register ' + (s.register + 1) }}
         </summary>
-        <label v-mappable="{label:s.name+' level',action:{type:'param',target:'section.gain',id:'section:'+current.id+':'+i,min:0,max:1}}">Section level
+        <label v-mappable="{label:s.name+' level',action:{type:'param',target:'section.gain',id:'section:'+current.id+':'+i,min:0,max:1}}">{{ t('orchestraPanel.sectionLevel') }}
           <input
             type="range"
             min="0"
@@ -260,14 +261,14 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
               />
             </div>
           </div>
-          <label data-tour="balance">Balance by
+          <label data-tour="balance">{{ t('orchestraPanel.balanceBy') }}
             <select
               :value="m.balance ?? 'volume'"
               @change="edit(o => { o.sections[i].members[j].balance = ($event.target as HTMLSelectElement).value as OrchestraMember['balance'] })"
             >
-              <option value="volume">Volume</option>
-              <option value="velocity">Velocity</option>
-              <option value="both">Volume and velocity</option>
+              <option value="volume">{{ t('bindingEditor.volume') }}</option>
+              <option value="velocity">{{ t('actionPicker.velocity') }}</option>
+              <option value="both">{{ t('orchestraPanel.volumeAndVelocity') }}</option>
             </select>
           </label>
           <label

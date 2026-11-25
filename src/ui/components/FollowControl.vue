@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { computed, ref } from 'vue'
 import type { Project } from '../../shared/model'
 import { noteName } from '../../shared/schema'
@@ -90,15 +91,15 @@ function lead(id: string): void {
 </script>
 <template>
   <div class="xm-field xm-follow-control">
-    <span>Follow
+    <span>{{ t('followControl.follow') }}
       <span
         v-if="runtime.transport.holding"
         class="xm-hold"
-      >HOLDING</span></span>
+      >{{ t('followControl.hOLDING') }}</span></span>
     <div class="xm-row">
       <button
         class="btn btn-sm btn-xm dropdown-toggle"
-        aria-label="Follow mode"
+        :aria-label="t('followControl.followMode')"
         :aria-expanded="open"
         :disabled="!runtime.connected"
         @click="toggle"
@@ -118,13 +119,13 @@ function lead(id: string): void {
         <small
           v-else-if="runtime.transport.countInBeat"
           class="xm-follow-hint"
-        >Count-in {{ runtime.transport.countInBeat }}</small>
+        >{{ t('control.countIn') }} {{ runtime.transport.countInBeat }}</small>
       </button>
     </div>
   </div>
   <EditorPopover
     v-if="open"
-    title="Follow mode"
+    :title="t('followControl.followMode')"
     :anchor="anchor"
     @close="open = false"
   >
@@ -132,7 +133,7 @@ function lead(id: string): void {
       <div
         class="xm-list mb-3"
         role="radiogroup"
-        aria-label="Follow behaviour"
+        :aria-label="t('followControl.followBehaviour')"
       >
         <label
           v-for="choice in choices"
@@ -152,7 +153,7 @@ function lead(id: string): void {
         </label>
       </div>
       <template v-if="mode === 'waitNotes'">
-        <label class="form-label">Advance when I play</label>
+        <label class="form-label">{{ t('followControl.advanceWhenIPlay') }}</label>
         <div class="xm-seg mb-3">
           <button
             v-for="strictness in ['any', 'all'] as const"
@@ -173,7 +174,7 @@ function lead(id: string): void {
             <label
               for="follow-window"
               class="form-label"
-            >Chord window</label>
+            >{{ t('followControl.chordWindow') }}</label>
             <div class="input-group">
               <input
                 id="follow-window"
@@ -182,16 +183,16 @@ function lead(id: string): void {
                 step="10"
                 class="form-control xm-mono"
                 :value="doc.project.follow.chordWindowMs"
-                aria-label="Follow chord window milliseconds"
+                :aria-label="t('followControl.followChordWindowMilliseconds')"
                 @change="numeric('chordWindowMs', $event)"
-              ><span class="input-group-text">ms</span>
+              ><span class="input-group-text">{{ t('control.ms') }}</span>
             </div>
           </div>
           <div class="col-6">
             <label
               for="follow-early"
               class="form-label"
-            >Early notes count</label>
+            >{{ t('followControl.earlyNotesCount') }}</label>
             <div class="input-group">
               <input
                 id="follow-early"
@@ -200,15 +201,15 @@ function lead(id: string): void {
                 step="10"
                 class="form-control xm-mono"
                 :value="doc.project.follow.earlyMs"
-                aria-label="Follow early notes milliseconds"
+                :aria-label="t('followControl.followEarlyNotesMilliseconds')"
                 @change="numeric('earlyMs', $event)"
-              ><span class="input-group-text">ms</span>
+              ><span class="input-group-text">{{ t('control.ms') }}</span>
             </div>
           </div>
         </div>
       </template>
       <template v-if="mode === 'tempoTrack'">
-        <label class="form-label">Tempo range</label>
+        <label class="form-label">{{ t('followControl.tempoRange') }}</label>
         <div class="row g-2 mb-3">
           <div class="col-6">
             <div class="input-group">
@@ -218,7 +219,7 @@ function lead(id: string): void {
                 min="1"
                 step="5"
                 :value="doc.project.follow.range[0] * 100"
-                aria-label="Follow minimum tempo percent"
+                :aria-label="t('followControl.followMinimumTempoPercent')"
                 @change="range(0, $event)"
               ><span class="input-group-text">%</span>
             </div>
@@ -231,7 +232,7 @@ function lead(id: string): void {
                 min="1"
                 step="5"
                 :value="doc.project.follow.range[1] * 100"
-                aria-label="Follow maximum tempo percent"
+                :aria-label="t('followControl.followMaximumTempoPercent')"
                 @change="range(1, $event)"
               ><span class="input-group-text">%</span>
             </div>
@@ -242,7 +243,7 @@ function lead(id: string): void {
             <label
               for="follow-smoothing"
               class="form-label"
-            >Smoothing</label><input
+            >{{ t('followControl.smoothing') }}</label><input
               id="follow-smoothing"
               type="number"
               class="form-control xm-mono"
@@ -250,7 +251,7 @@ function lead(id: string): void {
               max="1"
               step=".05"
               :value="doc.project.follow.smoothing"
-              aria-label="Follow smoothing"
+              :aria-label="t('followControl.followSmoothing')"
               @change="numeric('smoothing', $event)"
             >
           </div>
@@ -258,23 +259,22 @@ function lead(id: string): void {
             <label
               for="follow-phase"
               class="form-label"
-            >Phase gain</label><input
+            >{{ t('followControl.phaseGain') }}</label><input
               id="follow-phase"
               type="number"
               class="form-control xm-mono"
               min="0"
               step=".05"
               :value="doc.project.follow.phaseGain"
-              aria-label="Follow phase gain"
+              :aria-label="t('followControl.followPhaseGain')"
               @change="numeric('phaseGain', $event)"
             >
           </div>
         </div>
-        <small class="xm-faint d-block mb-3">Lower smoothing changes tempo more gently. Phase gain controls how
-          quickly accompaniment catches up.</small>
+        <small class="xm-faint d-block mb-3">{{ t('followControl.lowerSmoothingChangesTempoMoreGentlyPhaseGainControlsHow') }}</small>
       </template>
       <template v-if="mode !== 'written'">
-        <label class="form-label">Lead tracks</label>
+        <label class="form-label">{{ t('followControl.leadTracks') }}</label>
         <div class="xm-wrap">
           <button
             v-for="track in liveTracks"
@@ -296,7 +296,7 @@ function lead(id: string): void {
         <small
           v-if="!liveTracks.some((t) => t.kind === 'midi' && t.leads)"
           class="xm-faint d-block mt-2"
-        >Choose a live MIDI track with guide notes to lead playback.</small>
+        >{{ t('followControl.chooseALiveMIDITrackWithGuideNotesToLead') }}</small>
       </template>
       <button
         v-if="runtime.transport.holding"
@@ -307,7 +307,7 @@ function lead(id: string): void {
           })
         "
       >
-        Skip hold
+        {{ t('followControl.skipHold') }}
       </button>
       <p
         v-if="error"

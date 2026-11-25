@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { computed, onUnmounted, ref, watch } from 'vue'
 import type { Condition, Instrument, PatchConn } from '../../shared/model'
 import { uniqueId } from '../../shared/ids'
@@ -200,7 +201,7 @@ defineExpose({ open })
       <span
         class="xm-chip is-sm"
         :style="{ '--c': track.color }"
-      ><i class="xm-sw" />{{ track.name }}</span><span class="xm-arrow">→</span>
+      ><i class="xm-sw" />{{ track.name }}</span><span class="xm-arrow">{{ t('effectsDialog.symbol3') }}</span>
       <div class="xm-wrap">
         <button
           v-for="connection in performance.setup.patch.filter(
@@ -244,17 +245,17 @@ defineExpose({ open })
     v-if="!doc.project.tracks.some((t) => t.kind === 'midi')"
     class="xm-faint mb-0"
   >
-    Add a MIDI track to connect instruments.
+    {{ t('patchPanel.addAMIDITrackToConnectInstruments') }}
   </p>
   <EditorPopover
     v-if="selected"
-    title="Patch connection"
+    :title="t('patchPanel.patchConnection')"
     :anchor="anchor"
     @close="close"
   >
-    <label class="form-label">Instrument<select
+    <label class="form-label">{{ t('actionPicker.instrument') }}<select
       class="form-select"
-      aria-label="Patch instrument"
+      :aria-label="t('patchPanel.patchInstrument')"
       :value="selected.instrumentId"
       @change="changeInstrument"
     >
@@ -272,37 +273,37 @@ defineExpose({ open })
         :disabled="!instrument"
         @click="emit('instrument', selected.instrumentId)"
       >
-        Change preset…
+        {{ t('patchPanel.changePreset') }}
       </button><button
         class="btn btn-sm btn-ghost"
         @click="createInstrument"
       >
-        New instrument…
+        {{ t('patchPanel.newInstrument') }}
       </button>
     </div>
     <div class="row g-2 mb-2">
-      <label class="col form-label">Active when<select
+      <label class="col form-label">{{ t('patchPanel.activeWhen') }}<select
         class="form-select"
-        aria-label="Patch condition"
+        :aria-label="t('patchPanel.patchCondition')"
         :value="gate"
         @change="setGate"
       >
-        <option value="none">Always</option>
+        <option value="none">{{ t('conditionEditor.always') }}</option>
         <template
           v-for="(reg, index) in doc.project.registers"
           :key="index"
         ><option :value="`${index}:true`">
-           Register {{ index + 1 }} is on
+           {{ t('conditionEditor.register') }} {{ index + 1 }} {{ t('patchPanel.isOn') }}
          </option>
           <option :value="`${index}:false`">
-            Register {{ index + 1 }} is off
+            {{ t('conditionEditor.register') }} {{ index + 1 }} {{ t('patchPanel.isOff') }}
           </option></template>
-        <option value="custom">Custom condition</option>
-      </select></label><label class="col form-label">Transpose<input
+        <option value="custom">{{ t('patchPanel.customCondition') }}</option>
+      </select></label><label class="col form-label">{{ t('patchPanel.transpose') }}<input
         class="form-control xm-mono"
         type="number"
         step="1"
-        aria-label="Patch transpose"
+        :aria-label="t('patchPanel.patchTranspose')"
         :value="selected.transpose ?? 0"
         @change="
           update({
@@ -318,7 +319,7 @@ defineExpose({ open })
       @update:model-value="condition"
     />
     <p class="xm-faint">
-      Editing {{ performance.label }}
+      {{ t('patchPanel.editing') }} {{ performance.label }}
     </p>
     <p
       v-if="error"
@@ -332,12 +333,12 @@ defineExpose({ open })
         class="btn btn-sm btn-ghost text-danger"
         @click="remove"
       >
-        <i class="bi bi-trash" /> Remove
+        <i class="bi bi-trash" /> {{ t('effectsDialog.remove') }}
       </button><button
         class="btn btn-sm btn-ghost"
         @click="preview"
       >
-        <i class="bi bi-play-fill" /> Audition
+        <i class="bi bi-play-fill" /> {{ t('picker.audition') }}
       </button>
     </div>
   </EditorPopover>

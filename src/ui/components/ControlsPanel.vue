@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '../i18n'
 import { nextTick, computed, ref, shallowRef, watch } from 'vue'
 import type { ControlDef, DeviceProfile } from '../../shared/model'
 import { mapActive } from '../bindings/map-mode'
@@ -223,10 +224,10 @@ function relearn(): void {
     :aria-pressed="mapActive"
     @click="mapActive=!mapActive"
   >
-    Map controls
+    {{ t('controlsPanel.mapControls') }}
   </button>
   <details v-if="profile && doc.project.instruments.length">
-    <summary>Drag an instrument to a pad</summary>
+    <summary>{{ t('controlsPanel.dragAnInstrumentToAPad') }}</summary>
     <span
       v-for="instrument in doc.project.instruments"
       :key="instrument.id"
@@ -240,14 +241,14 @@ function relearn(): void {
     class="btn btn-sm btn-ghost"
     @click="orchestraLayout"
   >
-    Use orchestra pad layout
+    {{ t('controlsPanel.useOrchestraPadLayout') }}
   </button>
   <template v-if="device && profile">
     <div class="xm-controls-heading">
       <select
         v-model="selected"
         class="form-select form-select-sm"
-        aria-label="Active controller"
+        :aria-label="t('controlsPanel.activeController')"
       >
         <option
           v-if="!selected"
@@ -266,41 +267,41 @@ function relearn(): void {
       <div
         v-if="hasBankB"
         class="xm-seg"
-        aria-label="Pad bank"
+        :aria-label="t('controlsPanel.padBank')"
       >
         <button
           :class="{ 'is-on': bank === 0 }"
           @click="bank = 0"
         >
-          A
+          {{ t('controlsPanel.a') }}
         </button><button
           :class="{ 'is-on': bank === 1 }"
           @click="bank = 1"
         >
-          B
+          {{ t('controlsPanel.b') }}
         </button>
       </div>
     </div>
     <div
       class="xm-seg mb-2"
-      title="Where new bindings are stored"
+      :title="t('controlsPanel.whereNewBindingsAreStored')"
     >
       <button
         :class="{ 'is-on': scope === 'shared' }"
         @click="scope = 'shared'"
       >
-        Shared
+        {{ t('bindingEditor.shared') }}
       </button><button
         :class="{ 'is-on': scope === 'controller' }"
         @click="scope = 'controller'"
       >
-        This controller
+        {{ t('bindingEditor.thisController') }}
       </button><button
         :class="{ 'is-on': scope === 'scene' }"
         :disabled="!runtime.state.activeSceneId"
         @click="scope = 'scene'"
       >
-        This scene
+        {{ t('controlsPanel.thisScene') }}
       </button>
     </div>
     <div class="xm-ctl xm-controls-profile">
@@ -384,7 +385,7 @@ function relearn(): void {
       class="btn btn-sm btn-xm"
       @click="learning = ''"
     >
-      Learn a control…
+      {{ t('controlsPanel.learnAControl') }}
     </button>
     <BindingEditor
       v-if="editing"
