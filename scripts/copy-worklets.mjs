@@ -66,3 +66,12 @@ await cp(new URL('standard_fonts/', pdfSource), new URL('standard_fonts/', pdfAs
   filter: path => !/Liberation/i.test(path),
 })
 await copyFile(new URL('LICENSE', pdfSource), new URL('LICENSE', pdfAssets))
+
+const pdfDecoders = new URL('wasm/', pdfAssets)
+await mkdir(pdfDecoders, { recursive: true })
+for (const file of [
+  'openjpeg.wasm', 'openjpeg_nowasm_fallback.js', 'LICENSE_OPENJPEG', 'LICENSE_PDFJS_OPENJPEG',
+  'jbig2.wasm', 'jbig2_nowasm_fallback.js', 'LICENSE_JBIG2', 'LICENSE_PDFJS_JBIG2',
+  'qcms_bg.wasm', 'LICENSE_QCMS', 'LICENSE_PDFJS_QCMS',
+])
+  await copyFile(new URL('wasm/' + file, pdfSource), new URL(file, pdfDecoders))

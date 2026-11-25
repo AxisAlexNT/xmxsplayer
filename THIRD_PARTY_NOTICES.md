@@ -4,7 +4,7 @@ xmxsplayer is MIT-licensed. Its dependencies retain their own licenses. The prod
 
 ## PDF sheet music
 
-The renderer and worker include Mozilla PDF.js 6.5.438 under Apache-2.0. The installed application carries its license at `out/renderer/pdf/LICENSE` inside app.asar. Adobe character maps and Foxit standard fonts retain their respective redistribution notices at `out/renderer/pdf/cmaps/LICENSE` and `out/renderer/pdf/standard_fonts/LICENSE_FOXIT`. [PDF.js source](https://github.com/mozilla/pdf.js)
+The renderer and worker include Mozilla PDF.js 6.5.438 under Apache-2.0. The installed application carries its license at `out/renderer/pdf/LICENSE` inside app.asar. Adobe character maps and Foxit standard fonts retain their respective redistribution notices at `out/renderer/pdf/cmaps/LICENSE` and `out/renderer/pdf/standard_fonts/LICENSE_FOXIT`. The bundled OpenJPEG, JBIG2 and qcms modules carry their upstream notices in the adjacent wasm directory. [PDF.js source](https://github.com/mozilla/pdf.js)
 
 ## SpessaSynth
 

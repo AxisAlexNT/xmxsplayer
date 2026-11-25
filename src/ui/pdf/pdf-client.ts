@@ -13,6 +13,7 @@ export function openPdfDocument(url: string) {
     useSystemFonts: true,
     cMapUrl: new URL('cmaps/', assets).href,
     cMapPacked: true,
+    wasmUrl: new URL('wasm/', assets).href,
     standardFontDataUrl: new URL('standard_fonts/', assets).href,
     useWorkerFetch: true,
   }
