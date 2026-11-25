@@ -26,3 +26,19 @@ Arm the part, seek to the punch-in position and choose **Replace** in the record
 Import a reference and choose **Spectrum** or **Both** in the audio header. The worker builds a pitch-versus-time image and caches it in the project’s `.xmxs/` folder. Both keeps a waveform strip above the spectrum. Hover over or touch the image to read pitch and frequency. Select **Side** to inspect the difference between channels. Use **Floor** and **Gain** to bring out quieter harmonics.
 
 Select a MIDI track under **Overlay** to draw its note outlines, then choose **Match pitch range** for its automatic piano-roll range. Audio offsets, bar positions and overlays use the same time axis at every playback speed. See [Orchestral sets](orchestra.md) to play a part with range-aware layering.
+
+## Try a guided tutorial
+
+Press **F1** or choose **Help → Tutorials**. Choose **First project** for a walkthrough of naming, playing, recording and saving. The **?** buttons in Orchestra, Controls and Effects open the picker with a related tour selected.
+
+Choose **Continue**, leave **Practice copy** selected and choose **Start tutorial**. If your open project has unsaved edits, the app asks whether to save them before making the copy. At the end, choose **Save as project…** and enter a new folder name to keep your arrangement, or choose **Discard practice copy** to return to where you started. Choose **Current project** at the start if you want the tutorial edits in your open arrangement.
+
+Use the highlighted control to try the step. **Next** moves on, **Back** revisits the previous step, and **Esc** opens the exit confirmation. The pad, drum roll and filter sweep tours provide an on-screen controller when a mapped controller is unavailable.
+
+## Read PDF sheet music while playing
+
+Choose **File → Import PDF sheet music…** in an open project. The app copies the score into the project’s `scores/pdf/` folder. Scroll inside the score to move through its pages independently of the timeline. Select **2 across** for a two-page spread. **Night mode** switches between a dark sheet and the original paper colors.
+
+Choose **View → PDF placement → Right pane** to keep the score beside the tracks. Select a score by name, drag the divider to adjust its width, or choose **Sheet only**. Press **Ctrl+P** to hide the sheets or bring them back.
+
+To follow playback, seek to a bar and scroll the desired passage about a quarter of the way down the score viewport. Choose **Add marker here**, repeat for later bars, then enable **Follow bars**. For manual turns, choose a PDF action in the controller binding editor and select **Next** or **Prev**.

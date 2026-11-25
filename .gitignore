@@ -18,3 +18,4 @@ Thumbs.db
 /production-licenses.json
 src/engine/public/worklets/
 src/engine/public/notation/
+src/engine/public/pdf/

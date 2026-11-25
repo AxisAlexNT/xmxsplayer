@@ -26,6 +26,7 @@ const a = computed(() => props.modelValue),
     'clip',
     'app',
     'script',
+    'pdf',
   ] as const
 const commands = computed(() =>
   a.value.type === 'transport'
@@ -48,7 +49,7 @@ const commands = computed(() =>
         'scrub',
         'skipHold',
       ]
-    : a.value.type === 'scene'
+    : a.value.type === 'pdf' ? ['next','prev','scroll','toggleTheme'] : a.value.type === 'scene'
       ? ['activate', 'next', 'prev', 'clear']
       : a.value.type === 'orchestra' ? ['select','next','prev'] : a.value.type === 'register'
         ? ['toggle', 'set', 'momentary']
@@ -93,7 +94,7 @@ function choose(type: Action['type'] | ''): void {
     'update:modelValue',
     type === 'transport'
       ? { type, cmd: 'toggle' }
-      : type === 'scene'
+      : type === 'pdf' ? {type,cmd:'next'} : type === 'scene'
         ? { type, cmd: 'next' }
         : type === 'orchestra' ? {type,cmd:'select',orchestraId:p.orchestras?.[0]?.id} : type === 'register'
           ? { type, cmd: 'toggle', index: 0 }
@@ -299,6 +300,28 @@ const targets: ParamTarget[] = [
       v-if="!unbound"
       class="xm-action-fields mt-2"
     >
+      <template v-if="a.type==='pdf'">
+        <label>PDF score
+          <select
+            :value="a.documentId ?? ''"
+            @change="patch({documentId:($event.target as HTMLSelectElement).value || undefined})"
+          >
+            <option value="">Active score</option>
+            <option
+              v-for="sheet in project.documents"
+              :key="sheet.id"
+              :value="sheet.id"
+            >{{ sheet.name }}</option>
+          </select>
+        </label>
+        <label v-if="a.cmd==='scroll'">Scroll distance (pixels)
+          <input
+            type="number"
+            :value="a.amount ?? 160"
+            @change="patch({amount:Number(($event.target as HTMLInputElement).value)})"
+          >
+        </label>
+      </template>
       <template v-if="a.type === 'param'">
         <label class="form-label">Parameter</label><select
           class="form-select form-select-sm"

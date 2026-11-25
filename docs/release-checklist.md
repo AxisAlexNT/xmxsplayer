@@ -62,3 +62,13 @@ AppImage execution, packaged assets, notices, portable settings, final checks an
 On the Linux development machine, the spectrum worker’s analysis function processed five minutes of 48 kHz stereo in 6.77 s. The input repeated a decoded Oxygen notification recording on both channels. Reading and validating the 28,125-frame binary cache took 5.65 ms with a warm filesystem cache. These timings exclude media decode, inter-process calls and painting. An isolated Electron run imported WAV, MP3 and FLAC, rendered overlays and wrote separate cache files for stereo and side.
 
 The v2 typecheck, lint and 342 automated tests passed. One optional native test was skipped. In a fresh muted Electron session, inserting and deleting two bars in staff view restored the original note positions. A bar-nine silent replace take with one bar of pre-roll removed only the notes inside the passage. Undo restored all four test notes. The same session exercised half-speed transport, three reference formats, an overlay, both follow views and all four orchestra presets with hardware MIDI disabled.
+
+### PDF score checks
+
+The local production renderer opened a ten-page vector score. A two-column lane kept at most six page canvases while scrolling. Switching to the right pane, sheet-only view, hiding and showing the score, and returning to the lane preserved light mode and a 450-pixel scroll offset.
+
+With a one-column layout, a press and release on the virtual controller’s mapped pad advanced exactly one page. A separate playback pass crossed bar 17 in 4/4 and its automatic cue moved the score to page 2. Both checks used muted audio and synthetic input. Physical controller operation remains open.
+
+In a muted production-renderer benchmark at device pixel ratio 2, a 300-pixel two-column lane displayed a ten-page vector fixture. Seven scroll jumps to pages 1, 3, 5, 7, 9, 5 and 1 took 324, 56, 268, 99, 194, 78 and 66 ms respectively from setting the offset to reading an opaque staff-line pixel. The run used three or four canvases. These timings include frame scheduling and readback. They were captured before suppressing playback-engine updates for sheet-only edits.
+
+Repeating the same seven jumps after the synchronization change yielded 540, 68, 243, 42, 55, 75, 58 ms. All target pages rendered and the observed canvas count stayed below six in both runs.

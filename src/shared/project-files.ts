@@ -2,6 +2,7 @@ import { parse, stringify } from 'yaml'
 import { parseMidi, writeMidi, type MidiEvent } from 'midi-file'
 import type { FileMap } from './api'
 import type { MidiTrack, Project } from './model'
+import { pdfTrack } from './pdf-track'
 import { PPQ } from './model'
 import { noteName, projectSchema } from './schema'
 
@@ -272,6 +273,9 @@ export function fromFiles(files: FileMap, previous?: Project): Project {
         .join('; '),
     )
   }
+  for (const sheet of result.data.documents ?? [])
+    if (!result.data.tracks.some(track => track.kind === 'pdf' && track.documentId === sheet.id))
+      result.data.tracks.push(pdfTrack(sheet, result.data.tracks))
   for (const track of result.data.tracks) {
     const old = previous?.tracks.find((t) => t.id === track.id)
     if (track.kind !== 'midi' || old?.kind !== 'midi') continue

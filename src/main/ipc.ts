@@ -325,11 +325,12 @@ export function installIpc(windows: Windows): () => Promise<void> {
     return io.save(files,hashes)
   })
   handle('plugins:editor',(id:string)=>host.editor(id))
-  handle('project:import', async (kind: 'audio' | 'score' | 'midi' | 'soundfont') => {
-    if (!['audio', 'score', 'midi','soundfont'].includes(kind))
+  handle('project:import', async (kind: 'audio' | 'score' | 'midi' | 'soundfont' | 'pdf') => {
+    if (!['audio', 'score', 'midi','soundfont','pdf'].includes(kind))
       throw new Error('Invalid import kind')
     const result = await dialog.showOpenDialog(ui, {
       title: kind === 'score' ? 'Link score' : 'Import file',
+      ...(kind === 'pdf' ? { filters:[{name:'PDF sheet music',extensions:['pdf']}] } : {}),
       ...(kind === 'soundfont' ? { filters:[{name:'Soundfonts',extensions:['sf2','sf3']}] } : {}),
       properties: ['openFile'],
       ...(kind === 'score'

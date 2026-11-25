@@ -124,6 +124,7 @@ export interface LogEntry {
   message: string
 }
 export interface EventMap {
+  'pdf:action': Extract<Action, {type:'pdf'}>
   'clip:preview': { state: 'stopped' | 'queued' | 'playing'; error?: string }
   'clip:error': { clipId: Id; message: string }
   'clips:progress': Record<Id, number>

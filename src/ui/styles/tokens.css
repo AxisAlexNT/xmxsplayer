@@ -79,6 +79,7 @@
   --xm-h-ruler: 28px;
   --xm-h-cues: 28px;
   --xm-h-keys: 138px; /* keyboard strip: 30 px zones + 108 px keys */
+  --xm-w-pdf: 640px;
   --xm-w-left: 372px; /* left panel default width (resizable 300–560) */
   --xm-w-header: 252px; /* track header width */
   --xm-lane-gutter: 96px; /* lead-in at each page start: clef/key on staves, key legend on piano rolls */

@@ -119,3 +119,47 @@ describe('project files', () => {
     expect(uniqueId('🎵', [])).toBe('item')
   })
 })
+
+it('round trips PDF page layout, follow markers and pane preferences', () => {
+  const p = newProject()
+  p.documents = [{ id:'score', name:'Score', file:'scores/pdf/Score.pdf', theme:'light', zoom:1.5,
+    cols:2, scroll:150, follow:true, markers:[{bar:17, page:2, y:0.25}] }]
+  p.view.pdf = { placement:'right', width:720, activeId:'score', sheetOnly:true }
+  const reopened = fromFiles(toFiles(p))
+  expect(reopened.documents).toEqual(p.documents)
+  expect(reopened.view.pdf).toEqual(p.view.pdf)
+})
+
+it('defaults imported sheets to night mode and leaves legacy projects compatible', () => {
+  const p = newProject()
+  expect(fromFiles(toFiles(p)).documents).toBeUndefined()
+  const sheet = {id:'score', name:'Score', file:'scores/pdf/Score.pdf'}
+  const parsed = projectSchema.parse({...p, documents:[sheet], view:{...p.view, pdf:{}}})
+  expect(parsed.documents?.[0]).toMatchObject({theme:'night', zoom:'fit', cols:1, scroll:0})
+  expect(parsed.view.pdf).toMatchObject({placement:'lane', width:640})
+  expect(projectSchema.safeParse({...p, documents:[sheet,sheet]}).success).toBe(false)
+})
+
+it('retains PDF controller assignments and timed page-turn cues on disk', () => {
+  const p = newProject()
+  p.base.bindings.push({control:'pad.1',edge:'press',action:{type:'pdf',cmd:'next'}})
+  p.cues.push({id:'page-two',name:'Page two',trigger:'auto',tick:16*4*480,
+    actions:[{type:'pdf',cmd:'scroll',documentId:'score',amount:300}]})
+  const reopened = fromFiles(toFiles(p))
+  expect(reopened.base.bindings).toEqual(p.base.bindings)
+  expect(reopened.cues).toEqual(p.cues)
+})
+
+it('restores PDF lane height and order without generating a MIDI file', () => {
+  const p = newProject()
+  p.documents = [{id:'score',name:'Score',file:'scores/pdf/Score.pdf',theme:'night',zoom:'fit',cols:2,scroll:0}]
+  p.tracks = [sampleTrack()]
+  const migrated = fromFiles(toFiles(p))
+  const lane = migrated.tracks[1]
+  expect(lane).toMatchObject({kind:'pdf',documentId:'score',height:300})
+  lane.height = 410
+  migrated.tracks.reverse()
+  const files = toFiles(migrated)
+  expect(files['tracks/'+lane.id+'.mid']).toBeUndefined()
+  expect(fromFiles(files).tracks[0]).toEqual(lane)
+})

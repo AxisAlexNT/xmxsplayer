@@ -304,6 +304,10 @@ function runAction(
   context?: ClipActionContext,
 ): void {
   if (!project || engineClosing) return
+  if (action.type === 'pdf') {
+    bus?.send('pdf:action', action)
+    return
+  }
   if (action.type === 'clip') {
     clipActions?.run(action, value, pressed, source, context)
     return

@@ -53,6 +53,7 @@
     "electron-vite": "^6.0.0",
     "eslint": "^10.15.0",
     "eslint-plugin-vue": "^10.12.1",
+    "pdfjs-dist": "6.5.438",
     "prettier": "^3.10.1",
     "sass": "^1.108.2",
     "typescript": "^6.0.3",

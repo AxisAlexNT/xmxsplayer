@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import PdfSheet from '../pdf/PdfSheet.vue'
 import EffectsDialog from "../components/EffectsDialog.vue"
 import { useI18n } from '../i18n'
 const { t } = useI18n()
+defineProps<{ showPdf: boolean }>()
 defineOptions({ name: 'TrackTimeline' })
 import StaffControls from '../notation/StaffControls.vue'
 import { staffSettings } from '../notation/voicing'
@@ -258,6 +260,7 @@ const tracks = computed(() =>
       })
     : doc.project.tracks,
 )
+const sheetById = computed(() => new Map(doc.project.documents?.map(sheet => [sheet.id,sheet])))
 const loops = computed(() => {
   if (!(loopPreview.value ?? doc.project.loop).enabled) return []
   const a = axis.value,
@@ -584,244 +587,273 @@ onUnmounted(() => {
       ref="list"
       class="xm-tracks"
     >
-      <div
+      <template
         v-for="track in tracks"
         :key="track.id"
-        :data-track-id="track.id"
-        class="xm-rowgrid xm-track"
-        :class="{
-          'is-muted': displayedMode(track) === 'mute',
-          'is-dragging': !!dragOrder,
-        }"
-        :style="{
-          '--h': `${height(track)}px`,
-          '--c': track.color,
-          height: `${height(track)}px`,
-        }"
       >
         <div
-          class="xm-th"
-          :title="t('timeline.doubleClickToExpandOrRestoreLane')"
-          @dblclick="
-            !($event.target as HTMLElement).closest(
-              'button,select,input[type=range]',
-            ) && expand(track)
-          "
-          @pointerdown="
-            track.kind === 'audio'
-              ? (runtime.selectedAudioId = track.id)
-              : editor.activate(track.id)
-          "
+          v-if="track.kind==='pdf' && showPdf && sheetById.has(track.documentId)"
+          class="pdf-track"
+          :data-track-id="track.id"
+          :style="{height:height(track)+'px'}"
         >
-          <div class="xm-th-top">
+          <PdfSheet
+            :sheet="sheetById.get(track.documentId)!"
+            :bar="map.tickToBarBeat(runtime.transport.tick).bar"
+          >
             <button
               class="xm-grip xm-grip-button"
               :aria-label="`Reorder ${track.name}`"
-              :title="t('timeline.dragToReorderAlt')"
               @pointerdown="reorder($event, track.id)"
               @keydown="reorderKey($event, track.id)"
             >
               <i class="bi bi-grip-vertical" />
-            </button><input
-              class="xm-th-name xm-track-name"
-              :aria-label="`${track.name} name`"
-              :value="track.name"
-              @change="
-                edit(track.id, (t) => {
-                  t.name = ($event.target as HTMLInputElement).value
-                })
-              "
-            >
-            <TrackSourceMenu
-              v-if="track.kind === 'midi'"
-              :track="track"
-              @error="emit('error', $event)"
-            />
-            <div
-              v-if="track.kind === 'midi'"
-              class="xm-seg"
-            >
+            </button>
+          </PdfSheet>
+          <div
+            class="xm-lane-resize"
+            :title="t('timeline.dragToResizeLane')"
+            @pointerdown.stop="resize($event, track)"
+          />
+        </div>
+        <div
+          v-else-if="track.kind!=='pdf'"
+          :data-track-id="track.id"
+          class="xm-rowgrid xm-track"
+          :class="{
+            'is-muted': displayedMode(track) === 'mute',
+            'is-dragging': !!dragOrder,
+          }"
+          :style="{
+            '--h': `${height(track)}px`,
+            '--c': track.color,
+            height: `${height(track)}px`,
+          }"
+        >
+          <div
+            class="xm-th"
+            :title="t('timeline.doubleClickToExpandOrRestoreLane')"
+            @dblclick="
+              !($event.target as HTMLElement).closest(
+                'button,select,input[type=range]',
+              ) && expand(track)
+            "
+            @pointerdown="
+              track.kind === 'audio'
+                ? (runtime.selectedAudioId = track.id)
+                : editor.activate(track.id)
+            "
+          >
+            <div class="xm-th-top">
               <button
-                v-for="view in ['staff', 'roll'] as const"
-                :key="view"
-                :class="{ 'is-on': track.view === view }"
-                :title="view === 'staff' ? 'Staff' : 'Piano roll'"
-                @click="
+                class="xm-grip xm-grip-button"
+                :aria-label="`Reorder ${track.name}`"
+                :title="t('timeline.dragToReorderAlt')"
+                @pointerdown="reorder($event, track.id)"
+                @keydown="reorderKey($event, track.id)"
+              >
+                <i class="bi bi-grip-vertical" />
+              </button><input
+                class="xm-th-name xm-track-name"
+                :aria-label="`${track.name} name`"
+                :value="track.name"
+                @change="
                   edit(track.id, (t) => {
-                    if (t.kind === 'midi') t.view = view
+                    t.name = ($event.target as HTMLInputElement).value
                   })
                 "
               >
-                <i
-                  :class="`bi bi-${view === 'staff' ? 'music-note-beamed' : 'bar-chart-steps'}`"
-                />
-              </button>
+              <TrackSourceMenu
+                v-if="track.kind === 'midi'"
+                :track="track"
+                @error="emit('error', $event)"
+              />
+              <div
+                v-if="track.kind === 'midi'"
+                class="xm-seg"
+              >
+                <button
+                  v-for="view in ['staff', 'roll'] as const"
+                  :key="view"
+                  :class="{ 'is-on': track.view === view }"
+                  :title="view === 'staff' ? 'Staff' : 'Piano roll'"
+                  @click="
+                    edit(track.id, (t) => {
+                      if (t.kind === 'midi') t.view = view
+                    })
+                  "
+                >
+                  <i
+                    :class="`bi bi-${view === 'staff' ? 'music-note-beamed' : 'bar-chart-steps'}`"
+                  />
+                </button>
+              </div>
             </div>
-          </div>
-          <StaffControls
-            v-if="track.kind === 'midi' && !track.link && wantsStaff(track)"
-            :track="track"
-          />
-          <span
-            v-if="track.kind === 'midi' && track.link"
-            class="xm-badge"
-            :class="
+            <StaffControls
+              v-if="track.kind === 'midi' && !track.link && wantsStaff(track)"
+              :track="track"
+            />
+            <span
+              v-if="track.kind === 'midi' && track.link"
+              class="xm-badge"
+              :class="
+                track.link.orphaned
+                  ? 'is-orphan'
+                  : track.link.state === 'synced'
+                    ? 'is-synced'
+                    : 'is-ahead'
+              "
+            >{{
               track.link.orphaned
-                ? 'is-orphan'
+                ? 'not in score'
                 : track.link.state === 'synced'
-                  ? 'is-synced'
-                  : 'is-ahead'
-            "
-          >{{
-            track.link.orphaned
-              ? 'not in score'
-              : track.link.state === 'synced'
-                ? 'synced'
-                : 'modified here'
-          }}</span>
-          <div class="xm-th-top">
-            <button
-              class="xm-mode"
-              :class="`is-${displayedMode(track)}`"
-              :aria-label="`${track.name} mode`"
-              @click="mode(track)"
-            >
-              <i
-                :class="`bi bi-${displayedMode(track) === 'live' ? 'person-fill' : displayedMode(track) === 'auto' ? 'cpu' : 'volume-mute'}`"
-              />{{ displayedMode(track).toUpperCase() }}
-            </button><button
-              class="xm-sq"
-              :class="{ 'is-solo': track.solo }"
-              :aria-pressed="track.solo"
-              :aria-label="`${track.name} solo`"
-              @click="
-                edit(track.id, (t) => {
-                  t.solo = !t.solo
-                })
-              "
-            >
-              {{ t('timeline.s') }}
-            </button><button
-              v-if="track.kind === 'midi'"
-              class="xm-sq"
-              :class="{ 'is-arm': track.armed }"
-              :aria-label="`${track.name} record arm`"
-              :aria-pressed="track.armed"
-              @click="
-                edit(track.id, (t) => {
-                  if (t.kind === 'midi') t.armed = !t.armed
-                })
-              "
-            >
-              <i class="bi bi-record-fill" />
-            </button>
-            <button
-              v-if="track.kind === 'midi' && displayedMode(track) === 'live'"
-              class="xm-sq xm-follow-lead"
-              :class="{ 'is-on': track.leads }"
-              :aria-label="`${track.name} leads follow`"
-              :aria-pressed="track.leads"
-              :title="t('timeline.leadTheFollowMode')"
-              @click="
-                edit(track.id, (t) => {
-                  if (t.kind === 'midi') t.leads = !t.leads
-                })
-              "
-            >
-              <i class="bi bi-magnet" />
-            </button>
-            <div class="flex-grow-1" />
-          </div>
-          <AudioTrackControls
-            v-if="track.kind === 'audio'"
-            :track="track"
-          />
-          <div
-            v-else
-            class="xm-wrap"
-          >
-            <template
-              v-for="conn in rig.setup.patch.filter(
-                (c) => c.trackId === track.id,
-              )"
-              :key="conn.id"
-            >
+                  ? 'synced'
+                  : 'modified here'
+            }}</span>
+            <div class="xm-th-top">
               <button
-                class="xm-chip is-sm"
+                class="xm-mode"
+                :class="`is-${displayedMode(track)}`"
+                :aria-label="`${track.name} mode`"
+                @click="mode(track)"
+              >
+                <i
+                  :class="`bi bi-${displayedMode(track) === 'live' ? 'person-fill' : displayedMode(track) === 'auto' ? 'cpu' : 'volume-mute'}`"
+                />{{ displayedMode(track).toUpperCase() }}
+              </button><button
+                class="xm-sq"
+                :class="{ 'is-solo': track.solo }"
+                :aria-pressed="track.solo"
+                :aria-label="`${track.name} solo`"
                 @click="
-                  emit(
-                    'patch',
-                    conn.id,
-                    (
-                      $event.currentTarget as HTMLElement
-                    ).getBoundingClientRect(),
-                  )
+                  edit(track.id, (t) => {
+                    t.solo = !t.solo
+                  })
                 "
               >
-                <i class="bi bi-music-note" />{{
-                  doc.project.instruments.find(
-                    (i) => i.id === conn.instrumentId,
-                  )?.name ?? 'Missing instrument'
-                }}
+                {{ t('timeline.s') }}
+              </button><button
+                v-if="track.kind === 'midi'"
+                class="xm-sq"
+                :class="{ 'is-arm': track.armed }"
+                :aria-label="`${track.name} record arm`"
+                :aria-pressed="track.armed"
+                @click="
+                  edit(track.id, (t) => {
+                    if (t.kind === 'midi') t.armed = !t.armed
+                  })
+                "
+              >
+                <i class="bi bi-record-fill" />
               </button>
-              <EffectsDialog :instrument-id="conn.instrumentId" />
-            </template>
-          </div>
-          <div class="xm-th-top xm-track-mixer">
-            <i class="bi bi-volume-up xm-faint" /><input
-              v-mappable="{label:track.name+' volume',action:{type:'param',target:'track.volume',id:track.id,min:0,max:1}}"
-              type="range"
-              class="form-range xm-track-volume"
-              :style="{ '--v': track.volume }"
-              min="0"
-              max="1"
-              step=".01"
-              :value="track.volume"
-              :aria-label="`${track.name} volume`"
-              @change="
-                edit(track.id, (t) => {
-                  t.volume = Number(($event.target as HTMLInputElement).value)
-                })
-              "
-            ><input
-              v-mappable="{label:track.name+' pan',action:{type:'param',target:'track.pan',id:track.id,min:-1,max:1}}"
-              type="range"
-              class="form-range xm-track-pan"
-              min="-1"
-              max="1"
-              step=".01"
-              :value="track.pan"
-              :aria-label="`${track.name} pan`"
-              :title="t('timeline.pan')"
-              @change="
-                edit(track.id, (t) => {
-                  t.pan = Number(($event.target as HTMLInputElement).value)
-                })
-              "
+              <button
+                v-if="track.kind === 'midi' && displayedMode(track) === 'live'"
+                class="xm-sq xm-follow-lead"
+                :class="{ 'is-on': track.leads }"
+                :aria-label="`${track.name} leads follow`"
+                :aria-pressed="track.leads"
+                :title="t('timeline.leadTheFollowMode')"
+                @click="
+                  edit(track.id, (t) => {
+                    if (t.kind === 'midi') t.leads = !t.leads
+                  })
+                "
+              >
+                <i class="bi bi-magnet" />
+              </button>
+              <div class="flex-grow-1" />
+            </div>
+            <AudioTrackControls
+              v-if="track.kind === 'audio'"
+              :track="track"
+            />
+            <div
+              v-else
+              class="xm-wrap"
             >
+              <template
+                v-for="conn in rig.setup.patch.filter(
+                  (c) => c.trackId === track.id,
+                )"
+                :key="conn.id"
+              >
+                <button
+                  class="xm-chip is-sm"
+                  @click="
+                    emit(
+                      'patch',
+                      conn.id,
+                      (
+                        $event.currentTarget as HTMLElement
+                      ).getBoundingClientRect(),
+                    )
+                  "
+                >
+                  <i class="bi bi-music-note" />{{
+                    doc.project.instruments.find(
+                      (i) => i.id === conn.instrumentId,
+                    )?.name ?? 'Missing instrument'
+                  }}
+                </button>
+                <EffectsDialog :instrument-id="conn.instrumentId" />
+              </template>
+            </div>
+            <div class="xm-th-top xm-track-mixer">
+              <i class="bi bi-volume-up xm-faint" /><input
+                v-mappable="{label:track.name+' volume',action:{type:'param',target:'track.volume',id:track.id,min:0,max:1}}"
+                type="range"
+                class="form-range xm-track-volume"
+                :style="{ '--v': track.volume }"
+                min="0"
+                max="1"
+                step=".01"
+                :value="track.volume"
+                :aria-label="`${track.name} volume`"
+                @change="
+                  edit(track.id, (t) => {
+                    t.volume = Number(($event.target as HTMLInputElement).value)
+                  })
+                "
+              ><input
+                v-mappable="{label:track.name+' pan',action:{type:'param',target:'track.pan',id:track.id,min:-1,max:1}}"
+                type="range"
+                class="form-range xm-track-pan"
+                min="-1"
+                max="1"
+                step=".01"
+                :value="track.pan"
+                :aria-label="`${track.name} pan`"
+                :title="t('timeline.pan')"
+                @change="
+                  edit(track.id, (t) => {
+                    t.pan = Number(($event.target as HTMLInputElement).value)
+                  })
+                "
+              >
+            </div>
           </div>
+          <StaffLane
+            v-if="track.kind === 'midi' && isStaff(track)"
+            :track="track"
+            :height="height(track)"
+          />
+          <PianoRollLane
+            v-else-if="track.kind === 'midi'"
+            :track="track"
+            :height="height(track)"
+          />
+          <AudioLane
+            v-else
+            :track="track"
+            :height="height(track)"
+          />
+          <div
+            class="xm-lane-resize"
+            :title="t('timeline.dragToResizeLane')"
+            @pointerdown="resize($event, track)"
+          />
         </div>
-        <StaffLane
-          v-if="track.kind === 'midi' && isStaff(track)"
-          :track="track"
-          :height="height(track)"
-        />
-        <PianoRollLane
-          v-else-if="track.kind === 'midi'"
-          :track="track"
-          :height="height(track)"
-        />
-        <AudioLane
-          v-else
-          :track="track"
-          :height="height(track)"
-        />
-        <div
-          class="xm-lane-resize"
-          :title="t('timeline.dragToResizeLane')"
-          @pointerdown="resize($event, track)"
-        />
-      </div>
+      </template>
       <div
         v-if="hasStaves"
         class="xm-staff-tools"
@@ -857,6 +889,7 @@ onUnmounted(() => {
           </button>
         </div>
       </div>
+
       <div
         v-if="tracks.length"
         class="xm-add-track"
@@ -926,3 +959,8 @@ onUnmounted(() => {
     </div>
   </main>
 </template>
+
+<style scoped>
+.pdf-track { position:relative; }
+.pdf-track :deep(.pdf-sheet) { height:100%; min-height:0; resize:none; }
+</style>

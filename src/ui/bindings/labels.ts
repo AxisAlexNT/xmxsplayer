@@ -62,6 +62,8 @@ export function actionLabel(
       return `Follow: ${sentence(action.mode)}`
     case 'script':
       return action.fn + '()'
+    case 'pdf':
+      return (project.documents?.find(sheet => sheet.id === action.documentId)?.name ?? 'PDF') + ' · ' + sentence(action.cmd)
     case 'app':
       return sentence(action.cmd)
     case 'transport':

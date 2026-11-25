@@ -74,7 +74,7 @@ export interface DesktopApi {
       files: FileMap,
       expectedHashes: Record<string, string>,
     ) => Promise<Record<string, string>>
-    importFile: (kind: 'audio' | 'score' | 'midi' | 'soundfont') => Promise<string | null>
+    importFile: (kind: 'audio' | 'score' | 'midi' | 'soundfont' | 'pdf') => Promise<string | null>
     urlFor: (relPath: string) => Promise<string>
     importDropped: (file: File) => Promise<string>
     audioSource: (file: string, sampleRate: number) => Promise<AudioSource>

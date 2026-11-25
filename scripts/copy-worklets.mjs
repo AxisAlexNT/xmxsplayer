@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { copyFile, cp, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { transform } from 'sucrase'
 
@@ -56,3 +56,13 @@ for (const file of ['verovio-module.mjs', 'verovio.mjs'])
     new URL(`../node_modules/verovio/dist/${file}`, import.meta.url),
     new URL(file, notation),
   )
+
+const pdfSource = new URL('../node_modules/pdfjs-dist/', import.meta.url)
+const pdfAssets = new URL('../src/engine/public/pdf/', import.meta.url)
+await mkdir(pdfAssets, { recursive: true })
+await cp(new URL('cmaps/', pdfSource), new URL('cmaps/', pdfAssets), { recursive: true })
+await cp(new URL('standard_fonts/', pdfSource), new URL('standard_fonts/', pdfAssets), {
+  recursive: true,
+  filter: path => !/Liberation/i.test(path),
+})
+await copyFile(new URL('LICENSE', pdfSource), new URL('LICENSE', pdfAssets))

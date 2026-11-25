@@ -170,6 +170,12 @@ export const actionSchema = z.discriminatedUnion('type', [
     group: z.string().optional(),
   }),
   z.strictObject({
+    type: z.literal('pdf'),
+    cmd: enums(['next', 'prev', 'scroll', 'toggleTheme']),
+    documentId: id.optional(),
+    amount: num.optional(),
+  }),
+  z.strictObject({
     type: z.literal('app'),
     cmd: enums([
       'save',
@@ -287,6 +293,7 @@ const trackBase = {
 }
 export const noteSchema = z.tuple([tick, num.positive(), keySchema, byte])
 export const trackSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ ...trackBase, kind: z.literal('pdf'), documentId: id }),
   z.strictObject({
     ...trackBase,
     kind: z.literal('midi'),
@@ -397,6 +404,17 @@ export const projectSchema = z
         preRollBars: int.min(0).max(4),
       })
       .default({ mode: 'overdub', preRollBars: 0 }),
+    documents: z.strictObject({
+      id,
+      name: z.string(),
+      file: path.refine(file => /^scores\/pdf\/.+\.pdf$/i.test(file)),
+      theme: enums(['night','light']).default('night'),
+      zoom: z.union([z.literal('fit'), num.positive()]).default('fit'),
+      cols: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1),
+      scroll: num.nonnegative().default(0),
+      follow: z.boolean().optional(),
+      markers: z.strictObject({bar:int.positive(), page:int.positive(), y:unit}).array().optional(),
+    }).array().optional(),
     masterEffects: effectChain,
     orchestras: z
       .array(
@@ -548,6 +566,12 @@ export const projectSchema = z
       toCue: z.boolean(),
     }),
     view: z.strictObject({
+      pdf: z.strictObject({
+        placement: enums(['lane','right']).default('lane'),
+        width: num.min(360).max(1200).default(640),
+        activeId: id.optional(),
+        sheetOnly: z.boolean().default(false),
+      }).optional(),
       lanes: enums(['staff', 'roll', 'per-track']),
       follow: enums(['page', 'center']),
       staffScale: num.positive(),
@@ -572,6 +596,7 @@ export const projectSchema = z
         })
     for (const kind of [
       'tracks',
+      'documents',
       'sources',
       'soundfonts',
       'instruments',
@@ -580,7 +605,7 @@ export const projectSchema = z
       'clips',
     ] as const) {
       const seen = new Set<string>()
-      p[kind].forEach((item, i) => {
+      p[kind]?.forEach((item, i) => {
         if (seen.has(item.id))
           ctx.addIssue({
             code: 'custom',

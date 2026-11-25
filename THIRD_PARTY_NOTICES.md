@@ -2,6 +2,10 @@
 
 xmxsplayer is MIT-licensed. Its dependencies retain their own licenses. The production dependency scan contains 82 third-party packages, plus the application itself. The table records the installed versions; full notices are in [dependency license texts](docs/licenses/dependencies.txt).
 
+## PDF sheet music
+
+The renderer and worker include Mozilla PDF.js 6.5.438 under Apache-2.0. The installed application carries its license at `out/renderer/pdf/LICENSE` inside app.asar. Adobe character maps and Foxit standard fonts retain their respective redistribution notices at `out/renderer/pdf/cmaps/LICENSE` and `out/renderer/pdf/standard_fonts/LICENSE_FOXIT`. [PDF.js source](https://github.com/mozilla/pdf.js)
+
 ## SpessaSynth
 
 SpessaSynth Core and SpessaSynth Lib: Copyright © 2026 Spessasus. Both are Apache-2.0. The processor is shipped as a separate worklet; the library is also included in the engine bundle. Their license texts are retained in the dependency texts and beside the worklet as SpessaSynth-LICENSE.txt. No modified SpessaSynth source is shipped.

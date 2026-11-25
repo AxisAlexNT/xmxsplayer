@@ -43,7 +43,7 @@ export function applyBeatMap(
     ...tracks.map((t) =>
       t.kind === 'audio'
         ? Math.ceil(map.secToTick(t.offsetSec + t.durationSec))
-        : t.notes.reduce((end, n) => Math.max(end, n[0] + n[1]), 0),
+        : t.kind === 'midi' ? t.notes.reduce((end, n) => Math.max(end, n[0] + n[1]), 0) : 0,
     ),
   )
   return {

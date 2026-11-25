@@ -30,6 +30,7 @@ export function installMenu(ui: BrowserWindow): void {
           action(t('menu.save'), 'save', 'CmdOrCtrl+S'),
           { type: 'separator' },
           action(t('menu.importMidi'), 'import:midi'),
+          action(t('pdf.import'), 'import:pdf'),
           action(t('menu.importAudio'), 'import:audio'),
           action(t('menu.linkScore'), 'link:score'),
           action(t('menu.exportMidiForMusescore'), 'export:midi'),
@@ -53,6 +54,12 @@ export function installMenu(ui: BrowserWindow): void {
       {
         label: t('menu.view'),
         submenu: [
+          { label:t('pdf.placement'), submenu:[
+            action(t('pdf.lane'),'pdf:lane'),
+            action(t('pdf.right'),'pdf:right'),
+          ] },
+          action(t('pdf.toggle'),'pdf:toggle','CmdOrCtrl+P'),
+          action(t('pdf.only'),'pdf:only'),
           action(t('menu.collapseLeftPanel'), 'view:collapse'),
           action(t('menu.staffLanes'), 'view:lanes:staff'),
           action(t('menu.pianoRollLanes'), 'view:lanes:roll'),

@@ -36,8 +36,12 @@ import DevicesPanel from './components/DevicesPanel.vue'
 import ControlsPanel from './components/ControlsPanel.vue'
 import { openTutorialsKey, type TutorialTopic } from './tutorial/entry'
 import TutorialSession from './tutorial/TutorialSession.vue'
+import { pendingSheetCommands } from './pdf/actions'
+import PdfSheet from './pdf/PdfSheet.vue'
 import Timeline from './timeline/Timeline.vue'
 import { appendBars, deleteBars, insertBars } from '../shared/bar-edit'
+import { pdfTrack } from '../shared/pdf-track'
+import { uniqueId } from '../shared/ids'
 import { TimeMap } from '../shared/time-map'
 import type { Action } from '../shared/model'
 
@@ -188,6 +192,34 @@ const sections = [
   'Log',
 ]
 const p = computed(() => doc.project)
+const pdfHidden = ref(false)
+const activeSheet = computed(() => p.value.documents?.find(sheet => sheet.id === p.value.view.pdf?.activeId) ?? p.value.documents?.[0])
+const sheetOnly = computed(() => !!activeSheet.value && !pdfHidden.value && !!p.value.view.pdf?.sheetOnly)
+const rightSheet = computed(() => !!activeSheet.value && !pdfHidden.value && (sheetOnly.value || p.value.view.pdf?.placement === 'right'))
+watch(() => doc.folder, () => { pdfHidden.value = false; pendingSheetCommands.value = [] })
+function editPdfView(change: Partial<NonNullable<typeof p.value.view.pdf>>) {
+  doc.update(project => {
+    project.view.pdf = {placement:'lane',width:640,sheetOnly:false,...project.view.pdf,...change}
+  }, 'pdf-view')
+}
+const dragPdfWidth = ref<number>()
+function resizePdf(event: PointerEvent) {
+  const target = event.currentTarget as HTMLElement
+  const startWidth = p.value.view.pdf?.width ?? 640
+  const startX = event.clientX
+  target.setPointerCapture(event.pointerId)
+  const move = (e: PointerEvent) => { dragPdfWidth.value = Math.min(1200,Math.max(360,startWidth+startX-e.clientX)) }
+  const finish = (e: PointerEvent) => {
+    if (e.type === 'pointerup' && dragPdfWidth.value !== undefined) editPdfView({width:dragPdfWidth.value})
+    dragPdfWidth.value = undefined
+    target.removeEventListener('pointermove',move)
+    target.removeEventListener('pointerup',finish)
+    target.removeEventListener('lostpointercapture',finish)
+  }
+  target.addEventListener('pointermove',move)
+  target.addEventListener('pointerup',finish)
+  target.addEventListener('lostpointercapture',finish)
+}
 const timeMap = computed(() => new TimeMap(p.value))
 const position = computed(() =>
   timeMap.value.tickToBarBeat(runtime.transport.tick),
@@ -346,6 +378,18 @@ function shortcut(event: KeyboardEvent): void {
 const stopActions = watch(
   engineBus,
   (bus, _old, onCleanup) => {
+    if (bus) onCleanup(bus.on('pdf:action', action => {
+      const sheet = action.documentId ? p.value.documents?.find(item => item.id === action.documentId) : activeSheet.value
+      if (!sheet) return
+      pdfHidden.value = false
+      if (p.value.view.pdf?.activeId !== sheet.id) editPdfView({activeId:sheet.id})
+      if (action.cmd === 'toggleTheme') {
+        doc.update(project => {
+          const target = project.documents?.find(item => item.id === sheet.id)
+          if (target) target.theme = target.theme === 'night' ? 'light' : 'night'
+        })
+      } else pendingSheetCommands.value = [...pendingSheetCommands.value, {folder:doc.folder,id:sheet.id,action}]
+    }))
     if (bus)
       onCleanup(
         bus.on('app', ({ cmd }) => {
@@ -417,7 +461,29 @@ async function command(cmd: string): Promise<void> {
     }
     if (cmd === 'link:score') await sources.link()
     else if (cmd === 'export:midi') await sources.exportForScore()
-    else if (cmd === 'import:audio') {
+    else if (cmd.startsWith('pdf:')) {
+      if (!activeSheet.value) return
+      if (cmd === 'pdf:toggle') pdfHidden.value = !pdfHidden.value
+      else {
+        pdfHidden.value = false
+        if (cmd === 'pdf:only') editPdfView({sheetOnly:!sheetOnly.value})
+        else if (cmd === 'pdf:lane' || cmd === 'pdf:right') editPdfView({placement:cmd === 'pdf:lane'?'lane':'right', sheetOnly:false})
+      }
+    } else if (cmd === 'import:pdf') {
+      const folder = doc.folder
+      if (!folder) { notify(t('pdf.needProject')); return }
+      const file = await window.xm.project.importFile('pdf')
+      if (file && folder === doc.folder) pdfHidden.value = false
+      if (file && folder === doc.folder) doc.update(project => {
+        const sheets = project.documents ??= []
+        const name = file.split('/').at(-1)!.replace(/\.pdf$/i,'')
+        const id = uniqueId(name,sheets.map(sheet => sheet.id))
+        sheets.push({id,name,file,theme:'night',zoom:'fit',cols:1,scroll:0})
+        project.tracks.push(pdfTrack(sheets[sheets.length-1],project.tracks))
+        project.view.pdf ??= {placement:'lane',width:640,sheetOnly:false}
+        project.view.pdf.activeId = id
+      })
+    } else if (cmd === 'import:audio') {
       if (!doc.folder) {
         notify('Create or open a project folder first')
         return
@@ -622,11 +688,13 @@ onUnmounted(() => {
     class="xm-app"
     :class="{
       'is-collapsed': settings.collapsed,
+      'has-pdf-pane': rightSheet,
+      'sheet-only': sheetOnly,
       'is-following':
         (runtime.state.followMode ?? p.follow.mode) !== 'written' ||
         runtime.transport.holding,
     }"
-    :style="{ '--xm-w-left': `${settings.leftWidth}px` }"
+    :style="{ '--xm-w-left': `${settings.leftWidth}px`, '--xm-w-pdf': (dragPdfWidth ?? p.view.pdf?.width ?? 640)+'px' }"
     @dragover.prevent
     @drop.prevent="drop"
   >
@@ -1017,11 +1085,53 @@ onUnmounted(() => {
     />
 
     <Timeline
+      v-show="!sheetOnly"
+      :show-pdf="!pdfHidden && !rightSheet"
       @patch="editPatch"
       @instrument="pickerId = $event"
       @command="command"
       @error="fail"
     />
+    <div
+      v-if="rightSheet && !sheetOnly"
+      class="pdf-divider"
+      role="separator"
+      aria-orientation="vertical"
+      tabindex="0"
+      :aria-label="t('pdf.resize')"
+      :aria-valuenow="dragPdfWidth ?? p.view.pdf?.width ?? 640"
+      :aria-valuemin="360"
+      :aria-valuemax="1200"
+      @pointerdown="resizePdf"
+      @keydown.left.stop.prevent="editPdfView({width:Math.min(1200,(p.view.pdf?.width ?? 640)+20)})"
+      @keydown.right.stop.prevent="editPdfView({width:Math.max(360,(p.view.pdf?.width ?? 640)-20)})"
+    />
+    <aside
+      v-if="rightSheet && activeSheet"
+      class="pdf-right"
+    >
+      <nav :aria-label="t('pdf.scores')">
+        <button
+          v-for="sheet in p.documents"
+          :key="sheet.id"
+          :aria-pressed="sheet.id===activeSheet.id"
+          @click="editPdfView({activeId:sheet.id})"
+        >
+          {{ sheet.name }}
+        </button>
+        <button
+          :aria-pressed="sheetOnly"
+          @click="editPdfView({sheetOnly:!sheetOnly})"
+        >
+          {{ t('pdf.only') }}
+        </button>
+      </nav>
+      <PdfSheet
+        :key="activeSheet.id"
+        :sheet="activeSheet"
+        :bar="position.bar"
+      />
+    </aside>
     <KeyboardStrip
       ref="keyboardStrip"
       @script="flowSelect({ kind: 'script' }, { right: 0, top: 0 })"
@@ -1052,4 +1162,16 @@ onUnmounted(() => {
 .section-heading .xm-sec-h { flex:1; min-width:0; }
 .tutorial-chip { border:1px solid var(--xm-border); border-radius:50%; margin-right:.7rem; width:1.6rem; height:1.6rem; color:var(--xm-text-muted); background:transparent; }
 .tutorial-offer { position:fixed; right:1rem; top:4rem; z-index:20; display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; max-width:calc(100vw - 2rem); padding:.6rem; background:var(--xm-panel,#242d31); border:1px solid var(--xm-border); border-radius:.4rem; }
+</style>
+
+<style scoped>
+.xm-app.has-pdf-pane { grid-template-columns:var(--xm-w-left) minmax(0,1fr) 6px min(var(--xm-w-pdf),calc(100% - var(--xm-w-left) - 180px)); }
+.xm-app.has-pdf-pane.is-collapsed { grid-template-columns:0 minmax(0,1fr) 6px min(var(--xm-w-pdf),calc(100% - 180px)); }
+.pdf-divider { grid-row:2; grid-column:3; background:var(--xm-border); cursor:col-resize; touch-action:none; }
+.pdf-right { grid-row:2; grid-column:4; min-width:0; min-height:0; display:flex; flex-direction:column; }
+.pdf-right nav { display:flex; align-items:center; gap:4px; overflow-x:auto; flex-shrink:0; }
+.pdf-right nav button { white-space:nowrap; }
+.pdf-right nav [aria-pressed=true] { color:var(--xm-accent); }
+.pdf-right :deep(.pdf-sheet) { flex:1; height:auto; min-height:0; resize:none; }
+.sheet-only .pdf-right { grid-column:2 / -1; }
 </style>

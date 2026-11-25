@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest'
+import { pdfTrack } from '../../src/shared/pdf-track'
 import { Bus } from '../../src/shared/bus'
 import { applyMetadata, syncProject } from '../../src/shared/project-sync'
 import { newProject } from '../../src/shared/defaults'
@@ -57,11 +58,18 @@ it('sends note arrays only when changed and re-feeds everything after reconnect'
     await flush()
     expect(noteMessages).toBe(1)
     expect((received!.tracks[0] as MidiTrack).notes).toEqual(track.notes)
+    const beforeScroll = received
+    const withSheet: Project = { ...next, documents: [{id:'score',name:'Score',file:'scores/pdf/score.pdf',theme:'night',cols:2,zoom:'fit',scroll:500}] }
+    syncProject(ui, withSheet, next)
+    await flush()
+    expect(received).toBe(beforeScroll)
+    withSheet.tracks = [...withSheet.tracks, pdfTrack(withSheet.documents![0],withSheet.tracks)]
     received = undefined
-    syncProject(ui, next, next, true)
+    syncProject(ui, withSheet, withSheet, true)
     await flush()
     expect(noteMessages).toBe(2)
     expect(received!.name).toBe('Renamed')
+    expect(received!.tracks.map(t => t.kind)).toEqual(['midi'])
   } finally {
     ui.close()
     engine.close()

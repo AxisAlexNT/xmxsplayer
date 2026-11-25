@@ -35,7 +35,20 @@ export interface Orchestra {
   outOfRange: 'silent' | 'nearest'
   sections: OrchestraSection[]
 }
+export interface PdfDocument {
+  id: Id
+  name: string
+  file: string
+  theme: 'night' | 'light'
+  zoom: 'fit' | number
+  cols: 1 | 2 | 3
+  scroll: number
+  follow?: boolean
+  markers?: { bar: number; page: number; y: number }[]
+}
+
 export interface Project {
+  documents?: PdfDocument[]
   masterEffects?: Effect[]
   orchestras?: Orchestra[]
   record?: { mode: 'overdub' | 'replace'; preRollBars: number }
@@ -76,6 +89,7 @@ export interface Project {
     toCue: boolean
   }
   view: {
+    pdf?: { placement: 'lane' | 'right'; width: number; activeId?: Id; sheetOnly: boolean }
     lanes: 'staff' | 'roll' | 'per-track'
     follow: 'page' | 'center'
     staffScale: number
@@ -168,7 +182,11 @@ export interface AudioTrack extends TrackBase {
     q: number
   }
 }
-export type Track = MidiTrack | AudioTrack
+export interface PdfTrack extends TrackBase {
+  kind: 'pdf'
+  documentId: Id
+}
+export type Track = MidiTrack | AudioTrack | PdfTrack
 
 export interface Clip {
   id: Id
@@ -238,7 +256,10 @@ export type Condition =
   | { any: Condition[] }
   | { not: Condition }
 
+export type PdfAction = { type: 'pdf'; cmd: 'next' | 'prev' | 'scroll' | 'toggleTheme'; documentId?: Id; amount?: number }
+
 export type Action =
+  | PdfAction
   | {
       type: 'orchestra'
       cmd: 'select' | 'next' | 'prev'
