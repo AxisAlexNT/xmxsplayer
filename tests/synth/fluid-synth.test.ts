@@ -196,3 +196,10 @@ it('dispatches live input immediately after older due events without waiting for
   backend.noteOff(id, 60)
   expect(api.send).toHaveBeenLastCalledWith(['noteoff 0 60'])
 })
+
+it('sends initial CC values after selecting the instrument', async () => {
+  const { api, backend, instrument } = rig()
+  await backend.loadSoundFont({ id: 'gm', file: 'GM.sf2' }, 'xmfile://f/gm')
+  await backend.allocate({ ...instrument, initCc: { 71: 100, 74: 38 } })
+  expect(vi.mocked(api.send).mock.lastCall?.[0].slice(-2)).toEqual(['cc 0 71 100', 'cc 0 74 38'])
+})

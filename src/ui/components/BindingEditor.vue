@@ -22,6 +22,7 @@ import { palette, sentence } from '../bindings/labels'
 import { useProjectStore } from '../stores/project'
 import { useRuntimeStore } from '../stores/runtime'
 import { engineBus } from '../bus'
+import { useSettingsStore } from '../stores/settings'
 import ActionPicker from './ActionPicker.vue'
 import ConditionEditor from './ConditionEditor.vue'
 const props = defineProps<{
@@ -104,6 +105,40 @@ function apply(next: Binding): void {
   } catch (reason) {
     error.value = String(reason)
   }
+}
+const settings = useSettingsStore()
+const sweepInstrument = ref('')
+const sweepTarget = computed(() => doc.project.instruments.find(i => i.id === sweepInstrument.value) ?? doc.project.instruments[0])
+async function filterSweep() {
+  const instrument = sweepTarget.value
+  if (!instrument) return
+  const backend = instrument.backend === 'default' ? settings.value.audio.defaultSynth : instrument.backend
+  if (backend !== 'web' && backend !== 'plugin') {
+    error.value = 'Built-in or plugin engine only.'
+    return
+  }
+  const inputs = instrument.plugin?.parameters?.filter(p => p.input) ?? []
+  const cutoff = inputs.find(p => /cutoff|cut.off|filter frequency/i.test(p.name))
+  if (backend === 'plugin' && !cutoff) {
+    error.value = 'This plugin has no named cutoff control. Choose its parameter manually.'
+    return
+  }
+  edge.value = 'change'
+  await nextTick()
+  const binding: Binding = {control: props.control.id, edge: 'change', action: cutoff && backend === 'plugin'
+    ? {type:'param', target:'instrument.pluginParam', id:instrument.id, param:String(cutoff.index), min:cutoff.min, max:cutoff.max}
+    : {type:'param', target:'instrument.cc', id:instrument.id, cc:74, min:0, max:127}}
+  doc.update(project => {
+    const target = project.instruments.find(i => i.id === instrument.id)!
+    if (backend === 'web') target.initCc = {...target.initCc, 71:100}
+    else {
+      const resonance = inputs.find(p => /resonance/i.test(p.name))
+      if (resonance) target.pluginParams = {...target.pluginParams,
+        [resonance.index]:resonance.min + (resonance.max - resonance.min) * 100 / 127}
+    }
+    writeBinding(project, scope.value, binding)
+  })
+  error.value = ''
 }
 async function drumRoll() {
   const track = doc.project.tracks.find(t => t.kind === 'midi')
@@ -224,6 +259,31 @@ onUnmounted(() => {
       >
         Drum roll
       </button>
+      <div
+        v-if="control.mode !== 'momentary' && sweepTarget"
+        class="d-flex gap-2 mt-2"
+      >
+        <select
+          class="form-select form-select-sm"
+          aria-label="Filter sweep instrument"
+          :value="sweepTarget.id"
+          @change="sweepInstrument=($event.target as HTMLSelectElement).value"
+        >
+          <option
+            v-for="instrument in doc.project.instruments"
+            :key="instrument.id"
+            :value="instrument.id"
+          >
+            {{ instrument.name }}
+          </option>
+        </select>
+        <button
+          class="btn btn-sm btn-xm"
+          @click="filterSweep"
+        >
+          Filter sweep
+        </button>
+      </div>
       <ActionPicker
         :model-value="draft.action"
         :project="doc.project"

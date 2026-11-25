@@ -43,3 +43,9 @@ Electron 45 lacks `MIDIOutput.clear()`, so future LED messages remain in a cance
 ### Play a drum roll with a fader or encoder
 
 Open the control’s binding editor and choose **Drum roll**. Select the MIDI track that plays your drum instrument and enter its kick or snare note. The recipe starts with note 36 and a 60 ms auto-release. Move the control through three MIDI steps for each hit. Choose **Up** or **Down** to play on just one stroke. **Movement speed** makes a quick stroke louder. Choose **Fixed** for even hits.
+
+### Sweep a filter with a knob
+
+In the control’s binding editor, choose an instrument beside **Filter sweep**, then press **Filter sweep**. For a built-in instrument the recipe maps cutoff to MIDI CC 74 and initializes resonance with CC 71 at 100. The soundfont determines the response. For a plugin, the recipe maps its named cutoff parameter over its published range and sets resonance when the plugin exposes it. Use **Parameter → Instrument plugin param** to choose a control manually.
+
+The built-in synth produced three distinct waveforms for TimGM6mb bank 0, program 81 at cutoff values 0, 64 and 127 with resonance at 100. FluidSynth 2.3.4 produced identical audio samples at CC 74 values 0, 64 and 127 in an offline test of TimGM6mb bank 0, program 81, MIDI note 60. The filter sweep recipe therefore offers built-in and plugin instruments.

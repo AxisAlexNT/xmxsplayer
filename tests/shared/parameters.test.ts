@@ -47,3 +47,22 @@ it('changes only the chosen parameter, clamps legal ranges and retains the lates
   ).toMatchObject({ filter: { freq: 20000, q: 1 } })
   expect(parameterPatch(p, { ...action, id: 'missing' }, 1)).toBeUndefined()
 })
+
+it('keeps MIDI CC values independent and maps a plugin control in its native units', async () => {
+  const { liveProject } = await import('../../src/shared/template')
+  const p = liveProject('Lead')
+  const action = { type:'param' as const, target:'instrument.cc' as const, id:'piano', cc:74, min:0, max:127 }
+  p.instruments[0].initCc = {71:100}
+  Object.assign(p, parameterPatch(p, action, 0.5))
+  expect(p.instruments[0].initCc).toEqual({71:100,74:64})
+  expect(parameterValue(p, action)).toBe(64)
+  p.instruments[0].backend = 'plugin'
+  p.instruments[0].plugin = {format:'lv2',uri:'urn:lead',name:'Lead',parameters:[
+    {name:'Cutoff',index:9,input:true,initial:800,min:20,max:20000},
+  ]}
+  const cutoff = {...action, target:'instrument.pluginParam' as const, param:'9', min:20,max:20000}
+  expect(parameterValue(p, cutoff)).toBe(800)
+  Object.assign(p, parameterPatch(p, cutoff, 0.5))
+  expect(parameterValue(p, cutoff)).toBe(10010)
+  expect(parameterPatch(p, {...cutoff, param:'999'}, 1)).toBeUndefined()
+})

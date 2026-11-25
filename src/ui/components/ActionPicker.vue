@@ -164,7 +164,17 @@ function selectEffect(index: number) {
   const choice = effectChoices.value[index]
   if (choice) emit('update:modelValue', choice.action)
 }
+const pluginControls = computed(() => props.project.instruments.filter(i => i.backend === 'plugin')
+  .flatMap(i => (i.plugin?.parameters ?? []).filter(p => p.input).map(p => ({
+    label: i.name + ' · ' + p.name, id: i.id, param: String(p.index), min: p.min, max: p.max,
+  }))))
+function selectPlugin(index: number) {
+  const choice = pluginControls.value[index]
+  if (choice) emit('update:modelValue', {type: 'param', target:'instrument.pluginParam', id:choice.id,
+    param:choice.param, min:choice.min, max:choice.max})
+}
 function target(target: ParamTarget): void {
+  if (target === 'instrument.pluginParam') return selectPlugin(0)
   if (target === 'effect.param') return selectEffect(0)
   const instrument = target.startsWith('instrument.'),
     track = target.startsWith('track.') || target.startsWith('audio.'),
@@ -179,6 +189,7 @@ function target(target: ParamTarget): void {
     type: 'param',
     target,
     ...(id ? { id } : {}),
+    ...(target === 'instrument.cc' ? { cc: 74 } : {}),
     min:
       target === 'rate'
         ? 0.25
@@ -190,7 +201,7 @@ function target(target: ParamTarget): void {
               ? 20
               : 0,
     max:
-      target === 'rate'
+      target === 'instrument.cc' ? 127 : target === 'rate'
         ? 1.5
         : target === 'audio.semitones'
           ? 12
@@ -205,6 +216,8 @@ const targets: ParamTarget[] = [
   'effect.param',
   'track.volume',
   'track.pan',
+  'instrument.pluginParam',
+  'instrument.cc',
   'instrument.volume',
   'instrument.reverb',
   'instrument.chorus',
@@ -289,12 +302,25 @@ const targets: ParamTarget[] = [
           <option
             v-for="targetName in targets"
             :key="targetName"
-            :disabled="targetName==='effect.param' && !effectChoices.length"
+            :disabled="(targetName==='effect.param' && !effectChoices.length) || (targetName==='instrument.pluginParam' && !pluginControls.length)"
             :value="targetName"
           >
             {{ sentence(targetName) }}
           </option>
         </select>
+        <label
+          v-if="a.target==='instrument.cc'"
+          class="form-label"
+        >MIDI controller number
+          <input
+            type="number"
+            min="0"
+            max="127"
+            class="form-control"
+            :value="a.cc"
+            @change="patch({cc: Number(($event.target as HTMLInputElement).value)})"
+          >
+        </label>
         <label
           v-if="a.target==='effect.param'"
           class="form-label mt-2"
@@ -312,7 +338,20 @@ const targets: ParamTarget[] = [
             >{{ choice.label }}</option>
           </select>
         </label><label
-          v-if="a.target.startsWith('instrument.')"
+          v-if="a.target==='instrument.pluginParam'"
+          class="form-label mt-2"
+        >Plugin control<select
+          class="form-select"
+          :value="pluginControls.findIndex(p=>a.type==='param' && p.id===a.id && p.param===a.param)"
+          @change="selectPlugin(Number(($event.target as HTMLSelectElement).value))"
+        >
+          <option
+            v-for="(p,i) in pluginControls"
+            :key="p.id + ':' + p.param"
+            :value="i"
+          >{{ p.label }}</option>
+        </select></label><label
+          v-else-if="a.target.startsWith('instrument.')"
           class="form-label mt-2"
         >Instrument<select
           class="form-select form-select-sm"

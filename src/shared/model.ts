@@ -87,6 +87,8 @@ export interface SoundFontRef {
   file: string
 } // file name only; resolved per PC
 export interface Instrument {
+  pluginParams?: Record<string, number>
+  initCc?: Record<string, number>
   plugin?: PluginRef
   effects?: Effect[]
   id: Id
@@ -269,7 +271,7 @@ export type Action =
       on?: boolean
     }
   | { type: 'note'; trackId: Id; key: number; velocity: 'control' | 'speed' | number; gateMs?: number }
-  | { type: 'param'; target: ParamTarget; id?: Id; effectId?: Id; param?: string; min: number; max: number }
+  | { type: 'param'; target: ParamTarget; cc?: number; id?: Id; effectId?: Id; param?: string; min: number; max: number }
   | { type: 'trackMode'; trackId: Id; mode: TrackMode | 'cycle' }
   | { type: 'follow'; mode: Project['follow']['mode'] | 'cycle' }
   | { type: 'cue'; cmd: 'fireNext' | 'fire' | 'prev' | 'next'; cueId?: Id }
@@ -302,6 +304,8 @@ export type ParamTarget =
   | 'masterVolume'
   | 'track.volume'
   | 'track.pan'
+  | 'instrument.pluginParam'
+  | 'instrument.cc'
   | 'instrument.volume'
   | 'instrument.reverb'
   | 'instrument.chorus'

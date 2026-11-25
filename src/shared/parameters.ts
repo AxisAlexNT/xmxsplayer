@@ -18,6 +18,14 @@ export function parameterValue(
       return track?.volume
     case 'track.pan':
       return track?.pan
+    case 'instrument.pluginParam': {
+      const control = instrument?.plugin?.parameters?.find(p => p.input && String(p.index) === action.param)
+      return instrument?.backend === 'plugin' && control
+        ? instrument.pluginParams?.[control.index] ?? control.initial : undefined
+    }
+    case 'instrument.cc':
+      return instrument && action.cc !== undefined && instrument.backend !== 'plugin'
+        ? instrument.initCc?.[action.cc] ?? 0 : undefined
     case 'instrument.volume':
       return instrument?.volume
     case 'instrument.reverb':
@@ -72,6 +80,17 @@ export function parameterPatch(
   if (action.target.startsWith('instrument.')) {
     const instrument = project.instruments.find((i) => i.id === action.id)
     if (!instrument) return
+    if (action.target === 'instrument.pluginParam') {
+      const control = instrument.plugin?.parameters?.find(p => p.input && String(p.index) === action.param)
+      if (instrument.backend !== 'plugin' || !control) return
+      const pluginParams = { ...instrument.pluginParams, [control.index]: clamped(control.min, control.max) }
+      return { instruments: project.instruments.map(i => i.id === instrument.id ? { ...i, pluginParams } : i) }
+    }
+    if (action.target === 'instrument.cc') {
+      if (action.cc === undefined || instrument.backend === 'plugin') return
+      const initCc = { ...instrument.initCc, [action.cc]: Math.round(clamped(0, 127)) }
+      return { instruments: project.instruments.map(i => i.id === instrument.id ? { ...i, initCc } : i) }
+    }
     const property = action.target.slice(11) as 'volume' | 'reverb' | 'chorus'
     return {
       instruments: project.instruments.map((i) =>

@@ -136,7 +136,7 @@ export function planPluginSession(
   const mix: Endpoint[] = []
   for (const instrument of project.instruments) {
     if (instrument.backend !== 'plugin' || !instrument.plugin) continue
-    const source = instance('instrument-' + instrument.id, instrument.plugin)
+    const source = instance('instrument-' + instrument.id, instrument.plugin, instrument.pluginParams)
     const inherited = (project.orchestras ?? []).flatMap((o) => {
       const sections = o.sections.filter((s) =>
         s.members.some((m) => m.enabled && m.instrumentId === instrument.id),

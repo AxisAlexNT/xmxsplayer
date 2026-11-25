@@ -23,6 +23,8 @@ export function actionLabel(
         'track.volume': 'Volume',
         'effect.param': action.param ?? 'Effect',
         'track.pan': 'Pan',
+        'instrument.pluginParam': project.instruments.find(i => i.id === action.id)?.plugin?.parameters?.find(p => String(p.index) === action.param)?.name ?? 'Plugin parameter',
+        'instrument.cc': `MIDI CC ${action.cc ?? ''}`,
         'instrument.volume': 'Volume',
         'instrument.reverb': 'Reverb',
         'instrument.chorus': 'Chorus',

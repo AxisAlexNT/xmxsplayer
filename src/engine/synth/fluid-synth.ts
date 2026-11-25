@@ -205,6 +205,8 @@ export class FluidSynthBackend implements SynthBackend {
       ].map(([cc, value]) =>
         fluidMidi('cc', slot.channel, cc, Math.round(value * 127)),
       ),
+      ...Object.entries(instrument.initCc ?? {}).map(([cc, value]) =>
+        fluidMidi('cc', slot.channel, Number(cc), value)),
     ]
   }
   configure(id: SlotId, instrument: Instrument): void {

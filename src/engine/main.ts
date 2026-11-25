@@ -288,7 +288,7 @@ function receiveMidi(message: MidiMessage): void {
 function currentParameter(action: ParamAction): number | undefined {
   if (action.target === 'rate') return transport?.clock.rate
   if (action.target === 'masterVolume') return masterVolume
-  const pending = pendingParameters.get(JSON.stringify([action.target,action.id,action.effectId,action.param]))
+  const pending = pendingParameters.get(JSON.stringify([action.target,action.id,action.effectId,action.param,action.cc]))
   if (pending && performance.now() - pending.time < 250) return pending.value
   return project ? parameterValue(project, action) : undefined
 }
@@ -383,7 +383,7 @@ function runAction(
       if (patch) {
         const next = parameterValue({ ...project, ...patch }, action)
         if (next !== undefined)
-          pendingParameters.set(JSON.stringify([action.target,action.id,action.effectId,action.param]), {
+          pendingParameters.set(JSON.stringify([action.target,action.id,action.effectId,action.param,action.cc]), {
             value: next,
             time: performance.now(),
           })

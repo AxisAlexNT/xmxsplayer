@@ -148,6 +148,8 @@ export class MidiOutSynthBackend implements SynthBackend {
       [93, instrument.chorus],
     ])
       this.send(endpoint, [0xb0, cc, Math.round(value * 127)])
+    for (const [cc, value] of Object.entries(instrument.initCc ?? {}))
+      this.send(endpoint, [0xb0, Number(cc), value])
   }
   private get(id: SlotId): Slot {
     const slot = this.slots.get(id)

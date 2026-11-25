@@ -259,6 +259,9 @@ export class WebSynthBackend implements SynthBackend {
         93,
         Math.round(instrument.chorus * 127),
       )
+    for (const [cc, value] of Object.entries(instrument.initCc ?? {}))
+      if (old?.initCc?.[cc] !== value)
+        this.cc(id, Number(cc), value)
     pool.chain?.set(instrument.effects)
     slot.config = { ...instrument }
   }
