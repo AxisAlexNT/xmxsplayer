@@ -185,7 +185,7 @@ function target(target: ParamTarget): void {
   if (target === 'effect.param') return selectEffect(0)
   const instrument = target.startsWith('instrument.'),
     track = target.startsWith('track.') || target.startsWith('audio.'),
-    id = target === 'section.gain' ? sections.value[0]?.id : instrument
+    id = target.startsWith('orchestra.') ? props.project.orchestras?.[0]?.id : target === 'section.gain' ? sections.value[0]?.id : instrument
       ? props.project.instruments[0]?.id
       : track
         ? props.project.tracks.find(
@@ -220,6 +220,7 @@ function target(target: ParamTarget): void {
 const targets: ParamTarget[] = [
   'rate',
   'masterVolume',
+  'orchestra.volume', 'orchestra.reverb', 'orchestra.chorus', 'orchestra.brightness',
   'section.gain',
   'effect.param',
   'track.volume',
@@ -316,6 +317,22 @@ const targets: ParamTarget[] = [
             {{ sentence(targetName) }}
           </option>
         </select>
+        <label
+          v-if="a.target.startsWith('orchestra.')"
+          class="form-label"
+        >Orchestra
+          <select
+            class="form-select"
+            :value="a.id"
+            @change="patch({id:($event.target as HTMLSelectElement).value})"
+          >
+            <option
+              v-for="o in project.orchestras"
+              :key="o.id"
+              :value="o.id"
+            >{{ o.name }}</option>
+          </select>
+        </label>
         <label
           v-if="a.target==='section.gain'"
           class="form-label"

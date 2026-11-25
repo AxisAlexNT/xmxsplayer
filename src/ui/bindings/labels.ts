@@ -22,6 +22,7 @@ export function actionLabel(
         rate: 'Speed',
         masterVolume: 'Master',
         'track.volume': 'Volume',
+        'orchestra.volume':'Orchestra volume', 'orchestra.reverb':'Hall reverb', 'orchestra.chorus':'Chorus', 'orchestra.brightness':'Brightness',
         'section.gain': 'Section level',
         'effect.param': action.param ?? 'Effect',
         'track.pan': 'Pan',
@@ -35,6 +36,7 @@ export function actionLabel(
       }
       const fader = /^fader\.(\d+)$/.exec(control),
         name =
+          (action.target.startsWith('orchestra.') ? project.orchestras?.find(o=>o.id===action.id)?.name : undefined) ??
           (action.target === 'section.gain' ? orchestraSections(project).find(s => s.id === action.id)?.name : undefined) ??
           project.tracks.find((t) => t.id === action.id)?.name ??
           project.instruments.find((i) => i.id === action.id)?.name ??

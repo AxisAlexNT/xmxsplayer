@@ -1,3 +1,4 @@
+import { applyOrchestraControls } from '../shared/orchestra-controls'
 import { requiredPlugins } from '../shared/plugins'
 import { PluginSynthBackend } from './synth/plugin-synth'
 import { zeroCrossing } from './clips/zero-crossing'
@@ -151,8 +152,11 @@ function publishRuntime(): void {
 function applyPerformance(): void {
   const effective = performanceProject()
   if (!effective) return
+  const orchestraChanged = Object.entries(scenes.orchestras).some(([track,id]) => runtimeState.orchestras?.[track] !== id)
   router?.setProject(effective)
   transport?.applyPerformance(effective)
+  if (orchestraChanged && project?.orchestras?.some(o => o.fx))
+    void synchronize().catch(error => log('error','orchestra',String(error)))
   leds?.invalidate(true)
   publishRuntime()
 }
@@ -757,7 +761,7 @@ async function initialize(value: Settings): Promise<void> {
     }
     transport.grid.tempoMode = value.tempoMode ?? 'scale'
     transport.inputLatencyMs = value.audio.inputLatencyMs
-    transport.resolveProject = (source) => performanceProject() ?? source
+    transport.resolveProject = (source) => applyOrchestraControls(performanceProject() ?? source, scenes.orchestras)
     transport.conditionContext = (tick) => ({
       ...scenes.context,
       bar: transport!.clock.map.tickToBarBeat(tick).bar,
@@ -784,7 +788,7 @@ async function initialize(value: Settings): Promise<void> {
     if (project) {
       router.setProject(performanceProject() ?? project)
       await Promise.all([
-        rack.synchronize(project),
+        rack.synchronize(applyOrchestraControls(project, scenes.orchestras)),
         transport.synchronize(project),
       ])
       cues.configure(project.cues)
@@ -925,7 +929,7 @@ async function synchronize(
   const needsPlugins = requiredPlugins(project).length > 0
   if (needsPlugins || pluginConfigured) {
     try {
-      const applied = await window.pluginPlayback.configure(project, transport?.clock.playing ?? false)
+      const applied = await window.pluginPlayback.configure(applyOrchestraControls(project, scenes.orchestras), transport?.clock.playing ?? false)
       if (!applied) return
       pluginConfigured = needsPlugins
     } catch (error) { pluginReady=false;log('error','plugins',String(error)) }
@@ -933,7 +937,7 @@ async function synchronize(
   }
   router?.setProject(performanceProject() ?? project)
   await Promise.all([
-    rack.synchronize(project),
+    rack.synchronize(applyOrchestraControls(project, scenes.orchestras)),
     transport?.synchronize(project, forceSynth),
   ])
   if (revision !== syncRevision) return

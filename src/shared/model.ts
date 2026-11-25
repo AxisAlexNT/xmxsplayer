@@ -24,7 +24,9 @@ export interface OrchestraSection {
   startOn: boolean
   members: OrchestraMember[]
 }
+export type OrchestraControl = 'volume' | 'reverb' | 'chorus' | 'brightness'
 export interface Orchestra {
+  fx?: Partial<Record<OrchestraControl, number>>
   effects?: Effect[]
   id: Id
   name: string
@@ -300,6 +302,7 @@ export type Action =
     }
   | { type: 'script'; fn: string }
 export type ParamTarget =
+  | `orchestra.${OrchestraControl}`
   | 'section.gain'
   | 'effect.param'
   | 'rate'

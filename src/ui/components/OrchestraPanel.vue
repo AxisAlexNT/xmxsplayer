@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { dragPadSource } from '../bindings/pad-drop'
+import { orchestraControls, orchestraDefaults, unsupportedMembers } from '../../shared/orchestra-controls'
 import EffectsDialog from "./EffectsDialog.vue"
 import { computed, ref, nextTick } from 'vue'
 import { useProjectStore } from '../stores/project'
@@ -155,11 +156,7 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
       </button>
     </div>
     <template v-if="current">
-      <EffectsDialog
-        :orchestra-id="current.id"
-        label="Effects chain"
-      />
-      <label>Max layers
+      <label>Layers per key
         <select
           :value="current.maxLayers"
           @change="edit((o) => (o.maxLayers = value($event)))"
@@ -189,6 +186,7 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
       <details
         v-for="(s, i) in current.sections"
         :key="i"
+        class="xm-orc-sec"
       >
         <summary
           :draggable="s.register !== null"
@@ -318,10 +316,45 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
           </label>
         </div>
       </details>
+      <div class="xm-macro">
+        <label
+          v-for="key in orchestraControls"
+          :key="key"
+          class="xm-knob"
+          :style="{'--v':current.fx?.[key] ?? orchestraDefaults[key]}"
+          :title="unsupportedMembers(doc.project,current,key).map(i=>i.name + ' has no matching plugin control').join(', ')"
+        >
+          <i aria-hidden="true" />
+          {{ {volume:'Volume',reverb:'Hall reverb',chorus:'Chorus',brightness:'Brightness'}[key] }}
+          <input
+            type="range"
+            :aria-label="'Orchestra ' + key"
+            min="0"
+            max="100"
+            :disabled="!!unsupportedMembers(doc.project,current,key).length"
+            :value="Math.round((current.fx?.[key] ?? orchestraDefaults[key]) * 100)"
+            @input="edit(o=>{o.fx={...o.fx,[key]:value($event)/100}})"
+          >
+          <output>{{ Math.round((current.fx?.[key] ?? orchestraDefaults[key]) * 100) }}%</output>
+        </label>
+      </div>
+      <EffectsDialog
+        :orchestra-id="current.id"
+        label="Effects chain"
+      />
     </template>
   </div>
 </template>
 <style scoped>
+.xm-macro { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; }
+.xm-macro .xm-knob { width:100%; min-height:48px; position:relative; }
+.xm-macro input[type=range] { position:absolute; inset:0; width:100%; height:100%; margin:0; opacity:0; cursor:ew-resize; }
+.xm-macro label:focus-within { outline:2px solid var(--xm-accent); border-radius:4px; }
+.xm-macro label:has(input:disabled) { opacity:.55; }
+.xm-macro output { font-variant-numeric:tabular-nums; }
+.xm-orc-sec { border:1px solid var(--xm-border); border-radius:6px; }
+.xm-orc-sec summary { padding:8px; cursor:pointer; }
+
 .orchestra-panel {
   display: grid;
   gap: 6px;

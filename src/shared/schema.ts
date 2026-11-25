@@ -120,6 +120,7 @@ export const actionSchema = z.discriminatedUnion('type', [
     target: enums([
       'rate',
       'masterVolume',
+      'orchestra.volume', 'orchestra.reverb', 'orchestra.chorus', 'orchestra.brightness',
       'section.gain',
       'effect.param',
       'track.volume',
@@ -403,6 +404,7 @@ export const projectSchema = z
           name: z.string().min(1),
           color,
           effects: effectChain,
+          fx: z.strictObject({volume:unit.optional(), reverb:unit.optional(), chorus:unit.optional(), brightness:unit.optional()}).optional(),
           maxLayers: int.min(0).max(8),
           outOfRange: enums(['silent', 'nearest']),
           sections: z.array(
