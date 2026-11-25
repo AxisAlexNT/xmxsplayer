@@ -2,7 +2,13 @@
 
 On Linux, open an instrument’s preset picker and choose **Plugin instrument…**. Select an installed instrument to assign it to the track. To add an effect to a plugin instrument, choose **FX → Add effect… → Plugin effect…**. **Master FX** can process the mix of plugin instruments. Carla starts when the project needs it. Changing the plugin order reloads the host, so applying the change during playback can cut off sounding notes.
 
-To try a first arrangement on this machine, select **Geonkick Single** and add **Dragonfly Hall Reverb** to the master. The Linux integration test played notes through this chain and measured output from both plugins with a dummy audio driver. For DrumGizmo, select a drum kit in the instrument before testing its sounds.
+To try a first arrangement on this machine, select **Geonkick Single** and add **Dragonfly Hall Reverb** to the master. The Linux integration test played notes through this chain and measured output from both plugins with a dummy audio driver.
+
+### Play a DrumGizmo kit
+
+Choose **DrumGizmo** as the instrument, open **FX → Instrument window**, and select the kit XML and its MIDI map in DrumGizmo. The map assigns a MIDI note to each drum. Use a note listed in that map to check the kit. Save the song to keep the selections. Keep the kit XML, map and samples together in their original locations when reopening.
+
+On this Linux machine, a generated one-drum kit mapped MIDI note 36 to a kick sample. The application host produced a measurable output on that note, saved the plugin state, and played the same note after reopening in a fresh Carla process. The check used dummy audio.
 
 ## Available on the Linux development machine
 
