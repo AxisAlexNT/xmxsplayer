@@ -97,3 +97,5 @@ Linux smoke needs a display, or `xvfb-run -a npm run smoke`. If the host exhaust
 ## License
 
 Application code and original icon: [MIT](LICENSE). Dependencies, fonts and desktop runtime retain their own licenses; see [Third-party notices](THIRD_PARTY_NOTICES.md). Verovio is shipped unmodified as separate replaceable LGPL-3.0 modules. Soundfonts, recordings and scores are not bundled.
+
+For Linux plugin instruments, installed effects, and the standalone MIDI workflow, see the [plugin guide](docs/plugins.md).

@@ -1,5 +1,5 @@
 import { findEffect } from '../../shared/effect-targets'
-import { effectParameters } from '../../shared/effects'
+import { controlsForEffect } from '../../shared/effects'
 import type {
   FollowMode,
   Timing,
@@ -107,10 +107,10 @@ export function createApi(
           const found = findEffect(host.project(), ownerId, effectId)
           if (
             !found ||
-            !Object.hasOwn(effectParameters[found.effect.type], param)
+            !Object.hasOwn(controlsForEffect(found.effect), param)
           )
             throw Error('Unknown effect parameter: ' + param)
-          const spec = effectParameters[found.effect.type][param]
+          const spec = controlsForEffect(found.effect)[param]
           host.setEffect(
             found.owner.id,
             effectId,

@@ -21,6 +21,11 @@ app.use(createPinia())
 const doc = useProjectStore()
 const runtime = useRuntimeStore()
 const settings = useSettingsStore()
+window.xm.plugins.onState(event=>{
+  if (event.status === 'stopped') return
+  runtime.log({source:'plugins',level:event.status==='error'?'error':event.status==='ready'?'ok':'info',
+    message:event.message ?? (event.status==='ready'?'Plugin host ready':'Applying plugin changes…')})
+})
 let synced: Project | undefined
 let audioScope: string | undefined
 function sync(force = false): void {

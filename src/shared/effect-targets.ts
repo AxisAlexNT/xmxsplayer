@@ -1,4 +1,4 @@
-import { effectParameters, type Effect } from './effects'
+import { controlsForEffect, type Effect } from './effects'
 import type { Project } from './model'
 
 export function effectOwners(project: Project) {
@@ -48,11 +48,11 @@ export function effectParameterPatch(
   if (
     !found ||
     !param ||
-    !Object.hasOwn(effectParameters[found.effect.type], param) ||
+    !Object.hasOwn(controlsForEffect(found.effect), param) ||
     !Number.isFinite(value)
   )
     return
-  const spec = effectParameters[found.effect.type][param]
+  const spec = controlsForEffect(found.effect)[param]
   const bounded = Math.min(spec.max, Math.max(spec.min, value))
   const rounded = Number(
     (

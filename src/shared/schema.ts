@@ -347,14 +347,29 @@ export const trackSchema = z.discriminatedUnion('kind', [
     }),
   }),
 ])
+const pluginRef = z.strictObject({
+  format: enums(['lv2','clap','vst3','ladspa']),
+  uri: z.string().min(1),
+  name: z.string().min(1),
+  parameters: z.strictObject({index:int.nonnegative(),name:z.string(),input:z.boolean(),min:num,max:num,initial:num}).array().optional(),
+  stateFile: path.refine(file => file.startsWith('plugins/')).optional(),
+})
 const effectChain = z.strictObject({
   id,
-  type: z.enum(effectTypes),
+  type: z.enum([...effectTypes,'plugin']),
+  plugin: pluginRef.optional(),
+  sidechain: z.strictObject({trackId:id}).optional(),
   enabled: z.boolean().default(true),
   params: record(num).default({}),
   trigger: z.strictObject({ trackId: id }).optional(),
   preset: z.string().optional(),
 }).superRefine((effect, ctx) => {
+  if (effect.type === 'plugin') {
+    if (!effect.plugin) ctx.addIssue({code:'custom',path:['plugin'],message:'Choose a plugin for this effect'})
+    if (Object.keys(effect.params).some(key => !/^(0|[1-9][0-9]*)$/.test(key)))
+      ctx.addIssue({code:'custom',path:['params'],message:'Expected plugin parameter indices'})
+    return
+  }
   for (const [name, value] of Object.entries(effect.params)) {
     const spec = effectParameters[effect.type][name]
     if (!Object.hasOwn(effectParameters[effect.type], name) || value < spec.min || value > spec.max)
@@ -443,7 +458,8 @@ export const projectSchema = z
         name: z.string(),
         color,
         effects: effectChain,
-        backend: enums(['default', 'web', 'fluid', 'midi']),
+        backend: enums(['default', 'web', 'fluid', 'midi', 'plugin']),
+        plugin: pluginRef.optional(),
         soundfontId: id.optional(),
         bank: int.min(0).max(16383),
         program: byte,
@@ -456,7 +472,7 @@ export const projectSchema = z
         reverb: unit,
         chorus: unit,
         transpose: int,
-      })
+      }).refine(i => i.backend !== 'plugin' || !!i.plugin, {path:['plugin'],message:'Choose a plugin instrument'})
       .array(),
     tracks: trackSchema.array(),
     sources: z

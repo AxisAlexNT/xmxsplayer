@@ -104,3 +104,47 @@ it.skipIf(process.env.XM_CARLA_DUMMY_TEST !== '1')(
   },
   30000,
 )
+
+it.skipIf(process.env.XM_CARLA_DUMMY_TEST !== '1')(
+  'restores saved native plugin parameters into a fresh Carla process',
+  async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'xmxs-carla-state-'))
+    const host = new PluginHost(
+      () => undefined,
+      'SDL',
+      undefined,
+      'resources/plugins/carla-control.py',
+    )
+    const { readFile } = await import('node:fs/promises')
+    try {
+      await host.configure(dir, session, '/usr/bin/carla')
+      host.send('room', 'set_parameter_value', [
+        { type: 'i', value: 0 },
+        { type: 'f', value: 67 },
+      ])
+      await new Promise((r) => setTimeout(r, 100))
+      // Reloading the graph carries over an unsaved native edit.
+      await host.configure(
+        dir,
+        { ...session, connections: session.connections.slice(0, 1) },
+        '/usr/bin/carla',
+      )
+      await host.saveStates()
+      const [file] = await readdir(join(dir, 'plugins'))
+      const state = () => readFile(join(dir, 'plugins', file), 'utf8')
+      expect(await state()).toMatch(
+        /<Symbol>dry_level<\/Symbol>\s*<Value>67<\/Value>/,
+      )
+      await host.stop()
+      await host.configure(dir, session, '/usr/bin/carla')
+      await host.saveStates()
+      expect(await state()).toMatch(
+        /<Symbol>dry_level<\/Symbol>\s*<Value>67<\/Value>/,
+      )
+    } finally {
+      await host.stop()
+      await rm(dir, { recursive: true, force: true })
+    }
+  },
+  30000,
+)

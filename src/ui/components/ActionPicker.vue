@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { effectOwners } from '../../shared/effect-targets'
-import { effectParameters } from '../../shared/effects'
+import { controlsForEffect } from '../../shared/effects'
 import { computed } from 'vue'
 import type { Action, Project, ParamTarget } from '../../shared/model'
 import { sentence } from '../bindings/labels'
@@ -149,7 +149,7 @@ function command(cmd: string): void {
   else patch({ cmd })
 }
 const effectChoices = computed(() => effectOwners(props.project).flatMap(owner =>
-  (owner.effects ?? []).flatMap(effect => Object.entries(effectParameters[effect.type]).map(([param, spec]) => ({
+  (owner.effects ?? []).flatMap(effect => Object.entries(controlsForEffect(effect)).map(([param, spec]) => ({
     label: owner.name + ' · ' + effect.id + ' · ' + spec.label,
     action: {type: 'param' as const, target: 'effect.param' as const, id: owner.id, effectId: effect.id, param, min: spec.min, max: spec.max},
   })))

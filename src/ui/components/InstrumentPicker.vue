@@ -1,4 +1,16 @@
 <script setup lang="ts">
+import PluginBrowser from './PluginBrowser.vue'
+import type { PluginRef } from '../../shared/plugins'
+const pluginBrowser = ref(false)
+function usePlugin(plugin:PluginRef) {
+  doc.update(project=>{
+    const target=project.instruments.find(i=>i.id===props.instrumentId)
+    if(!target)return
+    target.backend='plugin';target.plugin=plugin;target.name=plugin.name
+    delete target.soundfontId;delete target.midiOut
+  })
+  emit('close')
+}
 import EffectsDialog from "./EffectsDialog.vue"
 import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { useProjectStore } from '../stores/project'
@@ -51,7 +63,7 @@ const selected = ref<Preset | null>(null)
 const query = ref('')
 const loading = ref(false)
 const error = ref('')
-const backendChoice = ref<Instrument['backend']>(instrument.backend)
+const backendChoice = ref<Instrument['backend']>(instrument.backend==='plugin'?'default':instrument.backend)
 const portName = ref(instrument.midiOut?.portName ?? '')
 const channel = ref(instrument.midiOut?.channel ?? 0)
 const bank = ref(instrument.bank)
@@ -190,6 +202,7 @@ async function usePreset(): Promise<void> {
       p.soundfonts = project.soundfonts
 
       const target = p.instruments.find((i) => i.id === props.instrumentId)!
+      delete target.plugin
       Object.assign(target, {
         backend: backendChoice.value,
         soundfontId: external.value
@@ -255,6 +268,18 @@ onUnmounted(() => {
     <div class="xm-dialog-b">
       <div class="xm-picker-columns">
         <div>
+          <button
+            class="btn btn-sm btn-xm"
+            @click="pluginBrowser=true"
+          >
+            {{ t('picker.pluginInstrument') }}
+          </button>
+          <PluginBrowser
+            v-if="pluginBrowser"
+            instrument
+            @close="pluginBrowser=false"
+            @choose="usePlugin"
+          />
           <label class="form-label">{{ t('picker.soundfont') }}</label>
           <div class="xm-list">
             <button

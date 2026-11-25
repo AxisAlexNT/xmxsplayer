@@ -25,6 +25,16 @@ const fluid: FluidApi = {
     return () => ipcRenderer.removeListener('fluid:event', listener)
   },
 }
+const pluginPlayback: import('../shared/plugins').PluginPlayback = {
+  onState(handler) {
+    const listener = (_event:Electron.IpcRendererEvent, state:import('../shared/plugins').PluginStatus) => handler(state)
+    ipcRenderer.on('plugins:state',listener)
+    return ()=>ipcRenderer.removeListener('plugins:state',listener)
+  },
+  configure: (project, playing) => ipcRenderer.invoke('plugins:configure', project, playing),
+  send: (id, command, values) => ipcRenderer.invoke('plugins:send', id, command, values),
+}
+contextBridge.exposeInMainWorld('pluginPlayback', pluginPlayback)
 contextBridge.exposeInMainWorld('xm', { fluid })
 
 contextBridge.exposeInMainWorld('engineHost', {

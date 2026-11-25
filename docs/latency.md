@@ -117,3 +117,14 @@ The comparison temporarily changed `clock.force-quantum` from 1024 to 256 with p
 On the Linux development machine at 48 kHz, a muted three-note chord using FluidR3_GM.sf2 was sampled for four seconds with and without a dedicated built-in synth and filter/LFO. The engine renderer used 461 MiB RSS before and 602 MiB after. Process CPU averaged 4.25% and 4.50% of one core respectively. These single samples cover the renderer, including the underlying soundfont worklet. The instrument uses one insert synth across its live and sequenced routes.
 
 The app reported the same Web Audio base latency (2.67 ms) and the same configured FluidSynth latency (10.67 ms) in both cases. Chromium’s output estimate varied from 96 ms to 48 ms. Physical Bluetooth piano response and dropouts still require a listening check.
+
+## Linux plugin note timing
+
+Nine C4 notes at velocity 110 were sent on each route through an isolated JACK dummy server at 48 kHz with 256-frame blocks. The timer started at command dispatch and stopped when the meter received its first audio block with a sample above 0.0001 in magnitude.
+
+| Command and instrument | Median | Range |
+| --- | ---: | ---: |
+| Carla OSC over loopback UDP, Geonkick Single | 5.29 ms | 2.80–5.89 ms |
+| FluidSynth stdin, TimGM6mb piano | 2.65 ms | 0.52–5.32 ms |
+
+Each block spans 5.33 ms. The two patches have different attacks, so the observed difference includes both instrument response and block scheduling. Keyboard input, physical output buffers and Bluetooth transmission fall outside this measurement.

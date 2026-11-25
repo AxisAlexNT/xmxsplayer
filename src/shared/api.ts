@@ -44,8 +44,11 @@ export interface ScoreData {
 }
 export interface DesktopApi {
   plugins: {
+    editor: (id:string)=>Promise<void>
+    onState: import('./plugins').PluginPlayback['onState']
+    ports: (format:string,uri:string) => Promise<import('./plugins').PluginPorts|null>
     detect: () => Promise<string>
-    scan: (force?: boolean) => Promise<{plugins: import('./plugins').DiscoveredPlugin[]; errors: string[]}>
+    scan: (force?: boolean) => Promise<{plugins: import('./plugins').DiscoveredPlugin[]; errors: string[]; standalone: string[]}>
   }
   fluid: FluidApi
   scores: {
@@ -107,6 +110,7 @@ export interface DesktopApi {
 }
 declare global {
   interface Window {
+    pluginPlayback: import('./plugins').PluginPlayback
     engineHost: {
       smoke: boolean
       setPlaying(playing: boolean): void

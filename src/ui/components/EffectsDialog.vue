@@ -1,8 +1,15 @@
 <script setup lang="ts">
+import PluginBrowser from './PluginBrowser.vue'
+import type { PluginRef } from '../../shared/plugins'
+const pluginBrowser = ref(false)
+function addPlugin(plugin:PluginRef){
+  edit(list=>list.push({id:uniqueId(plugin.name,list.map(e=>e.id)),type:'plugin',plugin,enabled:true,params:{}}))
+  pluginBrowser.value=false
+}
 import { computed, ref } from 'vue'
 import {
   effectDefaults,
-  effectParameters,
+  controlsForEffect,
   type Effect,
   type EffectType,
 } from '../../shared/effects'
@@ -59,6 +66,7 @@ const chain = computed(
       : owner(doc.project)?.effects) ?? [],
 )
 const names: Record<EffectType, string> = {
+  plugin: 'Plugin',
   eq: 'Equalizer',
   filter: 'Filter',
   drive: 'Drive',
@@ -91,6 +99,7 @@ function add(event: Event) {
   const select = event.target as HTMLSelectElement
   const type = select.value as EffectType
   if (!type) return
+  if (type==='plugin'){select.value='';pluginBrowser.value=true;return}
   edit((list) =>
     list.push({
       id: uniqueId(
@@ -151,6 +160,10 @@ async function savePreset(index: number) {
     error.value = String(e)
   }
 }
+async function pluginWindow(id:string) {
+  try { error.value='';await window.xm.plugins.editor(id) }
+  catch(e){error.value=String(e)}
+}
 function nativeParam(key: 'reverb' | 'chorus', event: Event) {
   const value = Number((event.target as HTMLInputElement).value)
   doc.update((p) => {
@@ -204,6 +217,13 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
       v-else
       class="xm-dialog-b xm-fx-cards"
     >
+      <button
+        v-if="instrument?.backend==='plugin'"
+        class="btn btn-sm btn-xm"
+        @click="pluginWindow('instrument-'+instrument.id)"
+      >
+        Instrument window
+      </button>
       <section
         v-for="(fx, i) in chain"
         :key="fx.id"
@@ -218,7 +238,7 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
             @dragstart="dragged = i"
             @dragend="dragged = -1"
           >⠿</span>
-          <strong>{{ names[fx.type] }}</strong>
+          <strong>{{ fx.plugin?.name ?? names[fx.type] }}</strong>
           <button
             class="xm-pwr"
             :class="{'is-on':fx.enabled}"
@@ -232,6 +252,25 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
             "
           />
         </header>
+        <button
+          v-if="fx.type==='plugin' && (isMaster || instrument?.backend==='plugin')"
+          class="btn btn-sm btn-xm"
+          @click="pluginWindow((isMaster?'master':'instrument-'+instrument?.id)+'-insert-'+i)"
+        >
+          Plugin window
+        </button>
+        <label v-if="fx.type==='plugin'">Sidechain track
+          <select
+            :value="fx.sidechain?.trackId ?? ''"
+            @change="edit(list=>{const id=($event.target as HTMLSelectElement).value;list[i].sidechain=id?{trackId:id}:undefined})"
+          >
+            <option value="">None</option><option
+              v-for="track in doc.project.tracks.filter(t=>t.kind==='midi')"
+              :key="track.id"
+              :value="track.id"
+            >{{ track.name }}</option>
+          </select>
+        </label>
         <label v-if="fx.type === 'pump'">Trigger track
           <select
             :value="fx.trigger?.trackId ?? ''"
@@ -255,7 +294,7 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
           </select>
         </label>
         <label
-          v-for="(spec, key) in effectParameters[fx.type]"
+          v-for="(spec, key) in controlsForEffect(fx)"
           :key="key"
         >{{ spec.label }}
           <select
@@ -307,6 +346,7 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
             <output>{{ fx.params[key] ?? spec.initial }} {{ spec.unit }}</output></template>
         </label>
         <select
+          v-if="fx.type!=='plugin'"
           class="form-select form-select-sm"
           aria-label="Effect presets"
           value=""
@@ -373,6 +413,9 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
         value=""
         @change="add"
       >
+        <option value="plugin">
+          Plugin effect…
+        </option>
         <option value="">
           + Add effect…
         </option>
@@ -390,6 +433,12 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
           </option>
         </optgroup>
       </select>
+      <PluginBrowser
+        v-if="pluginBrowser"
+        :instrument="false"
+        @close="pluginBrowser=false"
+        @choose="addPlugin"
+      />
     </div>
     <div class="xm-dialog-f">
       <span

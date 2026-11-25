@@ -116,7 +116,7 @@ export class InstrumentRack {
         const font = project.soundfonts.find(
           (sf) => sf.id === instrument.soundfontId,
         )
-        if (!font && instrument.backend !== 'midi') {
+        if (!font && instrument.backend !== 'midi' && instrument.backend !== 'plugin') {
           if (old) {
             this.active.delete(instrument.id)
             this.retire(old)
@@ -139,7 +139,7 @@ export class InstrumentRack {
             old.instrument.isDrum === instrument.isDrum &&
             JSON.stringify(old.instrument.midiOut) ===
               JSON.stringify(instrument.midiOut)
-          if (font && target.id !== 'midi') await this.load(font, target)
+          if (font && target.id !== 'midi' && target.id !== 'plugin') await this.load(font, target)
           if (revision !== this.revision) return
           if (samePatch) {
             target.configure(old.slot, instrument)

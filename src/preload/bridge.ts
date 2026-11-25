@@ -34,6 +34,9 @@ export function installBridge(ui: boolean): void {
   }
   const api: DesktopApi = {
     plugins: {
+      editor: id=>ipcRenderer.invoke('plugins:editor',id),
+      onState: handler => subscribe('plugins:state',handler),
+      ports: (format,uri) => ipcRenderer.invoke('plugins:ports',format,uri),
       detect: () => ipcRenderer.invoke('plugins:detect'),
       scan: (force) => ipcRenderer.invoke('plugins:scan', force),
     },

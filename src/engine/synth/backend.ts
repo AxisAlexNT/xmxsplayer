@@ -9,7 +9,7 @@ export interface Preset {
   isDrum: boolean
 }
 export interface SynthBackend {
-  readonly id: 'web' | 'fluid' | 'midi'
+  readonly id: 'web' | 'fluid' | 'midi' | 'plugin'
   loadSoundFont(sf: SoundFontRef, url: string): Promise<void>
   listPresets(soundfontId: string): Promise<Preset[]>
   allocate(instrument: Instrument, ownerId?: string): Promise<SlotId>

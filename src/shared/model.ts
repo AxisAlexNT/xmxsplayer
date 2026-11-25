@@ -1,3 +1,4 @@
+import type { PluginRef } from './plugins'
 import type { Effect, EffectType } from './effects'
 export const PPQ = 480
 export type Id = string // readable slug, see section 4
@@ -85,11 +86,12 @@ export interface SoundFontRef {
   file: string
 } // file name only; resolved per PC
 export interface Instrument {
+  plugin?: PluginRef
   effects?: Effect[]
   id: Id
   name: string
   color: string
-  backend: 'default' | 'web' | 'fluid' | 'midi'
+  backend: 'default' | 'web' | 'fluid' | 'midi' | 'plugin'
   soundfontId?: Id
   bank: number
   program: number

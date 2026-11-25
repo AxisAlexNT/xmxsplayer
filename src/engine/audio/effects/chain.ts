@@ -47,6 +47,7 @@ export class EffectChain {
     const stages: Stage[] = []
     try {
       for (const effect of effects) {
+        if (effect.type === 'plugin') continue
         const stage = builders[effect.type](this.ctx, {
           ...effect,
           params: { ...effectDefaults(effect.type), ...effect.params },

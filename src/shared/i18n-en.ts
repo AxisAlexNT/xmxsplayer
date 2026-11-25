@@ -3,6 +3,7 @@ export const en = {
   'menu.newProject': 'New Project',
   'menu.openPortable': 'Open portable project…',
   'menu.exportPortable': 'Export portable project…',
+  'picker.pluginInstrument': 'Plugin instrument…',
   'menu.open': 'Open',
   'menu.save': 'Save',
   'menu.importMidi': 'Import MIDI',

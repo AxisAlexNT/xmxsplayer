@@ -1,4 +1,10 @@
-import { detectCarla } from './plugin-host'
+import { requiredPlugins, pluginKey } from '../shared/plugins'
+import { readLv2Ports } from './plugin-session'
+import { ProjectPlugins } from './project-plugins'
+import { projectSchema } from '../shared/schema'
+import type { Project } from '../shared/model'
+import type { PluginCommand } from '../shared/plugins'
+import { detectCarla, findExecutable, PluginHost } from './plugin-host'
 import { discoverPlugins } from './plugin-discovery'
 import { exportPortable, importPortable } from './portable'
 import { fromFiles } from '../shared/project-files'
@@ -37,6 +43,12 @@ export function installIpc(windows: Windows): () => Promise<void> {
     for (const window of [ui, windows.getEngine()])
       if (!window.isDestroyed()) window.webContents.send('fluid:event', event)
   })
+  const indexPlugins = (force=false) => discoverPlugins(join(app.getPath('userData'),'plugin-index.json'), undefined, force)
+  const host = new PluginHost(event => {
+    for(const window of [ui,windows.getEngine()]) if (!window.isDestroyed()) window.webContents.send('plugins:state',event)
+  },process.env.XM_CARLA_DUMMY_TEST==='1'?'SDL':'JACK',undefined,join(app.getAppPath(),'resources/plugins/carla-control.py'))
+  const plugins = new ProjectPlugins(host, join(app.getAppPath(),'resources/plugins/lv2-ports.py'),
+    async () => (await indexPlugins()).plugins)
   const watchEngine = (
     _event: Electron.Event | undefined,
     window: BrowserWindow,
@@ -44,9 +56,11 @@ export function installIpc(windows: Windows): () => Promise<void> {
     if (window === ui) return
     window.webContents.once('render-process-gone', () => {
       void fluid.stop()
+      void plugins.stop()
     })
     window.once('closed', () => {
       void fluid.stop()
+      void plugins.stop()
     })
   }
   watchEngine(undefined, windows.getEngine())
@@ -71,6 +85,16 @@ export function installIpc(windows: Windows): () => Promise<void> {
   fluidHandle('fluid:detect', false, (path?: string) =>
     detectFluid(path ?? loadSettings().fluid.path),
   )
+  fluidHandle('plugins:configure', true, async(project:Project,playing:boolean) => {
+    if(process.env.XM_SMOKE==='1'||!io.folder) throw Error('Open a project before starting plugins')
+    return plugins.configure(io.folder,projectSchema.parse(project),loadSettings().carlaPath,async()=>{
+      if(!playing) return true
+      const result=await dialog.showMessageBox(ui,{type:'question',message:'Apply plugin changes while playing?',
+        detail:'Plugin notes will stop while Carla reloads the audio connections.',buttons:['Apply changes','Cancel'],defaultId:1,cancelId:1})
+      return result.response===0
+    })
+  })
+  fluidHandle('plugins:send',true,(id:string,command:PluginCommand,values:number[])=>plugins.send(id,command,values))
   fluidHandle('fluid:start', true, () => {
     if (process.env.XM_SMOKE === '1')
       throw Error('FluidSynth is disabled during smoke checks')
@@ -103,6 +127,7 @@ export function installIpc(windows: Windows): () => Promise<void> {
     })
   }
   const watch = async (): Promise<void> => {
+    await plugins.stop()
     fileTokens.clear()
     await watcher.start(
       io,
@@ -200,7 +225,7 @@ export function installIpc(windows: Windows): () => Promise<void> {
     })
     if (result.canceled || !result.filePath) return null
     await exportPortable(io.folder, result.filePath, project.soundfonts.map(font => font.file),
-      directories(), app.getVersion())
+      directories(), app.getVersion(), requiredPlugins(project).map(pluginKey))
     return result.filePath
   })
   handle('project:openPortable', async () => {
@@ -216,15 +241,22 @@ export function installIpc(windows: Windows): () => Promise<void> {
     const manifest = await importPortable(archive.filePaths[0], folder.filePaths[0])
     const snapshot = await io.open(folder.filePaths[0])
     await watch()
-    if (manifest.requiredPlugins.length) await dialog.showMessageBox(ui, {
-      type: 'warning', message: 'This project requires additional plugins',
-      detail: manifest.requiredPlugins.join('\n'),
-    })
+    if (manifest.requiredPlugins.length) {
+      const available = await discoverPlugins(join(app.getPath('userData'), 'plugin-index.json'))
+      const installed = new Set(available.plugins.map(pluginKey))
+      const missing = manifest.requiredPlugins.filter(key => !installed.has(key))
+      if (missing.length) await dialog.showMessageBox(ui, {
+        type: 'warning', message: 'Install these plugins to play every part of this project',
+        detail: missing.join('\n'),
+      })
+    }
     return snapshot
   })
-  handle('project:save', (files: FileMap, hashes: Record<string, string>) =>
-    io.save(files, hashes),
-  )
+  handle('project:save', async(files: FileMap, hashes: Record<string,string>) => {
+    await host.saveStates()
+    return io.save(files,hashes)
+  })
+  handle('plugins:editor',(id:string)=>host.editor(id))
   handle('project:import', async (kind: 'audio' | 'score' | 'midi' | 'soundfont') => {
     if (!['audio', 'score', 'midi','soundfont'].includes(kind))
       throw new Error('Invalid import kind')
@@ -347,12 +379,23 @@ export function installIpc(windows: Windows): () => Promise<void> {
     app.relaunch({ args: relaunchArgs(process.argv.slice(1), io.folder) })
     app.exit(0)
   })
+  handle('plugins:ports', async(format:string,uri:string) => {
+    if(format !== 'lv2') return null
+    return (await readLv2Ports(join(app.getAppPath(),'resources/plugins/lv2-ports.py'),[uri]))[uri] ?? null
+  })
   handle('plugins:detect', () => detectCarla(loadSettings().carlaPath))
-  handle('plugins:scan', (force?: boolean) => discoverPlugins(join(app.getPath('userData'), 'plugin-index.json'), undefined, force === true))
+  handle('plugins:scan', async(force?:boolean) => {
+    const result = await indexPlugins(force===true)
+    plugins.setInventory(result.plugins)
+    const standalone: string[] = []
+    if (await findExecutable('hydrogen')) standalone.push('Hydrogen')
+    if (await findExecutable('zynaddsubfx')) standalone.push('ZynAddSubFX')
+    return { ...result, standalone }
+  })
   handle('settings:get', () => loadSettings())
   handle('settings:set', (value) => saveSettings(value))
   return async () => {
     app.removeListener('browser-window-created', watchEngine)
-    await Promise.all([watcher.close(), fluid.stop()])
+    await Promise.all([watcher.close(), fluid.stop(), plugins.stop()])
   }
 }

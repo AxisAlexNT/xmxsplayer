@@ -1,3 +1,5 @@
+import { requiredPlugins } from '../shared/plugins'
+import { PluginSynthBackend } from './synth/plugin-synth'
 import { zeroCrossing } from './clips/zero-crossing'
 import { clipSchema } from '../shared/schema'
 import { ClipActions, type ClipActionContext } from './clips/actions'
@@ -43,6 +45,9 @@ let bus: Bus | undefined
 let project: Project | undefined
 let settings: Settings | undefined
 let graph: AudioGraph | undefined
+let pluginBackend: PluginSynthBackend | undefined
+let pluginConfigured = false
+let pluginReady = false
 let backend: WebSynthBackend | undefined
 let fluidBackend: FluidSynthBackend | undefined
 let midiBackend: MidiOutSynthBackend | undefined
@@ -426,7 +431,7 @@ function selectBackend(instrument: Instrument): SynthBackend {
         ? backend
         : target === 'midi'
           ? midiBackend
-          : undefined
+          : target === 'plugin' ? pluginBackend : undefined
   if (!selected)
     throw Error(`${instrument.name}: ${target} backend is not available`)
   return selected
@@ -440,6 +445,7 @@ function reportSynthReady(): void {
         return (
           slot &&
           (slot.backend !== fluidBackend || fluidBackend.available) &&
+          (slot.backend !== pluginBackend || pluginReady) &&
           (slot.backend !== midiBackend || midiBackend.available(instrument))
         )
       })
@@ -504,6 +510,11 @@ async function initialize(value: Settings): Promise<void> {
     await graph.apply(value.audio)
     graph.effects.set(project?.masterEffects)
     backend = await WebSynthBackend.create(graph.context, graph.main)
+    window.pluginPlayback.onState(event=>{
+      pluginReady=event.status==='ready'
+      reportSynthReady()
+    })
+    pluginBackend = new PluginSynthBackend(window.pluginPlayback, () => graph!.context.currentTime, message => log('warn', 'plugins', message))
     midiBackend = new MidiOutSynthBackend(
       () => midi?.outputs() ?? [],
       () => graph!.context.currentTime,
@@ -556,7 +567,7 @@ async function initialize(value: Settings): Promise<void> {
       () => bus,
       (message) => log('warn', 'transport', message),
       selectBackend,
-      (target) => (settings?.audio.compensationMs[target.id] ?? 0) / 1000,
+      (target) => target.id === 'plugin' ? 0 : (settings?.audio.compensationMs[target.id] ?? 0) / 1000,
     )
     clipActions = new ClipActions(transport.clips, () => project)
     transport.onClipPreview = (state, error) =>
@@ -908,6 +919,15 @@ async function synchronize(
     router?.panic()
     for (const owner of previews.keys()) previewNote(owner, 0, 0, false)
     reportKeys()
+  }
+  const needsPlugins = requiredPlugins(project).length > 0
+  if (needsPlugins || pluginConfigured) {
+    try {
+      const applied = await window.pluginPlayback.configure(project, transport?.clock.playing ?? false)
+      if (!applied) return
+      pluginConfigured = needsPlugins
+    } catch (error) { pluginReady=false;log('error','plugins',String(error)) }
+    if (revision !== syncRevision) return
   }
   router?.setProject(performanceProject() ?? project)
   await Promise.all([

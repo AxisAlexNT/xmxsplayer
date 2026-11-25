@@ -1,3 +1,4 @@
+import type { PluginRef } from './plugins'
 export const effectTypes = [
   'eq',
   'filter',
@@ -10,9 +11,11 @@ export const effectTypes = [
   'width',
   'limiter',
 ] as const
-export type EffectType = (typeof effectTypes)[number]
+export type EffectType = (typeof effectTypes)[number] | 'plugin'
 
 export interface Effect {
+  plugin?: PluginRef
+  sidechain?: { trackId: string }
   id: string
   type: EffectType
   enabled: boolean
@@ -54,6 +57,7 @@ export const effectParameters: Record<
   EffectType,
   Record<string, EffectParameter>
 > = {
+  plugin: {},
   eq: {
     low: gain('Bass'),
     mid: gain('Midrange'),
@@ -114,4 +118,11 @@ export function effectDefaults(type: EffectType): Record<string, number> {
       spec.initial,
     ]),
   )
+}
+
+export function controlsForEffect(effect:Effect): Record<string,EffectParameter> {
+  if(effect.type !== 'plugin') return effectParameters[effect.type]
+  return Object.fromEntries((effect.plugin?.parameters??[]).filter(p=>p.input).map(p=>[
+    String(p.index),{label:p.name,min:p.min,max:p.max,initial:p.initial,step:Math.max(0.000001,(p.max-p.min)/1000),unit:''},
+  ]))
 }

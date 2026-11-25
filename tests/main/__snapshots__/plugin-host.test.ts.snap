@@ -6,8 +6,8 @@ exports[`parses captured LV2 discovery records and writes Carla patchbay XML 1`]
 <CARLA-PROJECT VERSION="2.5">
  <Plugin><Info><Type>LV2</Type><Name>room</Name><URI>https://github.com/michaelwillis/dragonfly-reverb</URI></Info><Data><Active>Yes</Active><ControlChannel>1</ControlChannel></Data></Plugin>
  <Patchbay>
-  <Connection><Source>room:Audio Output 1</Source><Target>Audio Output:Playback 1</Target></Connection>
-  <Connection><Source>room:Audio Output 2</Source><Target>Audio Output:Playback 2</Target></Connection>
+  <Connection><Source>room:Audio Output 1</Source><Target>Audio Output:Left</Target></Connection>
+  <Connection><Source>room:Audio Output 2</Source><Target>Audio Output:Right</Target></Connection>
  </Patchbay>
 </CARLA-PROJECT>
 "
