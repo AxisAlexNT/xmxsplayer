@@ -63,6 +63,22 @@ On the Linux development machine, the spectrum worker’s analysis function proc
 
 The v2 typecheck, lint and 342 automated tests passed. One optional native test was skipped. In a fresh muted Electron session, inserting and deleting two bars in staff view restored the original note positions. A bar-nine silent replace take with one bar of pre-roll removed only the notes inside the passage. Undo restored all four test notes. The same session exercised half-speed transport, three reference formats, an overlay, both follow views and all four orchestra presets with hardware MIDI disabled.
 
+## v3 performance pass
+
+Use a copy of the performance project. Record the build, controller mode and audio output with the results.
+
+| Milestone | Existing software evidence | Release-candidate check |
+| --- | --- | --- |
+| M20 · Growing takes | An 85-bar fixture grew during recording. Stop kept the take and Undo restored the original project. | Record through the end with both hands. Follow the staff as each bar closes, then undo the take and check the length. |
+| M21 · Piano notation | Notation tests cover two hands, stacked chords, pedal marks and a sustained melody over an arpeggio. | Open a copy of the two-hand take. Compare the treble melody, bass rhythm and pedal changes with the performance. |
+| M22 · Typed tempo | Tempo-map tests cover scaling, rewriting, bounded section edits and protected maps. | Enter a BPM in each change mode. Check the surrounding tempo entries, loop boundaries and Undo. |
+| M23 · Sound library and portable projects | Portable archive tests restore a bundled font and report an individually damaged file. | Mix presets from two fonts, replace one font and inspect unmatched presets. Export and reopen with empty library paths and play both tracks. |
+| M24 · Built-in effects | Audio graph tests cover insert crossfades and kick-triggered ducking. Linux measurements cover the FluidSynth readout with inserts active. | Play a lead through filter, LFO, pump, delay and reverb on the Bluetooth headphones. Check the FluidSynth piano and latency readout. |
+| M25 · Plugin hosting | Native Linux checks cover drum output, sidechain detection, reverb and separate state for reordered inserts. Software onset measurements are in the latency guide. | Play the drum kit with a pad instrument, adjust the mapped compressor and compare headphone response with FluidSynth. Save, reopen and audition the native patch. |
+| M26 · Orchestras and mapping | Automated checks cover section routing, member balance and controller-specific Map defaults. | Map presets on the KeyLab, compare slow and fast fader rolls, sweep a filter and adjust Hall reverb. Check member velocity balance and the FluidSynth piano. |
+| M27 · Guided tutorials | Tests cover pause and resume, controller gesture matching and temporary practice projects. | Complete tours 1, 2 and 4 with the KeyLab. Verify that the indicated gesture advances each step and that the original project reopens. |
+| M28 · PDF sheet music | A muted desktop run exercised a ten-page score, a virtual pad turn and a cue at bar 17. Scroll timings are recorded below. | Turn pages with a physical pad in lane and right-pane views. Check that a follow marker returns to the intended passage. |
+
 ### PDF score checks
 
 The local production renderer opened a ten-page vector score. A two-column lane kept at most six page canvases while scrolling. Switching to the right pane, sheet-only view, hiding and showing the score, and returning to the lane preserved light mode and a 450-pixel scroll offset.
