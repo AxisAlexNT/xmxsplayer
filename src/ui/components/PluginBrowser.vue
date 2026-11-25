@@ -77,6 +77,7 @@ async function select(plugin: DiscoveredPlugin) {
       name: plugin.name,
       uri: plugin.uri,
       format: plugin.format,
+      hasSidechain: ports?.sidechains ? ports.sidechains.length > 0 : undefined,
       parameters: ports?.parameters.filter((p) => p.input),
     })
   } catch (e) {

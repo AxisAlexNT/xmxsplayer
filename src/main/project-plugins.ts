@@ -14,6 +14,7 @@ export class ProjectPlugins {
   private inventory?: DiscoveredPlugin[]
   private ports: Record<string, PluginPorts> = {}
   private structure = ''
+  private folder = ''
   private session?: PluginSession
   private changes: Promise<unknown> = Promise.resolve()
   constructor(
@@ -61,17 +62,21 @@ export class ProjectPlugins {
         if (!(await confirm())) return false
         await this.host.configure(folder, session, executable)
         this.structure = structure
-      } else {
-        for (const [i, plugin] of session.plugins.entries()) {
-          const previous = this.session?.plugins[i]
+      }
+      // A graph rebuild can move an existing effect to a different Carla slot.
+      // Reapply simultaneous project edits after its native state is restored.
+      if (folder === this.folder) {
+        for (const plugin of session.plugins) {
+          const previous = this.session?.plugins.find(p =>
+            (p.stateKey ?? p.id) === (plugin.stateKey ?? plugin.id) &&
+            pluginKey(p.plugin) === pluginKey(plugin.plugin))
+          if (!previous) continue
           for (const { index, value } of plugin.parameters ?? [])
-            if (
-              previous?.parameters?.find((p) => p.index === index)?.value !==
-              value
-            )
+            if (previous.parameters?.find(p => p.index === index)?.value !== value)
               this.send(plugin.id, 'set_parameter_value', [index, value])
         }
       }
+      this.folder = folder
       this.session = session
       return true
     })

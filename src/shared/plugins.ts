@@ -19,6 +19,7 @@ export interface PluginRef {
   format: PluginFormat
   uri: string
   name: string
+  hasSidechain?: boolean
   parameters?: PluginPorts['parameters']
   stateFile?: string
 }
@@ -49,6 +50,7 @@ export function requiredPlugins(project: Project): PluginRef[] {
 }
 
 export interface PluginPorts {
+  sidechains?: string[]
   inputs: string[]
   outputs: string[]
   parameters: {

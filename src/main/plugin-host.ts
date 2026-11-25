@@ -354,18 +354,27 @@ export class PluginHost {
         else this.scheduleRecovery(request, error)
       })
     })
-    if (this.nativeControl)
-      for (const plugin of request.session.plugins) {
+    // Carla can ignore index-only LV2 parameter entries when loading XML.
+    // Seed fresh instances over OSC, preserving native editor state when present.
+    for (const plugin of request.session.plugins) {
+      let restored = false
+      if (this.nativeControl) {
         const state =
           retained.get(this.stateKey(plugin)) ?? (await this.statePath(plugin))
         try {
           await access(state)
+          restored = true
         } catch (e) {
-          if ((e as NodeJS.ErrnoException).code === 'ENOENT') continue
-          throw e
+          if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e
         }
-        await this.requestNative(plugin.id, 'load', state)
+        if (restored) await this.requestNative(plugin.id, 'load', state)
       }
+      if (!restored)
+        for (const { index, value } of plugin.parameters ?? [])
+          this.send(plugin.id, 'set_parameter_value', [
+            { type: 'i', value: index }, { type: 'f', value },
+          ])
+    }
     this.emit({ status: 'ready' })
   }
   private scheduleRecovery(request: Request, error: Error) {

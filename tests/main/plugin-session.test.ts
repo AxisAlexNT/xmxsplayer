@@ -72,7 +72,8 @@ it('restores plugin references and routes a kick into a sidechain and both instr
     refs.map((r) => [
       r.uri,
       {
-        inputs: ['left', 'right', 'key L', 'key R'],
+        inputs: ['key L', 'left', 'key R', 'right'],
+        sidechains: ['key L', 'key R'],
         outputs: ['out L', 'out R'],
         parameters: [],
       },
@@ -91,11 +92,16 @@ it('restores plugin references and routes a kick into a sidechain and both instr
     source: 'instrument-piano-insert-0:out R',
     target: 'master-insert-0:right',
   })
+  ports['urn:duck'].inputs = ['Input', 'Sidechain input']
+  ports['urn:duck'].sidechains = ['Sidechain input']
+  const mono = planPluginSession(restored, installed, ports)
+  expect(mono.connections.filter(c => c.target === 'instrument-piano-insert-0:Sidechain input')
+    .map(c => c.source).sort()).toEqual(['instrument-kick:out L', 'instrument-kick:out R'])
   expect(() => planPluginSession(restored, [], {})).toThrow('Missing plugin')
 })
 
 it.skipIf(process.env.XM_CARLA_DUMMY_TEST !== '1')(
-  'plays a Geonkick note through Dragonfly into the dummy driver',
+  'meters a Geonkick trigger at an LSP external detector and Dragonfly on the master',
   async () => {
     const { PluginHost } = await import('../../src/main/plugin-host')
     const { readLv2Ports } = await import('../../src/main/plugin-session')
@@ -118,14 +124,33 @@ it.skipIf(process.env.XM_CARLA_DUMMY_TEST !== '1')(
       backend: 'plugin',
       plugin: kick,
     }
+    const duck: PluginRef = {
+      format: 'lv2',
+      uri: 'http://lsp-plug.in/plugins/lv2/sc_compressor_mono',
+      name: 'LSP Sidechain Compressor Mono',
+    }
+    project.instruments.push({
+      ...project.instruments[0],
+      id: 'silent',
+      effects: [{
+        id: 'duck', type: 'plugin', plugin: duck, enabled: true, params: {},
+        sidechain: { trackId: project.tracks[0].id },
+      }],
+    })
     project.masterEffects = [
       { id: 'hall', type: 'plugin', plugin: hall, enabled: true, params: {} },
     ]
     const ports = await readLv2Ports('resources/plugins/lv2-ports.py', [
       kick.uri,
       hall.uri,
+      duck.uri,
     ])
-    const installed = [kick, hall].map((ref) => ({
+    const params = project.instruments[1].effects![0].params
+    for (const [name, value] of [['Sidechain type', 2], ['Sidechain listen', 1]] as const) {
+      const control = ports[duck.uri].parameters.find(p => p.name === name)!
+      params[control.index] = value
+    }
+    const installed = [kick, hall, duck].map((ref) => ({
       ...ref,
       file: '',
       maker: '',
@@ -160,6 +185,7 @@ it.skipIf(process.env.XM_CARLA_DUMMY_TEST !== '1')(
         ])
       }
       expect(peaks.get('instrument-piano')).toBeGreaterThan(0)
+      expect(peaks.get('instrument-silent-insert-0')).toBeGreaterThan(0)
       expect(peaks.get('master-insert-0')).toBeGreaterThan(0)
     } finally {
       await host.stop()

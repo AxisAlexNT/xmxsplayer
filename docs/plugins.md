@@ -28,6 +28,10 @@ Use the supplier’s Linux package or build instructions, then choose **Rescan**
 | Zyn-Fusion / ZynAddSubFX plugin | [ZynAddSubFX downloads](https://zynaddsubfx.sourceforge.io/download.html) |
 | Calf Studio Gear | [Calf builds and installation](https://github.com/calf-studio-gear/calf) |
 
+## Duck a plugin instrument when the kick plays
+
+Add **LSP Sidechain Compressor Mono** or **Stereo** to the instrument you want to turn down. In its effect card, choose the Geonkick track under **Sidechain track**. The player routes that track to the detector and selects the compressor’s external input. Set the compressor threshold and ratio while playing both instruments. Choose **None** to return to the internal detector.
+
 ## Moving a project
 
 Portable export records the format and identifier of each required plugin. On another Linux machine, install the same plugin format and use **File → Open portable project…**. The player lists missing plugins after import. The project retains its instrument assignments, effect order, sidechain selections and saved effect parameter values. With the matching system Carla bindings installed, **Instrument window** and **Plugin window** open the native editor. Saving the song writes native state beneath `plugins/`, which portable export includes. Dragonfly’s dry-level setting was verified across a full Carla process restart. Keep external drum-kit sample files available at the locations the plugin expects. On a Carla installation without its matching bindings, use the plugin’s standalone preset-saving workflow. Windows plugin hosting is untested.

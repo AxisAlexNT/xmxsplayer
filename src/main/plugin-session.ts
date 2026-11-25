@@ -105,8 +105,11 @@ export function planPluginSession(
         value,
       })),
     })
+    const inputs = io?.inputs ?? generic(plugin.audioInputs, 'Input')
+    const sidechains = io?.sidechains ?? inputs.slice(2)
     return {
-      input: { id, ports: io?.inputs ?? generic(plugin.audioInputs, 'Input') },
+      input: { id, ports: inputs.filter((port) => !sidechains.includes(port)) },
+      sidechain: { id, ports: sidechains },
       output: {
         id,
         ports: io?.outputs ?? generic(plugin.audioOutputs, 'Output'),
@@ -123,16 +126,9 @@ export function planPluginSession(
         fx.params,
         owner + '-fx-' + fx.id,
       )
-      for (const source of outputs)
-        connect(source, {
-          ...stage.input,
-          ports: stage.input.ports.slice(0, 2),
-        })
+      for (const source of outputs) connect(source, stage.input)
       if (fx.sidechain)
-        sidechains.push({
-          track: fx.sidechain.trackId,
-          target: { ...stage.input, ports: stage.input.ports.slice(2) },
-        })
+        sidechains.push({ track: fx.sidechain.trackId, target: stage.sidechain })
       outputs = [stage.output]
     }
     return outputs

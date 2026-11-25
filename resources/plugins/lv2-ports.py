@@ -27,6 +27,9 @@ port_at = api("plugin_get_port_by_index", ptr, ptr, c.c_uint32)
 is_a = api("port_is_a", c.c_bool, ptr, ptr, ptr)
 name = api("port_get_name", ptr, ptr, ptr)
 port_range = api("port_get_range", None, ptr, ptr, *([c.POINTER(ptr)] * 3))
+port_get = api("port_get", ptr, ptr, ptr, ptr)
+has_property = api("port_has_property", c.c_bool, ptr, ptr, ptr)
+world_ask = api("world_ask", c.c_bool, ptr, ptr, ptr, ptr)
 world = new_world()
 types = {}
 try:
@@ -34,6 +37,10 @@ try:
     plugins = all_plugins(world)
     for kind in ["AudioPort", "InputPort", "ControlPort"]:
         types[kind] = uri(world, ("http://lv2plug.in/ns/lv2core#" + kind).encode())
+    groups = "http://lv2plug.in/ns/ext/port-groups#"
+    types["group"] = uri(world, (groups + "group").encode())
+    types["sideChainOf"] = uri(world, (groups + "sideChainOf").encode())
+    types["isSideChain"] = uri(world, b"http://lv2plug.in/ns/lv2core#isSideChain")
     results = {}
     for key in json.load(sys.stdin):
         node = uri(world, key.encode())
@@ -41,7 +48,7 @@ try:
         free(node)
         if not plugin:
             continue
-        inputs, outputs, parameters = [], [], []
+        inputs, outputs, parameters, sidechains = [], [], [], []
         for index in range(count(plugin)):
             port = port_at(plugin, index)
             label = name(plugin, port)
@@ -50,6 +57,12 @@ try:
             incoming = is_a(plugin, port, types["InputPort"])
             if is_a(plugin, port, types["AudioPort"]):
                 (inputs if incoming else outputs).append(text)
+                if incoming:
+                    group = port_get(plugin, port, types["group"])
+                    if (has_property(plugin, port, types["isSideChain"]) or
+                            (group and world_ask(world, group, types["sideChainOf"], None))):
+                        sidechains.append(text)
+                    free(group)
             elif is_a(plugin, port, types["ControlPort"]):
                 default, low, high = ptr(), ptr(), ptr()
                 port_range(plugin, port, c.byref(default), c.byref(low), c.byref(high))
@@ -58,7 +71,7 @@ try:
                                        initial=number(default) if default else 0))
                 for value in [default, low, high]:
                     free(value)
-        results[key] = dict(inputs=inputs, outputs=outputs, parameters=parameters)
+        results[key] = dict(inputs=inputs, outputs=outputs, parameters=parameters, sidechains=sidechains)
     print(json.dumps(results, allow_nan=False))
 finally:
     for node in types.values():

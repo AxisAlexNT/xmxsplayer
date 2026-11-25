@@ -352,6 +352,7 @@ const pluginRef = z.strictObject({
   uri: z.string().min(1),
   name: z.string().min(1),
   parameters: z.strictObject({index:int.nonnegative(),name:z.string(),input:z.boolean(),min:num,max:num,initial:num}).array().optional(),
+  hasSidechain: z.boolean().optional(),
   stateFile: path.refine(file => file.startsWith('plugins/')).optional(),
 })
 const effectChain = z.strictObject({

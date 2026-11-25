@@ -6,6 +6,15 @@ function addPlugin(plugin:PluginRef){
   edit(list=>list.push({id:uniqueId(plugin.name,list.map(e=>e.id)),type:'plugin',plugin,enabled:true,params:{}}))
   pluginBrowser.value=false
 }
+function setSidechain(index: number, trackId: string) {
+  edit(list => {
+    const effect = list[index]
+    effect.sidechain = trackId ? {trackId} : undefined
+    if (!effect.plugin || !/^http:\/\/lsp-plug\.in\/plugins\/lv2\/sc_compressor_(mono|stereo)$/.test(effect.plugin.uri)) return
+    const selector = effect.plugin.parameters?.find(p => p.name === 'Sidechain type')
+    if (selector) effect.params[selector.index] = trackId ? 2 : selector.initial
+  })
+}
 import { computed, ref } from 'vue'
 import {
   effectDefaults,
@@ -259,10 +268,10 @@ function nativeParam(key: 'reverb' | 'chorus', event: Event) {
         >
           Plugin window
         </button>
-        <label v-if="fx.type==='plugin'">Sidechain track
+        <label v-if="fx.type==='plugin' && fx.plugin?.hasSidechain !== false">Sidechain track
           <select
             :value="fx.sidechain?.trackId ?? ''"
-            @change="edit(list=>{const id=($event.target as HTMLSelectElement).value;list[i].sidechain=id?{trackId:id}:undefined})"
+            @change="setSidechain(i, ($event.target as HTMLSelectElement).value)"
           >
             <option value="">None</option><option
               v-for="track in doc.project.tracks.filter(t=>t.kind==='midi')"
