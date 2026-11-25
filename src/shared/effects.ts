@@ -1,3 +1,4 @@
+import { uniqueId } from './ids'
 import type { PluginRef } from './plugins'
 export const effectTypes = [
   'eq',
@@ -118,6 +119,17 @@ export function effectDefaults(type: EffectType): Record<string, number> {
       spec.initial,
     ]),
   )
+}
+
+export function appendBuiltInEffect(chain: Effect[], type: Exclude<EffectType, 'plugin'>): Effect {
+  const effect: Effect = {
+    id: uniqueId(type, chain.map(item => item.id)),
+    type,
+    enabled: true,
+    params: effectDefaults(type),
+  }
+  chain.push(effect)
+  return effect
 }
 
 export function controlsForEffect(effect:Effect): Record<string,EffectParameter> {

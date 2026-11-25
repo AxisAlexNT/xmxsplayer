@@ -19,7 +19,7 @@ import { openTutorialsKey } from '../tutorial/entry'
 import { t } from '../i18n'
 import { computed, inject, ref } from 'vue'
 import {
-  effectDefaults,
+  appendBuiltInEffect,
   controlsForEffect,
   type Effect,
   type EffectType,
@@ -112,17 +112,7 @@ function add(event: Event) {
   const type = select.value as EffectType
   if (!type) return
   if (type==='plugin'){select.value='';pluginBrowser.value=true;return}
-  edit((list) =>
-    list.push({
-      id: uniqueId(
-        type,
-        list.map((f) => f.id),
-      ),
-      type,
-      enabled: true,
-      params: effectDefaults(type),
-    }),
-  )
+  edit(list => { appendBuiltInEffect(list, type) })
   select.value = ''
 }
 function move(from: number, to: number) {

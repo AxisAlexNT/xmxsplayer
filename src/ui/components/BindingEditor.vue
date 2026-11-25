@@ -12,7 +12,7 @@ import {
 } from 'vue'
 import type { Action, Binding, ControlDef } from '../../shared/model'
 import { effectOwners } from '../../shared/effect-targets'
-import { controlsForEffect } from '../../shared/effects'
+import { appendBuiltInEffect, controlsForEffect, effectParameters } from '../../shared/effects'
 import { bindingSchema } from '../../shared/schema'
 import { effectiveSetup, isUnbound, unbound } from '../../shared/overlay'
 import {
@@ -112,10 +112,32 @@ function apply(next: Binding): void {
 const settings = useSettingsStore()
 const sweepInstrument = ref('')
 const sweepTarget = computed(() => doc.project.instruments.find(i => i.id === sweepInstrument.value) ?? doc.project.instruments[0])
+const sweepBackend = computed(() => sweepTarget.value?.backend === 'default'
+  ? settings.value.audio.defaultSynth : sweepTarget.value?.backend)
+async function filterEffectSweep() {
+  const instrument = sweepTarget.value
+  if (!instrument || sweepBackend.value !== 'web') return
+  edge.value = 'change'
+  await nextTick()
+  doc.update(project => {
+    const target = project.instruments.find(i => i.id === instrument.id)
+    if (!target) return
+    const chain = target.effects ??= []
+    const effect = chain.find(f => f.type === 'filter' && f.enabled) ?? appendBuiltInEffect(chain, 'filter')
+    const {min, max} = effectParameters.filter.cutoff
+    writeBinding(project, scope.value, {
+      control: props.control.id, edge: 'change', action: {
+        type: 'param', target: 'effect.param', id: 'instrument:' + target.id,
+        effectId: effect.id, param: 'cutoff', min, max,
+      },
+    })
+  })
+  error.value = ''
+}
 async function filterSweep() {
   const instrument = sweepTarget.value
   if (!instrument) return
-  const backend = instrument.backend === 'default' ? settings.value.audio.defaultSynth : instrument.backend
+  const backend = sweepBackend.value
   if (backend !== 'web' && backend !== 'plugin') {
     error.value = 'Built-in or plugin engine only.'
     return
@@ -317,7 +339,7 @@ onUnmounted(() => {
       </button>
       <div
         v-if="control.mode !== 'momentary' && sweepTarget"
-        class="d-flex gap-2 mt-2"
+        class="d-flex flex-wrap gap-2 mt-2"
       >
         <select
           class="form-select form-select-sm"
@@ -340,6 +362,14 @@ onUnmounted(() => {
           @click="filterSweep"
         >
           {{ t('bindingEditor.filterSweep') }}
+        </button>
+        <button
+          v-if="sweepBackend === 'web'"
+          class="btn btn-sm btn-xm"
+          :title="t('bindingEditor.filterEffectHint')"
+          @click="filterEffectSweep"
+        >
+          {{ t('bindingEditor.mapFilterEffect') }}
         </button>
       </div>
       <ActionPicker

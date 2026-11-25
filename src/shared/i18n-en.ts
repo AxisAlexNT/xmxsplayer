@@ -93,6 +93,8 @@ export const en = {
   'bindingEditor.effectKnob': "Effect knob",
   'bindingEditor.drumRoll': "Drum roll",
   'bindingEditor.filterSweepInstrument': "Filter sweep instrument",
+  'bindingEditor.mapFilterEffect': 'Map filter effect',
+  'bindingEditor.filterEffectHint': 'Map the first active filter cutoff, or add a filter to this instrument.',
   'bindingEditor.filterSweep': "Filter sweep",
   'bindingEditor.onlyWhen': "Only when",
   'bindingEditor.timing': "Timing",
