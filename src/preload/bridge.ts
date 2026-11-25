@@ -51,6 +51,9 @@ export function installBridge(ui: boolean): void {
       onChanged: (handler) => subscribe('scores:changed', handler),
     },
     project: {
+      startPractice: (files) => ipcRenderer.invoke('project:startPractice', files),
+      keepPractice: (files) => ipcRenderer.invoke('project:keepPractice', files),
+      discardPractice: () => ipcRenderer.invoke('project:discardPractice'),
       restore: () => ipcRenderer.invoke('project:restore'),
       create: () => ipcRenderer.invoke('project:create'),
       open: () => ipcRenderer.invoke('project:open'),

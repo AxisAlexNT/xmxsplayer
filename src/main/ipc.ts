@@ -7,8 +7,9 @@ import type { PluginCommand } from '../shared/plugins'
 import { detectCarla, findExecutable, PluginHost } from './plugin-host'
 import { discoverPlugins } from './plugin-discovery'
 import { exportPortable, importPortable } from './portable'
+import { createPracticeProject, keepPracticeProject } from './tutorial-practice'
 import { fromFiles } from '../shared/project-files'
-import { stat } from 'node:fs/promises'
+import { rm, stat } from 'node:fs/promises'
 import { readScoreXml } from './score-xml'
 import { FluidSynthProcess, detectFluid } from './fluidsynth'
 import { convertScore, detectMuseScore } from './musescore'
@@ -186,7 +187,72 @@ export function installIpc(windows: Windows): () => Promise<void> {
     await watch()
     return snapshot
   })
+  let practice: { folder: string; original: string } | null = null
+  async function switchProject(folder: string) {
+    const previous = { folder: io.folder, hashes: io.hashes }
+    try {
+      if (folder) {
+        const snapshot = await io.open(folder)
+        await watch()
+        return snapshot
+      }
+      await plugins.stop()
+      await watcher.close()
+      fileTokens.clear()
+      io.folder = ''
+      io.hashes = {}
+      return null
+    } catch (error) {
+      Object.assign(io, previous)
+      if (previous.folder) await watch()
+      throw error
+    }
+  }
+  function requireFinishedPractice(): void {
+    if (practice) throw Error('Finish the current practice session first')
+  }
+  handle('project:startPractice', async (files: FileMap | null) => {
+    requireFinishedPractice()
+    const original = io.folder
+    const source = original ? { folder: original, files: files ?? await io.readAll() } : null
+    const fonts = source ? [] : await scanSoundfonts(directories())
+    const copy = await createPracticeProject(app.getPath('userData'), source, fonts.find(sf => sf.gm)?.file)
+    try {
+      await switchProject(copy.folder)
+    } catch (error) {
+      await rm(copy.folder, { recursive: true, force: true })
+      throw error
+    }
+    practice = { folder: copy.folder, original }
+    return copy
+  })
+  function currentPractice() {
+    if (!practice || io.folder !== practice.folder) throw Error('Open a practice session first')
+    return practice
+  }
+  handle('project:keepPractice', async (files: FileMap) => {
+    const session = currentPractice()
+    const result = await dialog.showSaveDialog(ui, {
+      title: 'Save as project…', defaultPath: join(app.getPath('documents'), 'Tutorial project'),
+      buttonLabel: 'Save project',
+    })
+    if (result.canceled || !result.filePath) return null
+    await host.saveStates()
+    const saved = await keepPracticeProject(result.filePath, { folder: session.folder, files })
+    await switchProject(saved.folder)
+    practice = null
+    await rm(session.folder, { recursive: true, force: true }).catch(error => console.error('Practice folder cleanup failed', error))
+    return saved
+  })
+  handle('project:discardPractice', async () => {
+    const session = currentPractice()
+    const original = await switchProject(session.original)
+    practice = null
+    await rm(session.folder, { recursive: true, force: true }).catch(error => console.error('Practice folder cleanup failed', error))
+    return original
+  })
   handle('project:create', async () => {
+    requireFinishedPractice()
     const result = await dialog.showOpenDialog(ui, {
       title: 'Choose an empty project folder',
       properties: ['openDirectory', 'createDirectory'],
@@ -202,6 +268,7 @@ export function installIpc(windows: Windows): () => Promise<void> {
     return snapshot
   })
   handle('project:open', async () => {
+    requireFinishedPractice()
     const result = await dialog.showOpenDialog(ui, {
       title: 'Open project folder or project.yaml',
       properties: ['openFile', 'openDirectory'],
@@ -229,6 +296,7 @@ export function installIpc(windows: Windows): () => Promise<void> {
     return result.filePath
   })
   handle('project:openPortable', async () => {
+    requireFinishedPractice()
     const archive = await dialog.showOpenDialog(ui, {
       title: 'Open portable project', properties: ['openFile'],
       filters: [{ name: 'Portable project', extensions: ['zip'] }],

@@ -62,6 +62,9 @@ export interface DesktopApi {
     ) => () => void
   }
   project: {
+    startPractice: (files: FileMap | null) => Promise<ProjectSnapshot>
+    keepPractice: (files: FileMap) => Promise<ProjectSnapshot | null>
+    discardPractice: () => Promise<ProjectSnapshot | null>
     restore: () => Promise<ProjectSnapshot | null>
     create: () => Promise<ProjectSnapshot | null>
     openPortable: () => Promise<ProjectSnapshot | null>
