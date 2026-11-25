@@ -86,6 +86,8 @@ export function defaultSettings(): Settings {
     },
     musescorePath: '',
     soundfontDirs: [],
+    soundfontFavourites: [],
+    soundfontCopyIntoProject: false,
     devices: { userProfiles: [], assignments: {}, arturiaForceProgram: false },
     trustedScripts: [],
     recent: [],

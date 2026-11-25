@@ -71,3 +71,34 @@ it('creates a validated piano, MIDI track, zone and patch template', () => {
     instrumentId: 'piano',
   })
 })
+
+it('indexes PHDR names without samples and invalidates changed files', async () => {
+  const { indexSoundfonts, readPresets } =
+    await import('../../src/main/soundfonts')
+  const folder = await mkdtemp(join(tmpdir(), 'xmxs-font-index-'))
+  folders.push(folder)
+  const path = join(folder, 'Piano.sf3'),
+    cache = join(folder, 'index.json')
+  await writeFile(path, font(1))
+  expect(await readPresets(path)).toEqual([
+    { bank: 0, program: 0, name: 'Preset 0', isDrum: false },
+  ])
+  const first = await indexSoundfonts([folder], cache)
+  expect(first[0]).toMatchObject({ kind: 'Piano', file: 'Piano.sf3' })
+  expect(await indexSoundfonts([folder], cache)).toEqual(first)
+  await writeFile(path, font(128))
+  expect((await indexSoundfonts([folder], cache))[0].kind).toBe('GM')
+})
+
+it('finds presets after an unpadded odd-length SF3 sample list', async () => {
+  const {readPresets} = await import('../../src/main/soundfonts')
+  const folder = await mkdtemp(join(tmpdir(),'xmxs-sf3-'))
+  folders.push(folder)
+  const original=font(1)
+  const sample=Buffer.from([76,73,83,84,5,0,0,0,115,100,116,97,1])
+  const data=Buffer.concat([original.subarray(0,12),sample,original.subarray(12)])
+  data.writeUInt32LE(data.length-8,4)
+  const path=join(folder,'Odd.sf3')
+  await writeFile(path,data)
+  expect((await readPresets(path))[0].name).toBe('Preset 0')
+})

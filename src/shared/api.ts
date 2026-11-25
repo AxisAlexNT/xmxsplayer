@@ -16,6 +16,12 @@ export interface SoundFontFile {
   bytes: number
   gm: boolean
 }
+export interface SoundFontIndexEntry extends SoundFontFile {
+  path:string
+  mtime:number
+  kind:string
+  presets:FluidPreset[]
+}
 export interface ResolvedSoundFont {
   file: string
   url: string
@@ -55,7 +61,7 @@ export interface DesktopApi {
       files: FileMap,
       expectedHashes: Record<string, string>,
     ) => Promise<Record<string, string>>
-    importFile: (kind: 'audio' | 'score' | 'midi') => Promise<string | null>
+    importFile: (kind: 'audio' | 'score' | 'midi' | 'soundfont') => Promise<string | null>
     urlFor: (relPath: string) => Promise<string>
     importDropped: (file: File) => Promise<string>
     audioSource: (file: string, sampleRate: number) => Promise<AudioSource>
@@ -70,6 +76,9 @@ export interface DesktopApi {
     onFilesChanged: (handler: (changes: FileChanges) => void) => () => void
   }
   soundfonts: {
+    index: () => Promise<SoundFontIndexEntry[]>
+    dirs: {get:()=>Promise<string[]>; set:(dirs:string[])=>Promise<void>; choose:()=>Promise<string|null>}
+    copy: (file:string)=>Promise<string>
     scan: () => Promise<SoundFontFile[]>
     resolve: (
       file: string,

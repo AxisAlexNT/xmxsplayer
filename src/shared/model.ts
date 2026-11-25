@@ -383,6 +383,9 @@ export interface Settings {
     extraArgs: string[]
   }
   musescorePath: string
+  soundfontFavourites?: string[]
+  soundfontCopyIntoProject?: boolean
+  soundfontDirsConfigured?: boolean
   soundfontDirs: string[]
   devices: {
     userProfiles: DeviceProfile[]

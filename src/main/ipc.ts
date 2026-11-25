@@ -18,6 +18,7 @@ import { liveProject } from '../shared/template'
 import {
   defaultSoundfontDirs,
   findSoundfont,
+  indexSoundfonts,
   scanSoundfonts,
 } from './soundfonts'
 import type { Windows } from './windows'
@@ -187,11 +188,12 @@ export function installIpc(windows: Windows): () => Promise<void> {
   handle('project:save', (files: FileMap, hashes: Record<string, string>) =>
     io.save(files, hashes),
   )
-  handle('project:import', async (kind: 'audio' | 'score' | 'midi') => {
-    if (!['audio', 'score', 'midi'].includes(kind))
+  handle('project:import', async (kind: 'audio' | 'score' | 'midi' | 'soundfont') => {
+    if (!['audio', 'score', 'midi','soundfont'].includes(kind))
       throw new Error('Invalid import kind')
     const result = await dialog.showOpenDialog(ui, {
       title: kind === 'score' ? 'Link score' : 'Import file',
+      ...(kind === 'soundfont' ? { filters:[{name:'Soundfonts',extensions:['sf2','sf3']}] } : {}),
       properties: ['openFile'],
       ...(kind === 'score'
         ? {
@@ -237,10 +239,11 @@ export function installIpc(windows: Windows): () => Promise<void> {
     return fileTokens.issue(await confined(io.folder, path), [io.folder])
   })
   function directories(): string[] {
-    const configured = loadSettings().soundfontDirs
+    const settings = loadSettings()
+    const configured = settings.soundfontDirs
     return [
-      ...(configured.length ? configured : defaultSoundfontDirs()),
       ...(io.folder ? [join(io.folder, 'soundfonts')] : []),
+      ...(settings.soundfontDirsConfigured || configured.length ? configured : defaultSoundfontDirs()),
     ]
   }
   async function pickSoundfont(
@@ -257,7 +260,7 @@ export function installIpc(windows: Windows): () => Promise<void> {
     const folder = dirname(path)
     settings.soundfontDirs = [
       ...new Set([
-        ...(settings.soundfontDirs.length
+        ...(settings.soundfontDirsConfigured || settings.soundfontDirs.length
           ? settings.soundfontDirs
           : defaultSoundfontDirs()),
         folder,
@@ -266,6 +269,22 @@ export function installIpc(windows: Windows): () => Promise<void> {
     saveSettings(settings)
     return { file: basename(path), url: await fileTokens.issue(path, [folder]) }
   }
+  handle('soundfonts:index',()=>indexSoundfonts(directories(),join(app.getPath('userData'),'soundfont-index.json')))
+  handle('soundfonts:dirs:get',()=>{ const s=loadSettings();return s.soundfontDirsConfigured || s.soundfontDirs.length?s.soundfontDirs:defaultSoundfontDirs() })
+  handle('soundfonts:dirs:set',(dirs:string[])=>{
+    if(!Array.isArray(dirs)||dirs.some(dir=>typeof dir!=='string'||!dir.trim()))throw Error('Invalid soundfont folders')
+    saveSettings({...loadSettings(),soundfontDirsConfigured:true,soundfontDirs:[...new Set(dirs)]})
+  })
+  handle('soundfonts:dirs:choose',async()=>{
+    const result=await dialog.showOpenDialog(ui,{properties:['openDirectory'],title:'Add soundfont folder'})
+    return result.canceled?null:result.filePaths[0]
+  })
+  handle('soundfonts:copy',async(file:string)=>{
+    const found=await findSoundfont(file,directories())
+    if(!found)throw Error(`Missing soundfont: ${file}`)
+    if(io.folder && dirname(found)===join(io.folder,'soundfonts'))return file
+    return basename(await io.importFile('soundfont',found))
+  })
   handle('soundfonts:scan', () => scanSoundfonts(directories()))
   handle('soundfonts:resolve', async (file: string, locate = false) => {
     const dirs = directories()

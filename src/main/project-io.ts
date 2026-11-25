@@ -162,7 +162,7 @@ export class ProjectIO {
     return { ...this.hashes }
   }
   async importFile(
-    kind: 'audio' | 'score' | 'midi',
+    kind: 'audio' | 'score' | 'midi' | 'soundfont',
     source: string,
   ): Promise<string> {
     if (!this.folder) throw new Error('Open a project first')
@@ -175,7 +175,8 @@ export class ProjectIO {
         return rel
       }
     }
-    const dir = kind === 'audio' ? 'audio' : 'scores'
+    if (kind === 'soundfont' && !/\.sf[23]$/i.test(source)) throw Error('Select an SF2 or SF3 soundfont')
+    const dir = kind === 'soundfont' ? 'soundfonts' : kind === 'audio' ? 'audio' : 'scores'
     const name = basename(source)
     const dot = name.lastIndexOf('.')
     const stem = dot > 0 ? name.slice(0, dot) : name

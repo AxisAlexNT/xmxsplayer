@@ -599,6 +599,9 @@ export const settingsSchema = z.strictObject({
     extraArgs: z.string().array(),
   }),
   musescorePath: z.string(),
+  soundfontFavourites: z.string().array().default([]),
+  soundfontCopyIntoProject: z.boolean().default(false),
+  soundfontDirsConfigured: z.boolean().optional(),
   soundfontDirs: z.string().array(),
   devices: z.strictObject({
     userProfiles: deviceProfileSchema.array(),

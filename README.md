@@ -12,6 +12,8 @@ The Orchestra panel provides four range-aware presets, section registers and con
 
 Right-click or long-press the timeline ruler to insert or delete measures or change the tempo or signature from a bar. Use **+ Bars** below the tracks to extend the project. Each edit supports Undo.
 
+Open **Manage sound library** under Soundfonts or Settings → Files to scan folders, inspect presets, and add or replace a project font. Copying the font into the project is optional.
+
 Click **Tempo** to change the whole tempo map proportionally, set one BPM throughout, or edit the current section or loop. Double-click to type directly. **Speed** controls playback independently.
 
 Generated piano parts default to a grand staff. The track header lets you choose a hand split, enable a second voice and show sustain pedal marks. These settings affect notation only.

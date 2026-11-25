@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import SoundLibrary from './SoundLibrary.vue'
+import { useI18n } from '../i18n'
+const {t}=useI18n()
+const managing=ref(false)
 import { onMounted, ref } from 'vue'
 import { useProjectStore } from '../stores/project'
 import { useRuntimeStore } from '../stores/runtime'
@@ -23,7 +27,8 @@ function fail(error: unknown): void {
 async function add(): Promise<void> {
   busy.value = true
   try {
-    const picked = await window.xm.soundfonts.pick()
+    const path = settings.value.soundfontCopyIntoProject ? await window.xm.project.importFile('soundfont') : undefined
+    const picked = settings.value.soundfontCopyIntoProject ? (path ? {file:path.split('/').at(-1)!} : null) : await window.xm.soundfonts.pick()
     if (!picked) return
     if (!doc.project.soundfonts.some((sf) => sf.file === picked.file))
       doc.update((p) => {
@@ -82,14 +87,14 @@ async function locate(id: string, file: string): Promise<void> {
         :disabled="busy"
         @click="locate(sf.id, sf.file)"
       >
-        Locate…
+        {{ t('library.locate') }}
       </button>
     </div>
     <div
       v-if="!doc.project.soundfonts.length"
       class="xm-faint"
     >
-      No soundfonts
+      {{ t('library.noSoundfonts') }}
     </div>
   </div>
   <button
@@ -97,9 +102,19 @@ async function locate(id: string, file: string): Promise<void> {
     :disabled="busy"
     @click="add"
   >
-    <i class="bi bi-plus-lg" /> Add soundfont
+    <i class="bi bi-plus-lg" /> {{ t('library.addSoundfont') }}
   </button>
   <p class="xm-faint mt-2 mb-0">
-    Soundfonts are found by file name in your soundfont folders.
+    {{ t('library.soundfontsAreFoundByFileNameInYourSoundfontFolders') }}
   </p>
+  <button
+    class="btn btn-sm btn-xm"
+    @click="managing=true"
+  >
+    {{ t('library.manage') }}
+  </button>
+  <SoundLibrary
+    v-if="managing"
+    @close="managing=false"
+  />
 </template>

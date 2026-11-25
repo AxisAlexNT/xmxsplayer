@@ -65,6 +65,9 @@ export function installBridge(ui: boolean): void {
       onFilesChanged: (handler) => subscribe('project:changed', handler),
     },
     soundfonts: {
+      index:()=>ipcRenderer.invoke('soundfonts:index'),
+      dirs:{get:()=>ipcRenderer.invoke('soundfonts:dirs:get'),set:dirs=>ipcRenderer.invoke('soundfonts:dirs:set',dirs),choose:()=>ipcRenderer.invoke('soundfonts:dirs:choose')},
+      copy:file=>ipcRenderer.invoke('soundfonts:copy',file),
       scan: () => ipcRenderer.invoke('soundfonts:scan'),
       resolve: (file, locate) =>
         ipcRenderer.invoke('soundfonts:resolve', file, locate),
