@@ -254,3 +254,7 @@ body { background: var(--xm-bg-0); color: var(--xm-text); font-family: var(--xm-
 .xm-pwr { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--xm-text-faint); flex: none; }
 .xm-pwr.is-on { border-color: var(--xm-ok); background: var(--xm-ok); box-shadow: 0 0 6px rgba(61,220,151,.6); }
 .xm-fxh button.xm-pwr { padding: 0; }
+
+.xm-ticks { display: flex; gap: 3px; align-items: flex-end; height: 34px; }
+.xm-ticks > i { width: 6px; border-radius: 2px; background: var(--xm-bg-3); height: 30%; }
+.xm-ticks > i.is-hit { background: var(--xm-c6); height: 100%; box-shadow: 0 0 6px rgba(255,159,67,.6); }

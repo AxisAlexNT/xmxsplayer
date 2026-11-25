@@ -1,5 +1,8 @@
 export class ScheduledQueue<T> {
   private entries: { time: number; channel: number; value: T }[] = []
+  get nextTime(): number | undefined {
+    return this.entries[0]?.time
+  }
   push(time: number, channel: number, value: T): void {
     let lo = 0,
       hi = this.entries.length

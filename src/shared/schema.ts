@@ -111,7 +111,8 @@ export const actionSchema = z.discriminatedUnion('type', [
     type: z.literal('note'),
     trackId: id,
     key: keySchema,
-    velocity: z.union([z.literal('control'), byte]),
+    velocity: z.union([enums(['control', 'speed']), byte]),
+    gateMs: int.positive().optional(),
   }),
   z.strictObject({
     type: z.literal('param'),
@@ -180,6 +181,8 @@ export const actionSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('script'), fn: z.string().min(1) }),
 ])
 export const bindingSchema = z.strictObject({
+  every: int.positive().optional(),
+  direction: enums(['any', 'up', 'down']).optional(),
   control: z.string().min(1),
   edge: enums(['press', 'release', 'change']),
   when: conditionSchema.optional(),

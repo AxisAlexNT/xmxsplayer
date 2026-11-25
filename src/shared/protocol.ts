@@ -146,6 +146,7 @@ export interface EventMap {
     outputs: { id: string; name: string }[]
     devices: { id: string; profileId: string; name: string }[]
   }
+  'binding:hit': { deviceId: string; controlId: string; velocity: number }
   control: {
     deviceId: string
     controlId: string

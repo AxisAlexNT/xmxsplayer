@@ -268,7 +268,7 @@ export type Action =
       index: number
       on?: boolean
     }
-  | { type: 'note'; trackId: Id; key: number; velocity: 'control' | number }
+  | { type: 'note'; trackId: Id; key: number; velocity: 'control' | 'speed' | number; gateMs?: number }
   | { type: 'param'; target: ParamTarget; id?: Id; effectId?: Id; param?: string; min: number; max: number }
   | { type: 'trackMode'; trackId: Id; mode: TrackMode | 'cycle' }
   | { type: 'follow'; mode: Project['follow']['mode'] | 'cycle' }
@@ -309,6 +309,8 @@ export type ParamTarget =
   | 'audio.filterFreq'
 
 export interface Binding {
+  every?: number
+  direction?: 'any' | 'up' | 'down'
   control: string
   edge: 'press' | 'release' | 'change'
   when?: Condition

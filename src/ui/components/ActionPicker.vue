@@ -422,20 +422,21 @@ const targets: ParamTarget[] = [
             ></label><label class="form-label">Velocity<select
               class="form-select form-select-sm"
               aria-label="Note velocity source"
-              :value="a.velocity === 'control' ? 'control' : 'fixed'"
+              :value="typeof a.velocity === 'number' ? 'fixed' : a.velocity"
               @change="
                 patch({
                   velocity:
-                    ($event.target as HTMLSelectElement).value === 'control'
-                      ? 'control'
-                      : 100,
+                    ($event.target as HTMLSelectElement).value === 'fixed'
+                      ? 100
+                      : ($event.target as HTMLSelectElement).value as 'speed' | 'control',
                 })
               "
             >
               <option value="control">Control</option>
+              <option value="speed">Movement speed</option>
               <option value="fixed">Fixed</option>
             </select></label><input
-              v-if="a.velocity !== 'control'"
+              v-if="typeof a.velocity === 'number'"
               class="form-control form-control-sm"
               type="number"
               min="1"
@@ -448,6 +449,16 @@ const targets: ParamTarget[] = [
                 })
               "
             >
+            <label class="form-label">Auto-release (ms)
+              <input
+                type="number"
+                min="1"
+                class="form-control form-control-sm"
+                placeholder="On release"
+                :value="a.gateMs"
+                @change="patch({gateMs:Number(($event.target as HTMLInputElement).value) || undefined})"
+              >
+            </label>
           </div>
         </template><select
           v-else

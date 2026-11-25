@@ -81,7 +81,7 @@ function fixture() {
         jobs.delete(id)
       },
     }
-  p.mappings['arturia-keylab-essential-mk3'].bindings=[]
+  p.mappings['arturia-keylab-essential-mk3'].bindings = []
   return { p, context, run, jobs, host, bindings: new Bindings(host) }
 }
 it('requires pickup, tracks crossed targets and re-arms after an external change', () => {
@@ -242,4 +242,75 @@ it('routes clip pressure and release to the press-time action and forwards timin
     clipId: 'old',
   })
   expect(f.run.mock.lastCall?.[2]).toBe(false)
+})
+
+it('counts absolute travel per controller and computes drum velocity from movement speed', () => {
+  vi.useFakeTimers()
+  const f = fixture()
+  try {
+    f.p.base.bindings.push({
+      control: 'slider',
+      edge: 'change',
+      every: 3,
+      direction: 'up',
+      action: {
+        type: 'note',
+        trackId: 'drums',
+        key: 36,
+        velocity: 'speed',
+        gateMs: 60,
+      },
+    })
+    const move = (n: number, timestamp: number, deviceId = 'a') =>
+      f.bindings.receive(
+        event('slider', 'change', {
+          value: n / 127,
+          timestamp,
+          deviceId,
+          pressed: false,
+        }),
+      )
+    move(0, 0)
+    move(2, 100)
+    move(1, 120)
+    move(4, 0, 'b')
+    move(2, 220)
+    expect(f.run.mock.calls.map((c) => [c[1], c[2]])).toEqual([
+      [20 / 127, true],
+    ])
+    vi.advanceTimersByTime(60)
+    expect(f.run.mock.lastCall?.[2]).toBe(false)
+    move(8, 222)
+    expect(f.run.mock.calls.filter((c) => c[2]).map((c) => c[1])).toEqual([
+      20 / 127,
+      1,
+      1,
+    ])
+    f.bindings.disconnect('a')
+    const count = f.run.mock.calls.length
+    vi.advanceTimersByTime(120)
+    expect(f.run).toHaveBeenCalledTimes(count)
+  } finally {
+    f.bindings.clear()
+    vi.useRealTimers()
+  }
+})
+it('counts relative encoder detents in the selected direction and resets across scenes', () => {
+  const f = fixture()
+  f.p.base.bindings.push({
+    control: 'wheel',
+    edge: 'change',
+    every: 4,
+    direction: 'down',
+    action: { type: 'app', cmd: 'save' },
+  })
+  const move = (delta: number) =>
+    f.bindings.receive(event('wheel', 'change', { delta }))
+  move(-3)
+  move(2)
+  f.bindings.resetMovement()
+  move(-1)
+  expect(f.run).not.toHaveBeenCalled()
+  move(-7)
+  expect(f.run).toHaveBeenCalledTimes(2)
 })

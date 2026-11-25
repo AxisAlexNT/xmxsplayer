@@ -39,3 +39,7 @@ The encoder uses values above/below 64 for clockwise/counterclockwise movement; 
 Unmatched notes in the reserved KeyLab pad range (36–51 on channels 10–11) are suppressed, including pressure and releases, so an unlearned pad cannot unexpectedly play a keyboard instrument. Keep the keyboard itself on another MIDI channel when using those reserved pad addresses. Learned messages override that suppression.
 
 Electron 45 lacks `MIDIOutput.clear()`, so future LED messages remain in a cancellable engine queue until their deadlines. Isolated Linux checks measured up to 2.5 ms of dispatch lateness; this is not physical MIDI or audio latency. At high audio output latency, pad feedback aligned to the audible beat can trail the transport's on-screen beat lamps; visual alignment remains a release QA item.
+
+### Play a drum roll with a fader or encoder
+
+Open the control’s binding editor and choose **Drum roll**. Select the MIDI track that plays your drum instrument and enter its kick or snare note. The recipe starts with note 36 and a 60 ms auto-release. Move the control through three MIDI steps for each hit. Choose **Up** or **Down** to play on just one stroke. **Movement speed** makes a quick stroke louder. Choose **Fixed** for even hits.

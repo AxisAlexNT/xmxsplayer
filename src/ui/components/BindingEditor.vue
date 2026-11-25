@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   computed,
+  nextTick,
   onBeforeUnmount,
   onMounted,
   onUnmounted,
@@ -20,6 +21,7 @@ import {
 import { palette, sentence } from '../bindings/labels'
 import { useProjectStore } from '../stores/project'
 import { useRuntimeStore } from '../stores/runtime'
+import { engineBus } from '../bus'
 import ActionPicker from './ActionPicker.vue'
 import ConditionEditor from './ConditionEditor.vue'
 const props = defineProps<{
@@ -103,6 +105,19 @@ function apply(next: Binding): void {
     error.value = String(reason)
   }
 }
+async function drumRoll() {
+  const track = doc.project.tracks.find(t => t.kind === 'midi')
+  if (!track) {
+    error.value = 'Add a MIDI track to play the drum roll.'
+    return
+  }
+  edge.value = 'change'
+  await nextTick()
+  apply({
+    control: props.control.id, edge: 'change', every: 3, direction: 'any',
+    action: { type: 'note', trackId: track.id, key: 36, velocity: 'speed', gateMs: 60 },
+  })
+}
 function action(value: Action): void {
   const when = isUnbound(draft.value) ? undefined : draft.value.when
   apply({ ...draft.value, action: value, when })
@@ -115,6 +130,15 @@ function color(value: string | null): void {
     error.value = String(reason)
   }
 }
+const hits = ref<number[]>([])
+watch([scope, edge, () => props.control.id], () => { hits.value = [] })
+watch(engineBus, (bus, _, cleanup) => {
+  const off = bus?.on('binding:hit', hit => {
+    if (hit.deviceId === props.deviceId && hit.controlId === props.control.id)
+      hits.value = [...hits.value.slice(-23), hit.velocity]
+  })
+  if (off) cleanup(off)
+}, { immediate: true })
 const returnFocus = document.activeElement as HTMLElement | null
 let restoreFocus = false
 let observer: ResizeObserver | undefined
@@ -193,6 +217,13 @@ onUnmounted(() => {
           {{ value[0].toUpperCase() + value.slice(1) }}
         </button>
       </div>
+      <button
+        v-if="control.mode !== 'momentary'"
+        class="btn btn-sm btn-xm"
+        @click="drumRoll"
+      >
+        Drum roll
+      </button>
       <ActionPicker
         :model-value="draft.action"
         :project="doc.project"
@@ -234,6 +265,45 @@ onUnmounted(() => {
               Bar
             </option>
           </select>
+        </div>
+      </div>
+      <div
+        v-if="enabled && edge === 'change'"
+        class="row g-2"
+      >
+        <label class="col form-label">Trigger every (MIDI steps)
+          <input
+            type="number"
+            min="1"
+            class="form-control"
+            placeholder="Each change"
+            :value="draft.every"
+            @change="apply({...draft, every: Number(($event.target as HTMLInputElement).value) || undefined})"
+          >
+        </label>
+        <label class="col form-label">Direction
+          <select
+            class="form-select"
+            :value="draft.direction ?? 'any'"
+            @change="apply({...draft, direction: ($event.target as HTMLSelectElement).value as Binding['direction']})"
+          >
+            <option value="any">Both</option><option value="up">Up</option><option value="down">Down</option>
+          </select>
+        </label>
+      </div>
+      <div v-if="edge === 'change' && draft.action.type === 'note'">
+        <span class="form-label">Hit preview · move the control</span>
+        <div
+          class="xm-ticks"
+          role="img"
+          :aria-label="`Recent hits: ${hits.length}, last velocity: ${hits.at(-1) ?? 0}`"
+        >
+          <i
+            v-for="i in 24"
+            :key="i"
+            :class="{ 'is-hit': i <= hits.length }"
+            :style="i <= hits.length ? {height: Math.max(8, hits[i-1] / 127 * 100) + '%'} : {}"
+          />
         </div>
       </div>
       <label class="form-label mt-3">Store in</label>

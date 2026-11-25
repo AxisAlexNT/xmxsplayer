@@ -1,3 +1,4 @@
+import { ScheduledQueue } from '../synth/scheduled-queue'
 import type {
   Action,
   Binding,
@@ -26,6 +27,7 @@ export interface BindingHost {
     source: string,
     context?: { delta?: number; at?: Timing },
   ): void
+  hit?(deviceId: string, controlId: string, velocity: number): void
   pressure?(action: Action, value: number, source: string): void
   parameter(action: ParamAction): number | undefined
 }
@@ -66,11 +68,34 @@ interface HeldAction {
   action: Action
   value: number
   source: string
+  gateId?: number
   pending: number
   started: boolean
   context: { delta?: number; at?: Timing }
 }
 export class Bindings {
+  private movement = new Map<
+    string,
+    { binding: string; position: number; time: number; remainder: number }
+  >()
+  private gates = new ScheduledQueue<() => void>()
+  private gateSerial = 0
+  private timer?: ReturnType<typeof setTimeout>
+  resetMovement() {
+    this.movement.clear()
+  }
+  private armGateTimer() {
+    clearTimeout(this.timer)
+    const next = this.gates.nextTime
+    if (next === undefined) return
+    this.timer = setTimeout(
+      () => {
+        this.gates.drain(performance.now(), (release) => release())
+        this.armGateTimer()
+      },
+      Math.max(0, Math.ceil(next - performance.now())),
+    )
+  }
   private pickup = new SoftTakeover()
   private held = new Map<string, HeldAction>()
   private pending = new Map<number, { deviceId: string; controlId: string }>()
@@ -109,10 +134,31 @@ export class Bindings {
         this.host.run(
           entry.action,
           entry.value,
-          event.pressed,
+          action.type === 'note' && event.edge === 'change'
+            ? true
+            : event.pressed,
           source,
           entry.context,
         )
+        if (action.type === 'note' && event.edge === 'change')
+          this.host.hit?.(event.deviceId, event.controlId,
+            typeof action.velocity === 'number' ? action.velocity : Math.max(1, Math.round(value * 127)))
+        if (
+          action.type === 'note' &&
+          action.gateMs &&
+          this.held.get(key) === entry
+        ) {
+          entry.gateId = ++this.gateSerial
+          this.gates.push(
+            performance.now() + action.gateMs,
+            entry.gateId,
+            () => {
+              this.held.delete(key)
+              this.release(entry)
+            },
+          )
+          this.armGateTimer()
+        }
       },
     )
     if (entry.pending && !entry.started)
@@ -130,6 +176,7 @@ export class Bindings {
     return result
   }
   private release(entry: HeldAction): void {
+    if (entry.gateId !== undefined) this.gates.cancel(entry.gateId)
     if (entry.pending) {
       this.host.cancel(entry.pending)
       this.pending.delete(entry.pending)
@@ -226,9 +273,56 @@ export class Bindings {
       }
     }
     if (action.type === 'clip') value = event.value
-    this.dispatch(binding, event, action, value)
+    let hits = 1
+    const fromSpeed = action.type === 'note' && action.velocity === 'speed'
+    if (
+      event.edge === 'change' &&
+      (binding.every || binding.direction || fromSpeed)
+    ) {
+      const key = JSON.stringify([event.deviceId, event.controlId])
+      const signature = JSON.stringify(binding)
+      const position = Math.round(event.value * 127)
+      let state = this.movement.get(key)
+      if (!state || state.binding !== signature) {
+        state = {
+          binding: signature,
+          position,
+          time: event.timestamp,
+          remainder: 0,
+        }
+        this.movement.set(key, state)
+      }
+      const delta = event.delta ?? position - state.position
+      const elapsed = event.timestamp - state.time
+      state.position = position
+      state.time = event.timestamp
+      if (
+        !delta ||
+        (binding.direction === 'up' && delta < 0) ||
+        (binding.direction === 'down' && delta > 0)
+      )
+        return
+      if (fromSpeed)
+        value =
+          Math.min(
+            127,
+            Math.max(
+              20,
+              elapsed > 0 ? Math.round((Math.abs(delta) * 250) / elapsed) : 20,
+            ),
+          ) / 127
+      if (binding.every) {
+        state.remainder += Math.abs(delta)
+        hits = Math.floor(state.remainder / binding.every)
+        state.remainder %= binding.every
+      }
+    }
+    for (let hit = 0; hit < hits; hit++)
+      this.dispatch(binding, event, action, value)
   }
   disconnect(deviceId: string): void {
+    for (const key of this.movement.keys())
+      if (JSON.parse(key)[0] === deviceId) this.movement.delete(key)
     this.pickup.clear(`${deviceId}:`)
     for (const [id, pending] of this.pending)
       if (pending.deviceId === deviceId) {
@@ -244,6 +338,9 @@ export class Bindings {
   clear(): void {
     for (const id of this.pending.keys()) this.host.cancel(id)
     this.pending.clear()
+    this.resetMovement()
+    this.gates.cancel()
+    clearTimeout(this.timer)
     for (const entry of this.held.values()) this.release(entry)
     this.held.clear()
     this.pickup.clear()

@@ -136,6 +136,7 @@ function publishRuntime(): void {
   runtimeState.queuedCueIds = cues?.queuedIds ?? []
   runtimeState.pendingActions = cues?.pendingActions ?? []
   runtimeState.orchestras = { ...scenes.orchestras }
+  if (runtimeState.activeSceneId !== scenes.activeId) bindings?.resetMovement()
   runtimeState.activeSceneId = scenes.activeId
   runtimeState.registers = scenes.registers.values
   runtimeState.effective = { zones: setup.zones, patch: setup.patch }
@@ -352,7 +353,7 @@ function runAction(
       source,
       0,
       action.key,
-      action.velocity === 'control'
+      typeof action.velocity !== 'number'
         ? Math.max(1, Math.round(value * 127))
         : action.velocity,
       pressed,
@@ -827,6 +828,7 @@ async function initialize(value: Settings): Promise<void> {
       cancel: (id) => transport?.cancelAction(id),
       isQueued: (id) => transport?.scheduler.isQueued(id) ?? false,
       run: runAction,
+      hit: (deviceId, controlId, velocity) => bus?.send('binding:hit', {deviceId, controlId, velocity}),
       pressure: (action, value, source) =>
         clipActions?.pressure(action, value, source),
       parameter: currentParameter,
