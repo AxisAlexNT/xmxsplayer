@@ -53,7 +53,7 @@ Use the highlighted control to try the step. **Next** moves on, **Back** revisit
 
 ## Read PDF sheet music while playing
 
-Choose **File → Import PDF sheet music…** in an open project. The app copies the score into the project’s `scores/pdf/` folder. Scroll inside the score to move through its pages independently of the timeline. Select **2 across** for a two-page spread. **Night mode** switches between a dark sheet and the original paper colors.
+Choose **File → Import PDF sheet music…** in an open project. The app copies the score into the project’s `scores/pdf/` folder. Scroll inside the score to move through its pages independently of the timeline. Drag the lane’s lower edge to change its height, or Tab to the resize handle and use the Up and Down arrows. The project saves the height. Select **2 across** for a two-page spread. **Night mode** switches between a dark sheet and the original paper colors.
 
 Choose **View → PDF placement → Right pane** to keep the score beside the tracks. Select a score by name, drag the divider to adjust its width, or choose **Sheet only**. Press **Ctrl+P** to hide the sheets or bring them back.
 

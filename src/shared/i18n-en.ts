@@ -622,6 +622,7 @@ export const en = {
   'timeline.deleteLoopRangeBars': 'Delete loop range bars',
   'timeline.doubleClickToExpandOrRestoreLane': 'Double-click to expand or restore lane',
   'timeline.dragToReorderAlt': 'Drag to reorder · Alt+↑/↓',
+  'timeline.resizeNamedLane': 'Resize {name} lane',
   'timeline.dragToResizeLane': 'Drag to resize lane',
   'timeline.dragToSeekShiftDragToSetLoop': 'Drag to seek · Shift-drag to set loop',
   'timeline.insertBarsAfter': 'Insert bars after',

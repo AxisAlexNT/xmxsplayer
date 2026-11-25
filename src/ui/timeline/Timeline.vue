@@ -429,33 +429,54 @@ function reorderKey(event: KeyboardEvent, id: string): void {
     d.tracks.splice(to, 0, t)
   })
 }
+function minimumLaneHeight(track: Track) {
+  return track.kind === 'midi' && track.link ? 196 : 112
+}
+function clampLaneHeight(track: Track, pixels: number) {
+  return Math.min(900, Math.max(minimumLaneHeight(track), pixels))
+}
+function saveLaneHeight(track: Track, pixels: number) {
+  edit(track.id, t => { t.height = pixels / doc.project.view.laneZoom })
+}
+function resizeKey(event: KeyboardEvent, track: Track) {
+  const current = height(track)
+  let pixels: number
+  switch (event.key) {
+    case 'ArrowUp': pixels = current - 20; break
+    case 'ArrowDown': pixels = current + 20; break
+    case 'Home': pixels = minimumLaneHeight(track); break
+    case 'End': pixels = 900; break
+    default: return
+  }
+  event.preventDefault()
+  event.stopPropagation()
+  saveLaneHeight(track, clampLaneHeight(track, pixels))
+}
 function resize(event: PointerEvent, track: Track): void {
+  if (event.button !== 0 || !event.isPrimary) return
   const target = event.currentTarget as HTMLElement
   target.setPointerCapture(event.pointerId)
-  const start = event.clientY,
-    initial = height(track)
+  const start = event.clientY
+  const initial = height(track)
   const move = (e: PointerEvent): void => {
+    if (e.pointerId !== event.pointerId) return
     heights.value = {
       ...heights.value,
-      [track.id]: Math.min(900, Math.max(112, initial + e.clientY - start)),
+      [track.id]: clampLaneHeight(track, initial + e.clientY - start),
     }
   }
-  const cleanup = (): void => {
-    heights.value = {}
+  const finish = (e: PointerEvent): void => {
+    if (e.pointerId !== event.pointerId) return
+    if (e.type === 'pointerup' && e.clientY !== start)
+      saveLaneHeight(track, clampLaneHeight(track, initial + e.clientY - start))
+    delete heights.value[track.id]
     target.removeEventListener('pointermove', move)
-    target.removeEventListener('pointerup', up)
-    target.removeEventListener('pointercancel', cancel)
+    target.removeEventListener('pointerup', finish)
+    target.removeEventListener('lostpointercapture', finish)
   }
-  const up = (): void => {
-    edit(track.id, (t) => {
-      t.height = height(track) / doc.project.view.laneZoom
-    })
-    cleanup()
-  }
-  const cancel = (): void => cleanup()
   target.addEventListener('pointermove', move)
-  target.addEventListener('pointerup', up)
-  target.addEventListener('pointercancel', cancel)
+  target.addEventListener('pointerup', finish)
+  target.addEventListener('lostpointercapture', finish)
 }
 const expanded = new Map<string, number>()
 function expand(track: Track): void {
@@ -612,7 +633,15 @@ onUnmounted(() => {
           </PdfSheet>
           <div
             class="xm-lane-resize"
+            role="separator"
+            tabindex="0"
+            aria-orientation="horizontal"
+            :aria-label="t('timeline.resizeNamedLane', { name: track.name })"
+            :aria-valuemin="Math.min(Math.round(height(track)), minimumLaneHeight(track))"
+            :aria-valuemax="Math.max(Math.round(height(track)), 900)"
+            :aria-valuenow="Math.round(height(track))"
             :title="t('timeline.dragToResizeLane')"
+            @keydown="resizeKey($event, track)"
             @pointerdown.stop="resize($event, track)"
           />
         </div>
@@ -849,7 +878,15 @@ onUnmounted(() => {
           />
           <div
             class="xm-lane-resize"
+            role="separator"
+            tabindex="0"
+            aria-orientation="horizontal"
+            :aria-label="t('timeline.resizeNamedLane', { name: track.name })"
+            :aria-valuemin="Math.min(Math.round(height(track)), minimumLaneHeight(track))"
+            :aria-valuemax="Math.max(Math.round(height(track)), 900)"
+            :aria-valuenow="Math.round(height(track))"
             :title="t('timeline.dragToResizeLane')"
+            @keydown="resizeKey($event, track)"
             @pointerdown="resize($event, track)"
           />
         </div>
