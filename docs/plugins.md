@@ -38,6 +38,8 @@ Use the supplier’s Linux package or build instructions, then choose **Rescan**
 
 Add **LSP Sidechain Compressor Mono** or **Stereo** to the instrument you want to turn down. In its effect card, choose the Geonkick track under **Sidechain track**. The player routes that track to the detector and selects the compressor’s external input. Set the compressor threshold and ratio while playing both instruments. Choose **None** to return to the internal detector.
 
+Changing the plugin order or audio connections reloads Carla. During playback, choose **Apply now** to reload immediately or **Apply after playback** to keep playing with the current connections. When playback stops, the player applies the pending edit. Parameter adjustments on the current graph take effect live.
+
 ## Moving a project
 
 Portable export records the format and identifier of each required plugin. On another Linux machine, install the same plugin format and use **File → Open portable project…**. The player lists missing plugins after import. The project retains its instrument assignments, effect order, sidechain selections and saved effect parameter values. With the matching system Carla bindings installed, **Instrument window** and **Plugin window** open the native editor. Saving the song writes native state beneath `plugins/`, which portable export includes. Dragonfly’s dry-level setting was verified across a full Carla process restart. Keep external drum-kit sample files available at the locations the plugin expects. On a Carla installation without its matching bindings, use the plugin’s standalone preset-saving workflow. Windows plugin hosting is untested.

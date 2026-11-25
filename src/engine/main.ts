@@ -48,6 +48,7 @@ let settings: Settings | undefined
 let graph: AudioGraph | undefined
 let pluginBackend: PluginSynthBackend | undefined
 let pluginConfigured = false
+let deferredPluginSync: {forceScript: boolean; forceSynth: boolean} | undefined
 let pluginReady = false
 let backend: WebSynthBackend | undefined
 let fluidBackend: FluidSynthBackend | undefined
@@ -773,7 +774,10 @@ async function initialize(value: Settings): Promise<void> {
       bar: transport!.clock.map.tickToBarBeat(tick).bar,
     })
     transport.onPosition = () => {
-      if (!transport!.clock.playing) cues?.pause()
+      if (!transport!.clock.playing) {
+        cues?.pause()
+        resumeDeferredPlugins()
+      }
       publishRuntime()
       const clock = transport!.clock
       const signature = JSON.stringify([
@@ -919,6 +923,13 @@ async function initialize(value: Settings): Promise<void> {
     throw error
   }
 }
+function resumeDeferredPlugins() {
+  if (!deferredPluginSync || engineClosing || transport?.clock.playing) return
+  const {forceScript, forceSynth} = deferredPluginSync
+  deferredPluginSync = undefined
+  void synchronize(forceScript, forceSynth).catch(error => log('error', 'plugins', String(error)))
+}
+
 async function synchronize(
   forceScript = false,
   forceSynth = false,
@@ -927,19 +938,32 @@ async function synchronize(
   const revision = ++syncRevision
   const commandRevision = scriptCommandRevision
   bus?.send('synth:state', { loading: true, readyIds: [] })
-  if (forceSynth) {
-    router?.panic()
-    for (const owner of previews.keys()) previewNote(owner, 0, 0, false)
-    reportKeys()
-  }
   const needsPlugins = requiredPlugins(project).length > 0
   if (needsPlugins || pluginConfigured) {
     try {
       const applied = await window.pluginPlayback.configure(applyOrchestraControls(project, scenes.orchestras), transport?.clock.playing ?? false)
-      if (!applied) return
+      if (!applied) {
+        if (revision === syncRevision && !engineClosing) {
+          deferredPluginSync = {
+            forceScript: forceScript || !!deferredPluginSync?.forceScript,
+            forceSynth: forceSynth || !!deferredPluginSync?.forceSynth,
+          }
+          reportSynthReady()
+          resumeDeferredPlugins()
+        }
+        return
+      }
       pluginConfigured = needsPlugins
     } catch (error) { pluginReady=false;log('error','plugins',String(error)) }
     if (revision !== syncRevision) return
+  }
+  forceSynth ||= !!deferredPluginSync?.forceSynth
+  forceScript ||= !!deferredPluginSync?.forceScript
+  deferredPluginSync = undefined
+  if (forceSynth) {
+    router?.panic()
+    for (const owner of previews.keys()) previewNote(owner, 0, 0, false)
+    reportKeys()
   }
   router?.setProject(performanceProject() ?? project)
   await Promise.all([
@@ -1122,6 +1146,7 @@ window.addEventListener('message', (event) => {
     clipActions?.clear()
     transport?.clips.reset()
     syncRevision++
+    deferredPluginSync = undefined
     scriptCommandRevision++
     noteHooks?.clear()
     scriptSession?.clear()

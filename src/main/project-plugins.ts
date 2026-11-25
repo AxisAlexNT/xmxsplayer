@@ -12,6 +12,7 @@ import type { OscArg } from './osc'
 export class ProjectPlugins {
   private inventory?: DiscoveredPlugin[]
   private ports: Record<string, PluginPorts> = {}
+  private deferredStructure = ''
   private structure = ''
   private folder = ''
   private session?: PluginSession
@@ -30,6 +31,7 @@ export class ProjectPlugins {
     project: Project,
     executable: string | undefined,
     confirm: () => Promise<boolean>,
+    playing = false,
   ) {
     const task = this.changes.then(async () => {
       const refs = requiredPlugins(project)
@@ -58,10 +60,15 @@ export class ProjectPlugins {
         session.plugins.map((p) => [p.id, pluginStateKey(p)]),
       ])
       if (structure !== this.structure) {
-        if (!(await confirm())) return false
+        if (playing && structure === this.deferredStructure) return false
+        if (!(await confirm())) {
+          this.deferredStructure = structure
+          return false
+        }
         await this.host.configure(folder, session, executable)
         this.structure = structure
       }
+      this.deferredStructure = ''
       // A graph rebuild can move an existing effect to a different Carla slot.
       // Reapply simultaneous project edits after its native state is restored.
       if (folder === this.folder) {
@@ -119,6 +126,7 @@ export class ProjectPlugins {
   stop() {
     const task = this.changes.then(async () => {
       await this.host.stop()
+      this.deferredStructure = ''
       this.session = undefined
       this.structure = ''
     })

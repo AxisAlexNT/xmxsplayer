@@ -91,9 +91,9 @@ export function installIpc(windows: Windows): () => Promise<void> {
     return plugins.configure(io.folder,projectSchema.parse(project),loadSettings().carlaPath,async()=>{
       if(!playing) return true
       const result=await dialog.showMessageBox(ui,{type:'question',message:'Apply plugin changes while playing?',
-        detail:'Plugin notes will stop while Carla reloads the audio connections.',buttons:['Apply changes','Cancel'],defaultId:1,cancelId:1})
+        detail:'Plugin notes will stop while Carla reloads the audio connections.',buttons:['Apply now','Apply after playback'],defaultId:1,cancelId:1})
       return result.response===0
-    })
+    }, playing)
   })
   fluidHandle('plugins:send',true,(id:string,command:PluginCommand,values:number[])=>plugins.send(id,command,values))
   fluidHandle('fluid:start', true, () => {
