@@ -206,3 +206,7 @@ body { background: var(--xm-bg-0); color: var(--xm-text); font-family: var(--xm-
 @keyframes xm-blink { 50% { opacity: .25; } }
 
 .xm-vrv-page .is-record-replaced { opacity: .3; }
+
+.xm-staff-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: var(--xm-fs-xs); }
+.xm-staff-controls label { display: inline-flex; align-items: center; gap: 3px; }
+.xm-staff-controls input[type="number"] { width: 4em; }

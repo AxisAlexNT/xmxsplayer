@@ -12,6 +12,8 @@ The Orchestra panel provides four range-aware presets, section registers and con
 
 Right-click or long-press the timeline ruler to insert or delete measures or change the tempo or signature from a bar. Use **+ Bars** below the tracks to extend the project. Each edit supports Undo.
 
+Generated piano parts default to a grand staff. The track header lets you choose a hand split, enable a second voice and show sustain pedal marks. These settings affect notation only.
+
 With the loop off, recording can start at the end and continue into new bars. The piano roll shows held notes as you play. The staff updates as bars finish. Stop keeps one empty bar after the last recorded note, and Undo restores the notes and song length together.
 
 Choose Replace in the transport to re-record from the playhead through Stop, including silence. Shift+R switches between Replace and Overdub. Recording settings also offer up to four bars of pre-roll.

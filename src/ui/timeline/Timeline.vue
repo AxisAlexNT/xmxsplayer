@@ -2,6 +2,8 @@
 import { useI18n } from '../i18n'
 const { t } = useI18n()
 defineOptions({ name: 'TrackTimeline' })
+import StaffControls from '../notation/StaffControls.vue'
+import { staffSettings } from '../notation/voicing'
 import StaffLane from '../lanes/StaffLane.vue'
 import { NotationService, notationKey } from '../notation/notation-service'
 import { useSourcesStore } from '../stores/sources'
@@ -68,6 +70,15 @@ function addMidiTrack(){
     if(instrument)p.base.patch.push({id:uniqueId(track.id,p.base.patch.map(c=>c.id)),trackId:track.id,instrumentId:instrument.id})
   })
 }
+const reportedNotationWarnings = new Set<string>()
+watch(() => doc.loadRevision, () => reportedNotationWarnings.clear())
+watch(() => notation.merged.value?.warnings, warnings => {
+  for (const message of warnings ?? []) {
+    if (reportedNotationWarnings.has(message)) continue
+    reportedNotationWarnings.add(message)
+    runtime.log({level:'warn', source:'notation', message})
+  }
+})
 let recordingId: string | undefined
 let lastStaffBar = -Infinity
 const recentStaffNotes = new Map<string, number>()
@@ -136,11 +147,13 @@ watch(
           t.notes,
           t.link,
           t.clef,
+          t.staff,
+          t.events.filter(e=>e.type==="cc" && e.num===64),
           t.quantGrid,
           t.view,
         ]),
       doc.project.base.patch.map((p) => [p.trackId, p.instrumentId]),
-      doc.project.instruments.map((i) => [i.id, i.isDrum]),
+      doc.project.instruments.map((i) => [i.id, i.isDrum, i.program]),
     ]),
   () => {
     const take = runtime.liveTake
@@ -352,7 +365,8 @@ function mode(track: Track): void {
 function height(track: Track): number {
   return Math.max(
     track.kind === 'midi' && track.link ? 196 : 0,
-    heights.value[track.id] ?? track.height * doc.project.view.laneZoom,
+    heights.value[track.id] ?? ((track.kind === 'midi' && wantsStaff(track) && track.height === 196 &&
+      staffSettings(track, doc.project).mode === 'grand') ? 260 : track.height) * doc.project.view.laneZoom,
   )
 }
 function reorder(event: PointerEvent, id: string): void {
@@ -642,6 +656,10 @@ onUnmounted(() => {
               </button>
             </div>
           </div>
+          <StaffControls
+            v-if="track.kind === 'midi' && !track.link && wantsStaff(track)"
+            :track="track"
+          />
           <span
             v-if="track.kind === 'midi' && track.link"
             class="xm-badge"

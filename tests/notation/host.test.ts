@@ -48,3 +48,17 @@ describe('installed Verovio', () => {
     expect(() => host.load('<bad>', { pageWidth: 800, scale: 40 })).toThrow()
   })
 })
+
+it('renders both piano staves in one part and preserves melody duration', async () => {
+  const {liveProject}=await import('../../src/shared/template')
+  const {notesToMusicXml}=await import('../../src/ui/notation/notes-to-musicxml')
+  const project=liveProject('Piano')
+  project.lengthTicks=1920
+  const track=project.tracks[0]
+  if(track.kind!=='midi') throw Error('Expected MIDI')
+  track.notes=[[0,960,72,100],[0,240,48,80],[240,240,55,80]]
+  const info=host.load(notesToMusicXml(track,project),{pageWidth:800,scale:40})
+  expect(info.timemap.find(n=>n.key===72)).toMatchObject({staff:1,end:2})
+  expect(info.timemap.find(n=>n.key===55)).toMatchObject({staff:2})
+  expect(host.render(1)).toContain('class="staff"')
+})

@@ -296,6 +296,16 @@ export const trackSchema = z.discriminatedUnion('kind', [
       .optional(),
     view: enums(['staff', 'roll']),
     clef: enums(['auto', 'treble', 'bass']),
+    staff: z
+      .strictObject({
+        mode: enums(['single', 'grand']),
+        split: z
+          .union([z.literal('auto'), z.number().int().min(0).max(127)])
+          .default('auto'),
+        voices: z.union([z.literal(1), z.literal(2)]).default(2),
+        pedal: z.boolean().default(true),
+      })
+      .optional(),
     quantGrid: num.positive(),
     armed: z.boolean(),
     leads: z.boolean(),

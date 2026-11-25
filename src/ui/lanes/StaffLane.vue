@@ -16,11 +16,19 @@ const pages = computed(() =>
   timeline.frame.value.pages.flatMap((p) => {
     const page = notation.pages.value.get(p),
       clip = page?.clips[staff.value]
-    return page && clip
+    const last =
+      page?.clips[
+        notation.merged.value?.staffTrackIds.lastIndexOf(props.track.id) ?? -1
+      ]
+    return page && clip && last
       ? [
           {
             ...page,
-            clip,
+            clip: {
+              top: clip.top,
+              bottom: last.bottom,
+              center: (clip.center + last.center) / 2,
+            },
             x: p * timeline.axis.value.pageWidth - timeline.frame.value.offset,
           },
         ]

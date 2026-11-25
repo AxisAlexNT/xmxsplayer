@@ -19,6 +19,7 @@ export const useEditorStore = defineStore('editor', () => {
   const doc = useProjectStore(),
     runtime = useRuntimeStore(),
     tool = ref<'select' | 'draw' | 'erase'>('select'),
+    splitPickTrack = ref<string | null>(null),
     snap = ref(120),
     activeTrackId = ref<string | null>(null),
     selection = shallowRef<Selection>({ trackId: null, notes: [] }),
@@ -191,6 +192,7 @@ export const useEditorStore = defineStore('editor', () => {
     return true
   }
   return {
+    splitPickTrack,
     notice,
     tool,
     snap,

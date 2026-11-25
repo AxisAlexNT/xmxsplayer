@@ -1,3 +1,4 @@
+import { staffSettings } from './voicing'
 import { PPQ, type MidiTrack, type Project } from '../../shared/model'
 import { TimeMap } from '../../shared/time-map'
 import {
@@ -285,7 +286,7 @@ export function mergeNotation(
         track.link?.state === 'synced' && !track.link.orphaned && baseValid
           ? original[Number(track.link.key.split(':')[0])]?.part
           : undefined
-    if (!source) return generatedPart(track, project, grid, id)
+    if (!source) return generatedPart(track, project, grid, id, warnings)
     const copy = source.cloneNode(true) as XmlElement
     copy.setAttribute('id', id)
     const generated = parseXml(
@@ -307,7 +308,9 @@ export function mergeNotation(
     )
   return {
     musicxml: `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="4.0"><part-list>${included.map((t, i) => `<score-part id="P${i + 1}"><part-name>${xmlEscape(t.name)}</part-name></score-part>`).join('')}</part-list>${parts.join('')}</score-partwise>`,
-    staffTrackIds: included.map((t) => t.id),
+    staffTrackIds: included.flatMap((t) =>
+      staffSettings(t, project).mode === 'grand' ? [t.id, t.id] : [t.id],
+    ),
     grid,
     warnings,
     excludedTrackIds,

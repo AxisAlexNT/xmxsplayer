@@ -1,9 +1,5 @@
-import {
-  PPQ,
-  type MidiTrack,
-  type Note,
-  type Project,
-} from '../../shared/model'
+import { PPQ, type MidiTrack, type Project } from '../../shared/model'
+import { staffSettings, voiceNotes } from './voicing'
 import { TimeMap } from '../../shared/time-map'
 import { append, parseXml, serializeXml } from './xml'
 export interface ScoreMeasure {
@@ -105,32 +101,19 @@ export function generatedPart(
   project: Project,
   grid: ScoreMeasure[],
   partId: string,
+  warnings?: string[],
 ): string {
   const doc = parseXml(`<part id="${escape(partId)}"/>`),
     part = doc.documentElement,
     map = new TimeMap(project),
     quant = Math.max(1, track.quantGrid)
-  const sorted = track.notes
-    .map<Note>((n) => [
-      Math.max(0, Math.round(n[0] / quant) * quant),
-      Math.max(quant, Math.round(n[1] / quant) * quant),
-      n[2],
-      n[3],
-    ])
-    .sort((a, b) => a[0] - b[0] || a[2] - b[2])
-  const onsets: { tick: number; end: number; notes: Note[] }[] = []
-  for (const n of sorted) {
-    const group = onsets.at(-1)
-    if (group?.tick === n[0]) {
-      if (n[1] > group.notes[0][1]) {
-        group.notes = [n]
-        group.end = n[0] + n[1]
-      } else if (n[1] === group.notes[0][1]) group.notes.push(n)
-    } else onsets.push({ tick: n[0], end: n[0] + n[1], notes: [n] })
-  }
-  for (let i = 0; i < onsets.length - 1; i++)
-    onsets[i].end = Math.min(onsets[i].end, onsets[i + 1].tick)
-  const pitches = sorted.map((n) => n[2]).sort((a, b) => a - b),
+  const settings = staffSettings(track, project)
+  const { staves, truncated } = voiceNotes(track, settings)
+  if (truncated)
+    warnings?.push(
+      `${track.name}: overlapping lines exceed the selected voice count.`,
+    )
+  const pitches = track.notes.map((n) => n[2]).sort((a, b) => a - b),
     clef =
       track.clef === 'auto'
         ? (pitches[Math.floor(pitches.length / 2)] ?? 60) >= 60
@@ -140,6 +123,7 @@ export function generatedPart(
   const triplet = [320, 160, 80, 40, 20, 10].includes(quant)
   let previousKey = '',
     previousSig = ''
+  let pedalDown = false
   for (let index = 0; index < grid.length; index++) {
     const measure = grid[index],
       m = append(part, 'measure', undefined, {
@@ -162,66 +146,123 @@ export function generatedPart(
       append(t, 'beat-type', measure.den)
     }
     if (index === 0) {
-      const c = append(attrs, 'clef')
-      append(c, 'sign', clef === 'bass' ? 'F' : 'G')
-      append(c, 'line', clef === 'bass' ? 4 : 2)
+      if (staves.length === 2) append(attrs, 'staves', 2)
+      for (let i = 0; i < staves.length; i++) {
+        const bass = staves.length === 2 ? i === 1 : clef === 'bass'
+        const c = append(attrs, 'clef', undefined, { number: i + 1 })
+        append(c, 'sign', bass ? 'F' : 'G')
+        append(c, 'line', bass ? 4 : 2)
+      }
     }
     previousKey = keyId
     previousSig = sigId
-    let cursor = measure.start
-    const rest = (until: number): void => {
-      for (const duration of durations(until - cursor, triplet)) {
-        const n = append(m, 'note')
-        append(n, 'rest')
-        append(n, 'duration', duration.ticks)
-        append(n, 'type', duration.type)
-        if (duration.triplet) {
-          const tm = append(n, 'time-modification')
-          append(tm, 'actual-notes', 3)
-          append(tm, 'normal-notes', 2)
-        }
-      }
-      cursor = until
-    }
-    for (const group of onsets) {
-      if (group.end <= measure.start || group.tick >= measure.end) continue
-      const start = Math.max(measure.start, group.tick),
-        end = Math.min(measure.end, group.end)
-      if (start > cursor) rest(start)
-      const segments = durations(end - start, triplet)
-      let at = start
-      for (const segment of segments) {
-        const continues = at + segment.ticks < group.end - 1e-7,
-          from = at > group.tick + 1e-7
-        group.notes.forEach((note, i) => {
-          const n = append(m, 'note')
-          if (i) append(n, 'chord')
-          const p = append(n, 'pitch'),
-            s = spelling(note[2], key.fifths)
-          append(p, 'step', s.step)
-          if (s.alter) append(p, 'alter', s.alter)
-          append(p, 'octave', s.octave)
-          append(n, 'duration', segment.ticks)
-          if (from) append(n, 'tie', undefined, { type: 'stop' })
-          if (continues) append(n, 'tie', undefined, { type: 'start' })
-          append(n, 'voice', 1)
-          append(n, 'type', segment.type)
-          if (segment.triplet) {
-            const tm = append(n, 'time-modification')
-            append(tm, 'actual-notes', 3)
-            append(tm, 'normal-notes', 2)
-          }
-          if (from || continues) {
-            const nt = append(n, 'notations')
-            if (from) append(nt, 'tied', undefined, { type: 'stop' })
-            if (continues) append(nt, 'tied', undefined, { type: 'start' })
-          }
+    if (settings.pedal) {
+      for (const event of track.events) {
+        if (
+          event.type !== 'cc' ||
+          event.num !== 64 ||
+          event.tick < measure.start ||
+          event.tick > measure.end ||
+          (event.tick === measure.end && index < grid.length - 1)
+        )
+          continue
+        const down = event.value >= 64
+        if (pedalDown === down) continue
+        pedalDown = down
+        const direction = append(m, 'direction', undefined, {
+          placement: 'below',
         })
-        at += segment.ticks
+        append(append(direction, 'direction-type'), 'pedal', undefined, {
+          type: down ? 'start' : 'stop',
+        })
+        append(direction, 'offset', event.tick - measure.start)
+        append(direction, 'staff', staves.length)
       }
-      cursor = end
     }
-    if (cursor < measure.end) rest(measure.end)
+    let first = true
+    for (const [staff, voices] of staves.entries()) {
+      const active = voices.map((voice) =>
+        voice.filter((g) => g.end > measure.start && g.tick < measure.end),
+      )
+      for (const [v, onsets] of active.entries()) {
+        if (!onsets.length && (v > 0 || active.some((groups) => groups.length)))
+          continue
+        if (!first)
+          append(append(m, 'backup'), 'duration', measure.end - measure.start)
+        first = false
+        const voice = 1 + staff * 2 + v
+        let cursor = measure.start
+        const rest = (until: number): void => {
+          for (const duration of durations(until - cursor, triplet)) {
+            const n = append(m, 'note')
+            append(n, 'rest')
+            append(n, 'duration', duration.ticks)
+            append(n, 'voice', voice)
+            append(n, 'type', duration.type)
+            if (duration.triplet) {
+              const tm = append(n, 'time-modification')
+              append(tm, 'actual-notes', 3)
+              append(tm, 'normal-notes', 2)
+            }
+            append(n, 'staff', staff + 1)
+          }
+          cursor = until
+        }
+        for (const group of onsets) {
+          if (group.end <= measure.start || group.tick >= measure.end) continue
+          const start = Math.max(measure.start, group.tick),
+            end = Math.min(measure.end, group.end)
+          if (start > cursor) rest(start)
+          const beat =
+            ((PPQ * 4) / measure.den) *
+            (measure.den === 8 && measure.num % 3 === 0 ? 3 : 1)
+          const offset = (start - measure.start) % beat
+          const split = offset ? Math.min(end, start + beat - offset) : end
+          const segments = [
+            ...durations(split - start, triplet),
+            ...durations(end - split, triplet),
+          ]
+          let at = start
+          for (const segment of segments) {
+            const continues = at + segment.ticks < group.end - 1e-7,
+              from = at > group.tick + 1e-7
+            group.notes.forEach((note, i) => {
+              const n = append(m, 'note')
+              if (i) append(n, 'chord')
+              const p = append(n, 'pitch'),
+                s = spelling(note[2], key.fifths)
+              append(p, 'step', s.step)
+              if (s.alter) append(p, 'alter', s.alter)
+              append(p, 'octave', s.octave)
+              append(n, 'duration', segment.ticks)
+              if (from) append(n, 'tie', undefined, { type: 'stop' })
+              if (continues) append(n, 'tie', undefined, { type: 'start' })
+              append(n, 'voice', voice)
+              append(n, 'type', segment.type)
+              if (segment.triplet) {
+                const tm = append(n, 'time-modification')
+                append(tm, 'actual-notes', 3)
+                append(tm, 'normal-notes', 2)
+              }
+              if (
+                active.every((groups) => groups.length) &&
+                active.length === 2
+              )
+                append(n, 'stem', v === 0 ? 'up' : 'down')
+              append(n, 'staff', staff + 1)
+              if (from || continues) {
+                const nt = append(n, 'notations')
+                if (from) append(nt, 'tied', undefined, { type: 'stop' })
+                if (continues) append(nt, 'tied', undefined, { type: 'start' })
+              }
+            })
+            at += segment.ticks
+          }
+          cursor = end
+        }
+        if (cursor < measure.end) rest(measure.end)
+      }
+    }
   }
   return serializeXml(part)
 }

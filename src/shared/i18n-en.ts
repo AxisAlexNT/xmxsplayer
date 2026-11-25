@@ -56,6 +56,17 @@ export const en = {
   'timeline.startAProject': 'Start a project',
   'timeline.tempoFromHere': 'Tempo from here',
   'timeline.timeSignatureFromHere': 'Time signature from here',
+  'staff.layout': 'Staff layout',
+  'staff.single': 'Single',
+  'staff.grand': 'Grand',
+  'staff.hands': 'Hands split',
+  'staff.auto': 'Auto',
+  'staff.middleC': 'At C4',
+  'staff.pick': 'Pick…',
+  'staff.pressKey': 'Press a key…',
+  'staff.splitKey': 'Split key (MIDI 60 = C4)',
+  'staff.twoVoices': '2 voices',
+  'staff.pedal': 'Pedal marks',
 } as const
 
 type Message = string | { one: string; other: string }

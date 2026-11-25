@@ -109,6 +109,12 @@ export interface TrackBase {
   height: number
 }
 export interface MidiTrack extends TrackBase {
+  staff?: {
+    mode: 'single' | 'grand'
+    split: 'auto' | number
+    voices: 1 | 2
+    pedal: boolean
+  }
   orchestraId?: Id
   kind: 'midi'
   notes: Note[] // sorted; immutable arrays (replace on edit)

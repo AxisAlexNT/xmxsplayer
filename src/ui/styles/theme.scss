@@ -620,7 +620,7 @@ button:disabled {
 .xm-follow-control .xm-hold { font-size: 9px; padding: 2px 6px; color: #1d1300; }
 .is-following .xm-time-key { display: none; }
 .is-following .xm-follow-control { min-width: 146px; }
-.xm-transport { min-width: 0; }
+.xm-transport { min-width: 0; overflow-x: auto; scrollbar-width: thin; }
 .xm-tbtn.is-play.is-on.is-holding { color: var(--xm-warn); border-color: var(--xm-warn); background: rgba(255, 176, 32, .14); }
 .xm-follow-lead { width: 40px; height: 40px; flex-shrink: 0; }
 .xm-transport > .xm-tbtn { flex-shrink: 0; }

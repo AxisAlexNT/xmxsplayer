@@ -58,7 +58,7 @@ describe('generated MusicXML', () => {
     expect(children(notes[1], 'tie')[0].getAttribute('type')).toBe('stop')
     expect(descendants(doc, 'rest').length).toBeGreaterThan(0)
   })
-  it('groups equal onset and duration as chords and truncates overlaps at the next onset', () => {
+  it('groups equal onset and duration as chords and preserves overlapping voices', () => {
     const { p, t } = fixture()
     t.notes = [
       [0, 960, 60, 100],
@@ -67,7 +67,7 @@ describe('generated MusicXML', () => {
     ]
     const doc = parseXml(notesToMusicXml(t, p)),
       notes = descendants(doc, 'note').filter((n) => child(n, 'pitch'))
-    expect(notes.map((n) => text(n, 'duration'))).toEqual(['480', '480', '480'])
+    expect(notes.map((n) => text(n, 'duration'))).toEqual(['960', '960', '480'])
     expect(children(notes[1], 'chord')).toHaveLength(1)
     expect(descendants(doc, 'tie')).toHaveLength(0)
   })
@@ -103,4 +103,37 @@ describe('generated MusicXML', () => {
       notes.map((n) => text(child(n, 'time-modification')!, 'actual-notes')),
     ).toEqual(['3', '3', '3'])
   })
+})
+
+it('writes an arpeggio below a sustained melody, spread chords and pedal on the lower staff', () => {
+  const { p, t } = fixture()
+  t.name = 'Piano'
+  t.notes = [
+    [0, 960, 71, 90],
+    [0, 240, 47, 80],
+    [240, 240, 54, 80],
+    [480, 240, 57, 80],
+    [720, 240, 54, 80],
+    [960, 480, 72, 90],
+    [980, 460, 76, 80],
+  ]
+  t.events = [
+    { tick: 0, type: 'cc', num: 64, value: 127 },
+    { tick: 960, type: 'cc', num: 64, value: 0 },
+  ]
+  const doc = parseXml(notesToMusicXml(t, p))
+  expect(text(descendants(doc, 'attributes')[0], 'staves')).toBe('2')
+  const pitched = descendants(doc, 'note').filter((n) => child(n, 'pitch'))
+  expect(pitched.filter((n) => text(n, 'staff') === '2')).toHaveLength(4)
+  expect(text(pitched[0], 'duration')).toBe('960')
+  expect(descendants(doc, 'chord')).toHaveLength(1)
+  expect(descendants(doc, 'backup').length).toBeGreaterThan(0)
+  expect(descendants(doc, 'direction').map((n) => text(n, 'staff'))).toEqual([
+    '2',
+    '2',
+  ])
+  expect(descendants(doc, 'pedal').map((n) => n.getAttribute('type'))).toEqual([
+    'start',
+    'stop',
+  ])
 })
