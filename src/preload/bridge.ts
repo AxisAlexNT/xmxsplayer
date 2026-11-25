@@ -33,6 +33,10 @@ export function installBridge(ui: boolean): void {
     onEvent: (handler) => subscribe('fluid:event', handler),
   }
   const api: DesktopApi = {
+    plugins: {
+      detect: () => ipcRenderer.invoke('plugins:detect'),
+      scan: (force) => ipcRenderer.invoke('plugins:scan', force),
+    },
     fluid,
     scores: {
       readXml: (file) => ipcRenderer.invoke('scores:xml', file),

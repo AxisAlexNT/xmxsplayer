@@ -43,6 +43,10 @@ export interface ScoreData {
   musicxml?: string
 }
 export interface DesktopApi {
+  plugins: {
+    detect: () => Promise<string>
+    scan: (force?: boolean) => Promise<{plugins: import('./plugins').DiscoveredPlugin[]; errors: string[]}>
+  }
   fluid: FluidApi
   scores: {
     readXml: (file: string) => Promise<string>

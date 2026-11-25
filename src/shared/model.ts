@@ -367,6 +367,7 @@ export interface ControlDef {
 
 export type TempoMode = 'scale' | 'rewrite' | 'section'
 export interface Settings {
+  carlaPath?: string
   tempoMode?: TempoMode
   locale?: string
   chaseCuesOnSeek?: boolean

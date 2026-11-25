@@ -623,6 +623,7 @@ export const settingsSchema = z.strictObject({
     extraArgs: z.string().array(),
   }),
   musescorePath: z.string(),
+  carlaPath: z.string().optional(),
   effectPresets: z.strictObject({ name: z.string().min(1), type: z.enum(effectTypes), params: record(num) }).array().optional(),
   soundfontFavourites: z.string().array().default([]),
   soundfontCopyIntoProject: z.boolean().default(false),

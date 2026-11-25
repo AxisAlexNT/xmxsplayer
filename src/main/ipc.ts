@@ -1,3 +1,5 @@
+import { detectCarla } from './plugin-host'
+import { discoverPlugins } from './plugin-discovery'
 import { exportPortable, importPortable } from './portable'
 import { fromFiles } from '../shared/project-files'
 import { stat } from 'node:fs/promises'
@@ -345,6 +347,8 @@ export function installIpc(windows: Windows): () => Promise<void> {
     app.relaunch({ args: relaunchArgs(process.argv.slice(1), io.folder) })
     app.exit(0)
   })
+  handle('plugins:detect', () => detectCarla(loadSettings().carlaPath))
+  handle('plugins:scan', (force?: boolean) => discoverPlugins(join(app.getPath('userData'), 'plugin-index.json'), undefined, force === true))
   handle('settings:get', () => loadSettings())
   handle('settings:set', (value) => saveSettings(value))
   return async () => {
