@@ -2,6 +2,8 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { useSettingsStore } from '../stores/settings'
 import type { ControlDef } from '../../shared/model'
+import { useRuntimeStore } from '../stores/runtime'
+import { tutorialController } from '../../shared/tutorial-controller'
 import { engineBus } from '../bus'
 import { matchesKind, matchesGesture, type ControlAddress } from './controller'
 import { t } from '../i18n'
@@ -19,6 +21,18 @@ let frame = 0
 let mutation: MutationObserver
 let resize: ResizeObserver
 const settings = useSettingsStore()
+const runtime = useRuntimeStore()
+const usesController = computed(() => ['pads','drums','filter'].some(id => props.step.id.startsWith('tutorial.' + id)))
+const hasVirtual = computed(() => runtime.midi.devices.some(d => d.id === tutorialController.id))
+const virtualPosition = ref(50)
+watch(() => [engineBus.value, runtime.connected, usesController.value] as const, ([bus, connected, needed], _, cleanup) => {
+  if (!bus || !connected || !needed) return
+  bus.send('tutorial:controller', { enabled:true })
+  cleanup(() => bus.send('tutorial:controller', { enabled:false }))
+}, { immediate:true })
+function virtualGesture(value: number) {
+  if (props.step.controller) engineBus.value?.send('tutorial:gesture', { kind:props.step.controller, value })
+}
 let prepared = ''
 let scrollStep = ''
 function locate() {
@@ -66,7 +80,9 @@ watch(engineBus, (bus, _, cleanup) => {
   cleanup(bus.on('control', event => {
     const expected = props.step.controller
     if (props.busy || props.state.phase !== 'active' || !expected) return
-    if (!matchesGesture(expected, event, chosen[expected])) return
+    const previous = chosen[expected]
+    const connected = previous && runtime.midi.devices.some(d => d.id === previous.deviceId)
+    if (!matchesGesture(expected, event, connected ? previous : undefined)) return
     chosen[expected] = { deviceId: event.deviceId, controlId: event.controlId }
     emit('action', 'matched')
   }))
@@ -127,7 +143,7 @@ onMounted(() => {
   window.addEventListener('resize',schedule)
   window.addEventListener('scroll',schedule,true)
   window.addEventListener('keydown',key,true)
-  for (const type of ['click','change']) document.addEventListener(type,match,true)
+  for (const type of ['click','change']) window.addEventListener(type,match,true)
   locate()
   bubble.value?.focus({preventScroll:true})
 })
@@ -136,7 +152,7 @@ onUnmounted(() => {
   window.removeEventListener('resize',schedule)
   window.removeEventListener('scroll',schedule,true)
   window.removeEventListener('keydown',key,true)
-  for (const type of ['click','change']) document.removeEventListener(type,match,true)
+  for (const type of ['click','change']) window.removeEventListener(type,match,true)
 })
 </script>
 <template>
@@ -159,6 +175,27 @@ onUnmounted(() => {
         :aria-label="t(step.titleKey)"
       >
         <slot />
+        <div
+          v-if="hasVirtual && step.controller && state.phase==='active'"
+          class="tour-virtual"
+        >
+          <button
+            v-if="step.controller==='pad'"
+            class="btn btn-sm btn-xm"
+            @click="virtualGesture(1)"
+          >
+            {{ t('tutorial.pressPad') }}
+          </button>
+          <label v-else>{{ step.controller==='fader' ? t('tutorial.moveFader') : t('tutorial.turnKnob') }}
+            <input
+              v-model.number="virtualPosition"
+              type="range"
+              min="0"
+              max="100"
+              @input="virtualGesture(Number(($event.target as HTMLInputElement).value)/100)"
+            >
+          </label>
+        </div>
         <small
           v-if="state.phase==='feedback'"
           class="matched"

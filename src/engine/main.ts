@@ -1073,6 +1073,8 @@ window.addEventListener('message', (event) => {
       (error) => log('error', 'audio', String(error)),
     )
   })
+  bus.on('tutorial:controller', ({ enabled }) => midi?.setTutorialEnabled(enabled))
+  bus.on('tutorial:gesture', ({ kind, value }) => midi?.tutorialGesture(kind, value))
   bus.respond('device:profiles', () => midi?.profiles() ?? [])
   bus.on('learn:start', ({ deviceId, controlId, control, binding }) => {
     mapCapture = !!binding

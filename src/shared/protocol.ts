@@ -21,6 +21,8 @@ import type {
 
 export type ProjectMeta = Project
 export interface CommandMap {
+  'tutorial:controller': { enabled: boolean }
+  'tutorial:gesture': { kind: 'pad' | 'fader' | 'knob'; value: number }
   'clip:audition': Clip | null
   'script:apply': undefined
   'script:disable': undefined

@@ -155,3 +155,32 @@ it('isolates learning from live controls while releasing previously held keys an
   expect(control).toHaveBeenCalledOnce()
   manager.close()
 })
+
+it('routes on-screen practice gestures through controller bindings until a physical controller connects', async () => {
+  const inputs = new Map<string, ReturnType<typeof port>>()
+  const access = { inputs, outputs: new Map(), onstatechange: null as (() => void) | null }
+  vi.stubGlobal('navigator', { requestMIDIAccess: async () => access })
+  const control = vi.fn(), report = vi.fn(), disconnected = vi.fn()
+  const manager = new DeviceManager(defaultSettings().devices, vi.fn(), control, report, disconnected, vi.fn())
+  await manager.start()
+  manager.setTutorialEnabled(true)
+  expect(report.mock.lastCall?.[0].inputs).toEqual([])
+  expect(manager.devices()[0].id).toBe('tutorial-controller')
+  manager.tutorialGesture('pad', 1)
+  manager.tutorialGesture('knob', 0.25)
+  expect(control.mock.calls.map(([event]) => [event.controlId, event.edge, event.value])).toEqual([
+    ['pad.1','press',1], ['pad.1','release',0], ['knob.1','change',0.25],
+  ])
+  inputs.set('a', port('a', 'KL Essential 61 mk3 MIDI'))
+  access.onstatechange!()
+  expect(disconnected).toHaveBeenCalledWith('tutorial-controller')
+  manager.tutorialGesture('fader', 0.5)
+  expect(control).toHaveBeenCalledTimes(3)
+  inputs.clear()
+  access.onstatechange!()
+  manager.tutorialGesture('fader', 0.5)
+  expect(control.mock.lastCall?.[0]).toMatchObject({controlId:'fader.1', value:0.5})
+  manager.setTutorialEnabled(false)
+  expect(manager.devices()).toEqual([])
+  manager.close()
+})

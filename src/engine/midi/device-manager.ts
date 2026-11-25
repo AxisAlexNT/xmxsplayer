@@ -1,3 +1,4 @@
+import { tutorialController } from '../../shared/tutorial-controller'
 import { Learn } from './learn'
 import type { ControlDef, DeviceProfile, Settings } from '../../shared/model'
 import type { EventMap } from '../../shared/protocol'
@@ -25,6 +26,7 @@ export class DeviceManager {
     devices: [],
   }
   private decoders = new Map<string, ProfileDecoder>()
+  private tutorialEnabled = false
   private connected: ControllerDevice[] = []
   constructor(
     settings: Settings['devices'],
@@ -69,7 +71,23 @@ export class DeviceManager {
     this.report()
   }
   profiles(): DeviceProfile[] {
-    return profilesFor(this.config)
+    const profiles = profilesFor(this.config)
+    return this.tutorialEnabled ? [...profiles, tutorialController] : profiles
+  }
+  setTutorialEnabled(enabled: boolean): void {
+    if (this.tutorialEnabled === enabled) return
+    this.tutorialEnabled = enabled
+    this.report()
+  }
+  tutorialGesture(kind: 'pad' | 'knob' | 'fader', value: number): void {
+    if (!Number.isFinite(value) || value < 0 || value > 1 ||
+        !this.connected.some(device => device.profile === tutorialController)) return
+    const def = tutorialController.controls.find(control => control.kind === kind)
+    if (!def) return
+    const event: ControlEvent = { deviceId: tutorialController.id, controlId: def.id, controlKind: kind,
+      edge: kind === 'pad' ? 'press' : 'change', value, pressed: kind === 'pad', timestamp: performance.now() }
+    this.control(event)
+    if (kind === 'pad') this.control({...event, edge:'release', value:0, pressed:false})
   }
   devices(): readonly ControllerDevice[] {
     return this.connected
@@ -136,6 +154,10 @@ export class DeviceManager {
         },
       ]
     })
+    const inputs = devices.map(({ id, name }) => ({ id, name }))
+    if (this.tutorialEnabled && !devices.some(d => d.profile.controls.length)) {
+      devices.unshift({ id: tutorialController.id, name: tutorialController.name, profile: tutorialController })
+    }
     for (const previous of this.connected)
       if (
         !devices.some(
@@ -147,7 +169,7 @@ export class DeviceManager {
       }
     this.connected = devices
     this.reportPorts({
-      inputs: devices.map(({ id, name }) => ({ id, name })),
+      inputs,
       outputs: this.ports.outputs,
       devices: devices.map(({ id, name, profile }) => ({
         id,

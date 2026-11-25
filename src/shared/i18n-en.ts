@@ -1,4 +1,7 @@
 export const en = {
+  'tutorial.pressPad': 'Press on-screen pad',
+  'tutorial.moveFader': 'Move on-screen fader',
+  'tutorial.turnKnob': 'Adjust on-screen knob',
   'tutorial.offer': 'Would you like a tour of your first project?',
   'tutorial.dismiss': 'Dismiss',
   'tutorial.sectionHelp': '{section} tutorials',

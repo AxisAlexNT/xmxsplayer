@@ -96,7 +96,7 @@ watch(
   { immediate: true },
 )
 watch(
-  () => settings.value.devices,
+  () => [settings.value.devices, runtime.midi.devices.map(d => d.profileId).join()] as const,
   () => void refresh(),
 )
 watch(
