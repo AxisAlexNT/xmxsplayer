@@ -558,6 +558,7 @@ export const deviceProfileSchema = z.strictObject({
   feedback: z.literal('arturia-mk3').optional(),
 })
 export const settingsSchema = z.strictObject({
+  locale: z.string().default('en'),
   chaseCuesOnSeek: z.boolean().default(true),
   audio: z.strictObject({
     defaultSynth: enums(['web', 'fluid']),

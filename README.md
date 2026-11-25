@@ -4,6 +4,8 @@ A desktop workspace for transcribing music by ear and performing arrangements wi
 
 ## Status
 
+The native menus and file-conflict messages share an English translation catalogue.
+
 Audio tracks offer Wave, Spectrum and Both views with channel isolation, note overlays and a project-local analysis cache.
 
 The Orchestra panel provides four range-aware presets, section registers and configurable layers. See [Orchestral sets](docs/orchestra.md).

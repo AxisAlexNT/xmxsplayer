@@ -1,3 +1,5 @@
+import { translate } from '../shared/i18n-en'
+import { loadSettings } from './settings'
 import {
   app,
   Menu,
@@ -5,6 +7,8 @@ import {
   type MenuItemConstructorOptions,
 } from 'electron'
 export function installMenu(ui: BrowserWindow): void {
+  const t = (key: Parameters<typeof translate>[0]) => translate(key, {}, locale)
+  const locale = loadSettings().locale
   const action = (
     label: string,
     cmd: string,
@@ -17,26 +21,26 @@ export function installMenu(ui: BrowserWindow): void {
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
       {
-        label: 'File',
+        label: t('menu.file'),
         submenu: [
-          action('New Project', 'new', 'CmdOrCtrl+N'),
-          action('Open', 'open', 'CmdOrCtrl+O'),
-          action('Save', 'save', 'CmdOrCtrl+S'),
+          action(t('menu.newProject'), 'new', 'CmdOrCtrl+N'),
+          action(t('menu.open'), 'open', 'CmdOrCtrl+O'),
+          action(t('menu.save'), 'save', 'CmdOrCtrl+S'),
           { type: 'separator' },
-          action('Import MIDI', 'import:midi'),
-          action('Import Audio', 'import:audio'),
-          action('Link Score', 'link:score'),
-          action('Export MIDI for MuseScore', 'export:midi'),
+          action(t('menu.importMidi'), 'import:midi'),
+          action(t('menu.importAudio'), 'import:audio'),
+          action(t('menu.linkScore'), 'link:score'),
+          action(t('menu.exportMidiForMusescore'), 'export:midi'),
           { type: 'separator' },
-          action('Settings', 'settings:audio', 'CmdOrCtrl+,'),
-          { label: 'Quit', click: () => app.quit() },
+          action(t('menu.settings'), 'settings:audio', 'CmdOrCtrl+,'),
+          { label: t('menu.quit'), click: () => app.quit() },
         ],
       },
       {
-        label: 'Edit',
+        label: t('menu.edit'),
         submenu: [
-          action('Undo', 'undo', 'CmdOrCtrl+Z'),
-          action('Redo', 'redo', 'CmdOrCtrl+Y'),
+          action(t('menu.undo'), 'undo', 'CmdOrCtrl+Z'),
+          action(t('menu.redo'), 'redo', 'CmdOrCtrl+Y'),
           { type: 'separator' },
           { role: 'cut' },
           { role: 'copy' },
@@ -45,20 +49,20 @@ export function installMenu(ui: BrowserWindow): void {
         ],
       },
       {
-        label: 'View',
+        label: t('menu.view'),
         submenu: [
-          action('Collapse left panel', 'view:collapse'),
-          action('Staff lanes', 'view:lanes:staff'),
-          action('Piano roll lanes', 'view:lanes:roll'),
-          action('Per-track lane view', 'view:lanes:per-track'),
+          action(t('menu.collapseLeftPanel'), 'view:collapse'),
+          action(t('menu.staffLanes'), 'view:lanes:staff'),
+          action(t('menu.pianoRollLanes'), 'view:lanes:roll'),
+          action(t('menu.perTrackLaneView'), 'view:lanes:per-track'),
           { role: 'togglefullscreen' },
         ],
       },
       {
-        label: 'Help',
+        label: t('menu.help'),
         submenu: [
           {
-            label: 'About xmxsplayer',
+            label: t('menu.aboutXmxsplayer'),
             click: () => ui.webContents.send('app:menu', 'about'),
           },
         ],

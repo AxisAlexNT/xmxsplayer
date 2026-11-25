@@ -9,4 +9,8 @@ export default tseslint.config(
     files: ['**/*.vue'],
     languageOptions: { parserOptions: { parser: tseslint.parser } },
   },
+  {
+    files: ['src/ui/components/ConflictBanner.vue'],
+    rules: { 'vue/no-bare-strings-in-template': 'error' },
+  },
 )

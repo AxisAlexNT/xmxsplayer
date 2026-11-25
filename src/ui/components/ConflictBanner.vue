@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { useProjectStore } from '../stores/project'
+import { useI18n } from '../i18n'
+const { t } = useI18n()
 const store = useProjectStore()
 const emit = defineEmits<{ error: [message: string] }>()
 function resolve(path: string, keep: boolean): void {
@@ -19,19 +21,18 @@ function resolve(path: string, keep: boolean): void {
       role="alert"
     >
       <i class="bi bi-file-earmark-exclamation" />
-      <span><b>{{ path }}</b> changed on disk, and you have unsaved changes in
-        it.</span>
+      <span>{{ t('conflict.changed', { name: path }) }}</span>
       <button
         class="btn btn-sm btn-xm"
         @click="resolve(String(path), true)"
       >
-        Keep mine
+        {{ t('conflict.keep') }}
       </button>
       <button
         class="btn btn-sm btn-primary"
         @click="resolve(String(path), false)"
       >
-        Take file
+        {{ t('conflict.take') }}
       </button>
     </div>
   </div>

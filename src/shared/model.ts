@@ -354,6 +354,7 @@ export interface ControlDef {
 }
 
 export interface Settings {
+  locale?: string
   chaseCuesOnSeek?: boolean
   audio: {
     defaultSynth: 'web' | 'fluid'
