@@ -1,12 +1,11 @@
 import type { Project } from '../shared/model'
 import {
-  pluginKey,
   requiredPlugins,
   type DiscoveredPlugin,
   type PluginPorts,
   type PluginCommand,
 } from '../shared/plugins'
-import { PluginHost, type PluginSession } from './plugin-host'
+import { PluginHost, pluginStateKey, type PluginSession } from './plugin-host'
 import { planPluginSession, readLv2Ports } from './plugin-session'
 import type { OscArg } from './osc'
 
@@ -56,7 +55,7 @@ export class ProjectPlugins {
         folder,
         executable,
         session.connections,
-        session.plugins.map((p) => [p.id, pluginKey(p.plugin)]),
+        session.plugins.map((p) => [p.id, pluginStateKey(p)]),
       ])
       if (structure !== this.structure) {
         if (!(await confirm())) return false
@@ -68,8 +67,7 @@ export class ProjectPlugins {
       if (folder === this.folder) {
         for (const plugin of session.plugins) {
           const previous = this.session?.plugins.find(p =>
-            (p.stateKey ?? p.id) === (plugin.stateKey ?? plugin.id) &&
-            pluginKey(p.plugin) === pluginKey(plugin.plugin))
+            pluginStateKey(p) === pluginStateKey(plugin))
           if (!previous) continue
           for (const { index, value } of plugin.parameters ?? [])
             if (previous.parameters?.find(p => p.index === index)?.value !== value)

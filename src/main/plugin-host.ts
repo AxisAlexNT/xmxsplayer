@@ -18,6 +18,14 @@ export interface SessionPlugin {
   program?: number
   parameters?: { index: number; value: number }[]
 }
+export function pluginStateKey(plugin: SessionPlugin) {
+  return JSON.stringify([
+    plugin.stateKey ?? plugin.id,
+    plugin.plugin.format,
+    plugin.plugin.uri,
+    plugin.stateFile,
+  ])
+}
 export interface SessionConnection {
   source: string
   target: string
@@ -176,8 +184,8 @@ export class PluginHost {
         scratch = await mkdtemp(join(tmpdir(), 'xmxs-plugin-reload-'))
         try {
           for (const plugin of this.wanted.session.plugins) {
-            const key = this.stateKey(plugin)
-            if (!session.plugins.some((p) => this.stateKey(p) === key)) continue
+            const key = pluginStateKey(plugin)
+            if (!session.plugins.some((p) => pluginStateKey(p) === key)) continue
             const copy = join(scratch, randomUUID() + '.state')
             await this.requestNative(plugin.id, 'save', copy)
             retained.set(key, copy)
@@ -360,7 +368,7 @@ export class PluginHost {
       let restored = false
       if (this.nativeControl) {
         const state =
-          retained.get(this.stateKey(plugin)) ?? (await this.statePath(plugin))
+          retained.get(pluginStateKey(plugin)) ?? (await this.statePath(plugin))
         try {
           await access(state)
           restored = true
@@ -394,14 +402,6 @@ export class PluginHost {
         }),
       Math.min(8000, 250 * 2 ** (this.attempts - 1)),
     )
-  }
-  private stateKey(plugin: SessionPlugin) {
-    return JSON.stringify([
-      plugin.stateKey ?? plugin.id,
-      plugin.plugin.format,
-      plugin.plugin.uri,
-      plugin.stateFile,
-    ])
   }
   private statePath(plugin: SessionPlugin) {
     const suffix = createHash('sha256')
