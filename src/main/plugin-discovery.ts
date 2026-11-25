@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process'
-import { readdir, stat, readFile } from 'node:fs/promises'
+import { access, readdir, stat, readFile } from 'node:fs/promises'
+import { constants } from 'node:fs'
 import { basename, delimiter, extname, join } from 'node:path'
 import { homedir } from 'node:os'
 import { promisify } from 'node:util'
@@ -68,6 +69,7 @@ export async function discoverPlugins(
   cacheFile: string,
   executable = '/usr/lib/carla/carla-discovery-native',
   force = false,
+  lv2Helper?: string,
 ): Promise<{ plugins: DiscoveredPlugin[]; errors: string[] }> {
   let previous: Record<string, IndexEntry> = {}
   if (!force) {
@@ -79,6 +81,21 @@ export async function discoverPlugins(
   }
   const next: Record<string, IndexEntry> = {},
     errors: string[] = []
+  const scannerAvailable = await access(executable, constants.X_OK).then(() => true, () => false)
+  let fallback: DiscoveredPlugin[] = []
+  if (!scannerAvailable && lv2Helper) {
+    try {
+      const script = await readFile(lv2Helper, 'utf8')
+      const {stdout} = await run('python3', ['-c', script, '--catalog'], {
+        timeout: 20000, maxBuffer: 16 * 1024 * 1024,
+      })
+      fallback = JSON.parse(stdout)
+    } catch (error) {
+      errors.push('LV2 manifest scan: ' + String(error))
+    }
+    errors.push('Carla discovery is unavailable. Rescan with Carla installed to discover CLAP, VST3 and LADSPA plugins.')
+    return { plugins: fallback, errors }
+  }
   for (const format of ['lv2', 'clap', 'vst3', 'ladspa'] as const) {
     for (const dir of pluginDirectories(format)) {
       let names: string[]

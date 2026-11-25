@@ -44,11 +44,12 @@ export function installIpc(windows: Windows): () => Promise<void> {
     for (const window of [ui, windows.getEngine()])
       if (!window.isDestroyed()) window.webContents.send('fluid:event', event)
   })
-  const indexPlugins = (force=false) => discoverPlugins(join(app.getPath('userData'),'plugin-index.json'), undefined, force)
+  const lv2Helper = join(app.getAppPath(), 'resources/plugins/lv2-ports.py')
+  const indexPlugins = (force=false) => discoverPlugins(join(app.getPath('userData'),'plugin-index.json'), undefined, force, lv2Helper)
   const host = new PluginHost(event => {
     for(const window of [ui,windows.getEngine()]) if (!window.isDestroyed()) window.webContents.send('plugins:state',event)
   },process.env.XM_CARLA_DUMMY_TEST==='1'?'SDL':'JACK',undefined,join(app.getAppPath(),'resources/plugins/carla-control.py'))
-  const plugins = new ProjectPlugins(host, join(app.getAppPath(),'resources/plugins/lv2-ports.py'),
+  const plugins = new ProjectPlugins(host, lv2Helper,
     async () => (await indexPlugins()).plugins)
   const watchEngine = (
     _event: Electron.Event | undefined,
@@ -310,7 +311,7 @@ export function installIpc(windows: Windows): () => Promise<void> {
     const snapshot = await io.open(folder.filePaths[0])
     await watch()
     if (manifest.requiredPlugins.length) {
-      const available = await discoverPlugins(join(app.getPath('userData'), 'plugin-index.json'))
+      const available = await indexPlugins()
       const installed = new Set(available.plugins.map(pluginKey))
       const missing = manifest.requiredPlugins.filter(key => !installed.has(key))
       if (missing.length) await dialog.showMessageBox(ui, {

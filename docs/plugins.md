@@ -12,6 +12,8 @@ Choose **DrumGizmo** as the instrument, open **FX → Instrument window**, and s
 
 On this Linux machine, a generated one-drum kit mapped MIDI note 36 to a kick sample. The application host produced a measurable output on that note, saved the plugin state, and played the same note after reopening in a fresh Carla process. The check used dummy audio.
 
+If Carla’s discovery executable is missing, the browser can still read installed LV2 manifests through the system Lilv library. Playback requires Carla. Search by plugin name, maker, format or bundle name.
+
 ## Available on the Linux development machine
 
 | Installed | Use |

@@ -18,15 +18,13 @@ const dialog = ref<HTMLDialogElement>(),
   host = ref('')
 const settings = useSettingsStore(),
   path = ref(settings.value.carlaPath ?? '')
-const rows = computed(() =>
-  list.value.filter(
-    (p) =>
-      p.instrument === props.instrument &&
-      (p.name + ' ' + p.format + ' ' + p.maker)
-        .toLowerCase()
-        .includes(search.value.toLowerCase()),
-  ),
-)
+function matches(plugin: DiscoveredPlugin, text: string) {
+  const bundle = plugin.file.split(/[\\/]/).at(-1)
+  return plugin.instrument === props.instrument &&
+    [plugin.name, plugin.format, plugin.maker, plugin.uri, bundle].join(' ')
+      .toLowerCase().includes(text.trim().toLowerCase())
+}
+const rows = computed(() => list.value.filter(p => matches(p, search.value)))
 const wanted = computed(() =>
   props.instrument
     ? [
@@ -41,18 +39,7 @@ const wanted = computed(() =>
       ]
     : ['LSP', 'Dragonfly', 'x42', 'Calf'],
 )
-const missing = computed(() =>
-  wanted.value.filter(
-    (n) =>
-      !list.value.some(
-        (p) =>
-          p.instrument === props.instrument &&
-          (p.name + ' ' + p.maker + ' ' + p.file)
-            .toLowerCase()
-            .includes(n.toLowerCase()),
-      ),
-  ),
-)
+const missing = computed(() => wanted.value.filter(name => !list.value.some(p => matches(p, name))))
 async function scan(force = false) {
   busy.value = true
   error.value = ''
@@ -102,7 +89,7 @@ onMounted(() => {
     @cancel.prevent="emit('close')"
   >
     <div class="xm-dialog-h">
-      <h5>{{ instrument ? 'Plugin instruments' : 'Plugin effects' }}</h5>
+      <h5>{{ instrument ? t('pluginBrowser.instruments') : t('pluginBrowser.effects') }}</h5>
       <input
         v-model="search"
         type="search"
@@ -137,7 +124,7 @@ onMounted(() => {
           :key="n"
           class="xm-faint"
         >
-          {{ n }} · {{ standalone.includes(n) ? 'App only · Use External MIDI' : 'Not found' }}
+          {{ n }} · {{ standalone.includes(n) ? t('pluginBrowser.appOnly') : t('pluginBrowser.notFound') }}
         </div>
       </template>
       <p

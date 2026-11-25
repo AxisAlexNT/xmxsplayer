@@ -3,6 +3,8 @@ import ctypes as c
 import ctypes.util
 import json
 import sys
+from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 lib = c.CDLL(ctypes.util.find_library("lilv-0") or "liblilv-0.so.0")
 ptr = c.c_void_p
@@ -30,6 +32,59 @@ port_range = api("port_get_range", None, ptr, ptr, *([c.POINTER(ptr)] * 3))
 port_get = api("port_get", ptr, ptr, ptr, ptr)
 has_property = api("port_has_property", c.c_bool, ptr, ptr, ptr)
 world_ask = api("world_ask", c.c_bool, ptr, ptr, ptr, ptr)
+def catalog(world, plugins, types):
+    begin = api("plugins_begin", ptr, ptr)
+    end = api("plugins_is_end", c.c_bool, ptr, ptr)
+    get = api("plugins_get", ptr, ptr, ptr)
+    advance = api("plugins_next", ptr, ptr, ptr)
+    identity = api("plugin_get_uri", ptr, ptr)
+    bundle = api("plugin_get_bundle_uri", ptr, ptr)
+    title = api("plugin_get_name", ptr, ptr)
+    author = api("plugin_get_author_name", ptr, ptr)
+    supports = api("port_supports_event", c.c_bool, ptr, ptr, ptr)
+    uis = api("plugin_get_uis", ptr, ptr)
+    ui_count = api("uis_size", c.c_uint, ptr)
+    free_uis = api("uis_free", None, ptr)
+    types["instrument"] = uri(world, b"http://lv2plug.in/ns/lv2core#InstrumentPlugin")
+    types["rdfType"] = uri(world, b"http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+    types["midi"] = uri(world, b"http://lv2plug.in/ns/ext/midi#MidiEvent")
+
+    def owned_text(node):
+        if not node:
+            return ""
+        try:
+            return string(node).decode()
+        finally:
+            free(node)
+
+    rows = []
+    iterator = begin(plugins)
+    while not end(plugins, iterator):
+        plugin = get(plugins, iterator)
+        iterator = advance(plugins, iterator)
+        node = identity(plugin)
+        key = string(node).decode()
+        path = Path(unquote(urlsplit(string(bundle(plugin)).decode()).path))
+        inputs = outputs = midi = parameters = 0
+        for index in range(count(plugin)):
+            port = port_at(plugin, index)
+            incoming = is_a(plugin, port, types["InputPort"])
+            if is_a(plugin, port, types["AudioPort"]):
+                inputs += incoming
+                outputs += not incoming
+            if incoming:
+                midi += supports(plugin, port, types["midi"])
+                parameters += is_a(plugin, port, types["ControlPort"])
+        editors = uis(plugin)
+        has_editor = bool(editors and ui_count(editors))
+        free_uis(editors)
+        rows.append(dict(uri=key, format="lv2", file=str(path),
+                         name=owned_text(title(plugin)) or key, maker=owned_text(author(plugin)),
+                         instrument=world_ask(world, node, types["rdfType"], types["instrument"]),
+                         customUi=has_editor, audioInputs=inputs, audioOutputs=outputs,
+                         midiInputs=midi, parameters=parameters, uniqueId=0))
+    return rows
+
 world = new_world()
 types = {}
 try:
@@ -41,6 +96,9 @@ try:
     types["group"] = uri(world, (groups + "group").encode())
     types["sideChainOf"] = uri(world, (groups + "sideChainOf").encode())
     types["isSideChain"] = uri(world, b"http://lv2plug.in/ns/lv2core#isSideChain")
+    if "--catalog" in sys.argv:
+        print(json.dumps(catalog(world, plugins, types)))
+        sys.exit(0)
     results = {}
     for key in json.load(sys.stdin):
         node = uri(world, key.encode())

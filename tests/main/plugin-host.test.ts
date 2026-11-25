@@ -190,3 +190,20 @@ it.skipIf(process.env.XM_CARLA_DUMMY_TEST !== '1')(
     }
   }, 30000,
 )
+
+it.skipIf(process.env.XM_CARLA_DUMMY_TEST !== '1')(
+  'finds installed LV2 instruments and effects through manifests when Carla discovery is missing', async () => {
+    const { discoverPlugins } = await import('../../src/main/plugin-discovery')
+    const dir = await mkdtemp(join(tmpdir(), 'xmxs-lv2-manifests-'))
+    try {
+      const result = await discoverPlugins(join(dir, 'index.json'), join(dir, 'missing'), true, 'resources/plugins/lv2-ports.py')
+      expect(result.plugins.find(p => p.uri === 'http://geontime.com/geonkick/single')).toMatchObject({
+        name: 'Geonkick Single', instrument: true, midiInputs: 1, audioOutputs: 2,
+      })
+      expect(result.plugins.find(p => p.uri === plugin.uri)).toMatchObject({ instrument: false, audioInputs: 2 })
+      expect(result.errors).toHaveLength(1)
+    } finally {
+      await rm(dir, {recursive:true, force:true})
+    }
+  },
+)
