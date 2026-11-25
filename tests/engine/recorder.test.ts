@@ -1,3 +1,4 @@
+import { fromFiles, toFiles } from '../../src/shared/project-files'
 import { expect, it } from 'vitest'
 import { Recorder } from '../../src/engine/transport/recorder'
 import { TransportClock } from '../../src/engine/transport/clock'
@@ -276,4 +277,54 @@ it('reopens held keys at the loop start in the next progress snapshot', () => {
   expect(r.progress.at(-1)?.tracks[0]).toMatchObject({
     closed: [], open: [{key:60, tick:480, vel:100}],
   })
+})
+
+it('exports a pedal held before record when modulation arrives before the first note', () => {
+  const r = rig()
+  r.recorder.control('keys', 0, 'cc', 64, 127, [])
+  r.start()
+  r.set(0.25)
+  r.recorder.control('keys', 0, 'cc', 1, 80, [r.track.id])
+  r.set(0.5)
+  r.note(true)
+  r.set(0.75)
+  r.note(false)
+  r.set(1)
+  r.stop()
+  r.track.notes = r.takes[0].tracks[0].notes
+  r.track.events = r.takes[0].tracks[0].events
+  const reopened = fromFiles(toFiles(r.p)).tracks[0]
+  expect(reopened.kind === 'midi' && reopened.events).toEqual([
+    {tick:240, type:'cc', num:1, value:80},
+    {tick:480, type:'cc', num:64, value:127},
+    {tick:960, type:'cc', num:64, value:0},
+  ])
+})
+
+it('clears a disconnected controller pedal before the next recording', () => {
+  const r = rig()
+  r.recorder.control('keys', 0, 'cc', 64, 127, [])
+  r.recorder.disconnect('keys')
+  r.start()
+  r.note(true)
+  r.set(0.5)
+  r.stop()
+  expect(r.takes[0].tracks[0].events).toEqual([{tick:0, type:'cc', num:64, value:0}])
+})
+
+it('closes the previous loop with pedal up when a release crosses the wrap', () => {
+  const r = rig()
+  r.clock.setLoop({enabled:true, startTick:0, endTick:960})
+  r.start()
+  r.recorder.control('keys', 0, 'cc', 64, 127, [r.track.id])
+  r.note(true)
+  r.set(1.125)
+  r.recorder.control('keys', 0, 'cc', 64, 0, [r.track.id])
+  r.note(false)
+  r.stop()
+  expect(r.takes[0].tracks[0].events.at(-1)).toEqual({tick:960, type:'cc', num:64, value:0})
+  expect(r.takes[1].tracks[0].events).toEqual([
+    {tick:0, type:'cc', num:64, value:127},
+    {tick:120, type:'cc', num:64, value:0},
+  ])
 })

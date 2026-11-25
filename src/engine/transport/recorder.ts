@@ -27,6 +27,7 @@ interface Held {
 }
 interface Take extends RecordedTrack {
   changed: boolean
+  seeded: boolean
 }
 export class Recorder {
   private scope = ''
@@ -184,7 +185,7 @@ export class Recorder {
   private take(trackId: string): Take {
     let take = this.takes.get(trackId)
     if (!take) {
-      take = { trackId, notes: [], events: [], changed: false }
+      take = { trackId, notes: [], events: [], changed: false, seeded: false }
       this.takes.set(trackId, take)
     }
     return take
@@ -195,16 +196,19 @@ export class Recorder {
     tick: number,
   ): void {
     const take = this.take(trackId)
-    if (take.events.length) return
-    take.events.push({
+    if (take.seeded) return
+    take.seeded = true
+    // Live controls can precede the first note. Seed each missing controller independently.
+    const recordedCc = new Set(take.events.filter(e => e.type === 'cc').map(e => e.num))
+    if (!recordedCc.has(64)) take.events.push({
       tick,
       type: 'cc',
       num: 64,
       value: state.cc.get(64) ?? 0,
     })
-    if (state.cc.has(1))
+    if (state.cc.has(1) && !recordedCc.has(1))
       take.events.push({ tick, type: 'cc', num: 1, value: state.cc.get(1)! })
-    if (state.bend !== 8192)
+    if (state.bend !== 8192 && !take.events.some(e => e.type === 'bend'))
       take.events.push({ tick, type: 'bend', num: 0, value: state.bend })
   }
   note(note: RoutedNote): void {
@@ -239,12 +243,13 @@ export class Recorder {
     when = this.clock.now(),
   ): void {
     if (type === 'cc' && num !== 64 && num !== 1) return
+    const ready = this.ready(when)
+    const raw = this.corrected(when)
+    if (ready) this.advance(raw)
     const state = this.state(source, channel)
     if (type === 'cc') state.cc.set(num, value)
     else state.bend = value
-    if (!this.ready(when)) return
-    const raw = this.corrected(when)
-    this.advance(raw)
+    if (!ready) return
     const targets = new Set(trackIds)
     for (const held of this.held.values())
       if (held.source === source && held.channel === channel)
@@ -388,9 +393,8 @@ export class Recorder {
     this.send(tick, true)
   }
   disconnect(source: string): void {
-    if (!this.enabled) return
     const raw = this.corrected()
-    this.advance(raw)
+    if (this.enabled) this.advance(raw)
     for (const [id, held] of this.held)
       if (held.source === source) {
         this.close(held, this.tickAt(raw))
