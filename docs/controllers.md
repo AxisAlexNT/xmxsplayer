@@ -49,3 +49,7 @@ Open the control’s binding editor and choose **Drum roll**. Select the MIDI tr
 In the control’s binding editor, choose an instrument beside **Filter sweep**, then press **Filter sweep**. For a built-in instrument the recipe maps cutoff to MIDI CC 74 and initializes resonance with CC 71 at 100. The soundfont determines the response. For a plugin, the recipe maps its named cutoff parameter over its published range and sets resonance when the plugin exposes it. Use **Parameter → Instrument plugin param** to choose a control manually.
 
 The built-in synth produced three distinct waveforms for TimGM6mb bank 0, program 81 at cutoff values 0, 64 and 127 with resonance at 100. FluidSynth 2.3.4 produced identical audio samples at CC 74 values 0, 64 and 127 in an offline test of TimGM6mb bank 0, program 81, MIDI note 60. The filter sweep recipe therefore offers built-in and plugin instruments.
+
+### Assign a pad by dragging
+
+Open **Controls** and choose where to store the binding. Drag an orchestra button onto a pad to select that orchestra. Drag a registered section’s heading onto a pad to toggle its register. Under **Drag an instrument to a pad**, drag an instrument name onto a pad to play that instrument directly. The pad uses its strike velocity and releases the note when you let go. The starting note is 60 for melodic instruments and 36 for drums. Click the pad to change the note or destination.

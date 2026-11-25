@@ -166,6 +166,11 @@ function selectEffect(index: number) {
   if (choice) emit('update:modelValue', choice.action)
 }
 const sections = computed(() => orchestraSections(props.project))
+function selectNoteTarget(value: string) {
+  if (a.value.type === 'trackMode') patch({trackId:value})
+  else if (value.startsWith('instrument:')) patch({instrumentId:value.slice(11),trackId:undefined})
+  else patch({trackId:value,instrumentId:undefined})
+}
 const pluginControls = computed(() => props.project.instruments.filter(i => i.backend === 'plugin')
   .flatMap(i => (i.plugin?.parameters ?? []).filter(p => p.input).map(p => ({
     label: i.name + ' · ' + p.name, id: i.id, param: String(p.index), min: p.min, max: p.max,
@@ -442,14 +447,22 @@ const targets: ParamTarget[] = [
         </div>
       </template>
       <template v-if="a.type === 'note' || a.type === 'trackMode'">
-        <label class="form-label">Track<select
+        <label class="form-label">{{ a.type === 'note' ? 'Play through' : 'Track' }}<select
           class="form-select form-select-sm"
           aria-label="Action track"
-          :value="a.trackId"
-          @change="
-            patch({ trackId: ($event.target as HTMLSelectElement).value })
-          "
+          :value="a.type === 'note' && a.instrumentId ? 'instrument:' + a.instrumentId : a.trackId"
+          @change="selectNoteTarget(($event.target as HTMLSelectElement).value)"
         >
+          <optgroup
+            v-if="a.type === 'note'"
+            label="Instruments"
+          >
+            <option
+              v-for="instrument in project.instruments"
+              :key="instrument.id"
+              :value="'instrument:' + instrument.id"
+            >{{ instrument.name }}</option>
+          </optgroup>
           <option
             value=""
             disabled

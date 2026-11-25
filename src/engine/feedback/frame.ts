@@ -105,7 +105,7 @@ function bindingState(
   }
   if (action.type === 'note')
     return {
-      color: p.tracks.find((t) => t.id === action.trackId)?.color ?? blue,
+      color: p.instruments.find(i => i.id === action.instrumentId)?.color ?? p.tracks.find((t) => t.id === action.trackId)?.color ?? blue,
       on: false,
     }
   return { color: blue, on: false }

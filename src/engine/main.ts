@@ -357,7 +357,7 @@ function runAction(
         ? Math.max(1, Math.round(value * 127))
         : action.velocity,
       pressed,
-      undefined,
+      action.instrumentId,
       action.trackId,
       undefined,
       true,

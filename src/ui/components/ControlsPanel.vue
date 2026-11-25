@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { nextTick, computed, ref, shallowRef, watch } from 'vue'
 import type { ControlDef, DeviceProfile } from '../../shared/model'
-import type { BindingScope } from '../bindings/edit'
+import { PAD_SOURCE, dragPadSource, padAction } from '../bindings/pad-drop'
+import { writeBinding, type BindingScope } from '../bindings/edit'
 import { effectiveSetup, isUnbound } from '../../shared/overlay'
 import { actionLabel } from '../bindings/labels'
 import { useProjectStore } from '../stores/project'
@@ -103,6 +104,7 @@ watch(
     editing.value = null
     learning.value = null
     bank.value = 0
+    if (device.value && !profile.value) void refresh()
   },
 )
 function binding(control: ControlDef) {
@@ -187,28 +189,22 @@ async function selectControl(
   editing.value = { control, anchor: { left: anchor.right, ...anchor } }
 }
 defineExpose({ selectControl })
-function dragOver(event: DragEvent): void {
-  if (!event.dataTransfer?.types.includes(CLIP_DRAG_TYPE)) return
+function dragOver(event: DragEvent, control: ControlDef): void {
+  if (!event.dataTransfer || !(event.dataTransfer.types.includes(CLIP_DRAG_TYPE) || (control.kind === 'pad' && event.dataTransfer.types.includes(PAD_SOURCE)))) return
   event.preventDefault()
   event.dataTransfer.dropEffect = 'link'
 }
-function dropClip(event: DragEvent, control: ControlDef): void {
+function dropBinding(event: DragEvent, control: ControlDef): void {
   const id = event.dataTransfer?.getData(CLIP_DRAG_TYPE)
-  if (!id || !profile.value) return
+  const source = event.dataTransfer?.getData(PAD_SOURCE)
+  if ((!id && !(source && control.kind === 'pad')) || !profile.value) return
   event.preventDefault()
+  const destination = {kind:scope.value, profileId:profile.value.id, sceneId:runtime.state.activeSceneId}
   try {
-    doc.update((project) =>
-      bindClip(
-        project,
-        {
-          kind: scope.value,
-          profileId: profile.value!.id,
-          sceneId: runtime.state.activeSceneId,
-        },
-        id,
-        control,
-      ),
-    )
+    doc.update(project => {
+      if (id) bindClip(project, destination, id, control)
+      else if (source) writeBinding(project, destination, { control: control.id, edge:'press', action:padAction(project, source) })
+    })
     error.value = ''
     if (!control.msg) learning.value = control.id
   } catch (reason) {
@@ -221,6 +217,16 @@ function relearn(): void {
 }
 </script>
 <template>
+  <details v-if="profile && doc.project.instruments.length">
+    <summary>Drag an instrument to a pad</summary>
+    <span
+      v-for="instrument in doc.project.instruments"
+      :key="instrument.id"
+      class="badge text-bg-secondary me-1"
+      draggable="true"
+      @dragstart="dragPadSource($event, 'instrument:' + instrument.id)"
+    >{{ instrument.name }}</span>
+  </details>
   <button
     v-if="profile && profile.id in defaultMappings"
     class="btn btn-sm btn-ghost"
@@ -344,8 +350,8 @@ function relearn(): void {
               :aria-label="`Bind ${control.label}`"
               :title="`${control.label} · ${label(control)}${live(control) ? ` · ${Math.round(live(control)!.value * 127)}` : ''}`"
               @click="open($event, control)"
-              @dragover="dragOver"
-              @drop.stop="dropClip($event, control)"
+              @dragover="dragOver($event, control)"
+              @drop.stop="dropBinding($event, control)"
             >
               <i v-if="control.kind === 'pad'">{{
                 control.id.split('.').at(-1)

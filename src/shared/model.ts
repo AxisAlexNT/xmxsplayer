@@ -271,7 +271,7 @@ export type Action =
       index: number
       on?: boolean
     }
-  | { type: 'note'; trackId: Id; key: number; velocity: 'control' | 'speed' | number; gateMs?: number }
+  | { type: 'note'; trackId?: Id; instrumentId?: Id; key: number; velocity: 'control' | 'speed' | number; gateMs?: number }
   | { type: 'param'; target: ParamTarget; cc?: number; id?: Id; effectId?: Id; param?: string; min: number; max: number }
   | { type: 'trackMode'; trackId: Id; mode: TrackMode | 'cycle' }
   | { type: 'follow'; mode: Project['follow']['mode'] | 'cycle' }

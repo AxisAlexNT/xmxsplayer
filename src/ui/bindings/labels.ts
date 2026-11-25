@@ -44,7 +44,7 @@ export function actionLabel(
       return name ? `${name} · ${names[action.target]}` : names[action.target]
     }
     case 'note':
-      return `Note ${action.key} → ${project.tracks.find((t) => t.id === action.trackId)?.name ?? action.trackId}`
+      return `Note ${action.key} → ${project.instruments.find(i => i.id === action.instrumentId)?.name ?? project.tracks.find((t) => t.id === action.trackId)?.name ?? action.instrumentId ?? action.trackId}`
     case 'register':
       return `${sentence(action.cmd)} R${action.index + 1}`
     case 'trackMode':

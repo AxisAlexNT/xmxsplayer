@@ -62,3 +62,22 @@ it('stores shared, controller, scene and controller-in-scene bindings independen
     writeBinding(p, { ...base, kind: 'scene', sceneId: null }, binding),
   ).toThrow('Choose a scene')
 })
+
+it('resolves dropped orchestra, registered section and instrument to persistent pad actions', async () => {
+  const { padAction } = await import('../../src/ui/bindings/pad-drop')
+  const { liveProject } = await import('../../src/shared/template')
+  const p = liveProject('Pad assignment')
+  p.orchestras = [{id:'ensemble',name:'Ensemble',color:'#112233',maxLayers:1,outOfRange:'nearest',
+    sections:[{name:'Strings',register:2,startOn:true,members:[]},{name:'Solo',register:null,startOn:true,members:[]}]}]
+  const sources = ['orchestra:ensemble','section:ensemble:0','instrument:piano']
+  sources.forEach((source,i) => writeBinding(p,{kind:'controller',profileId:'generic',sceneId:null},
+    {control:'pad.'+(i+1),edge:'press',action:padAction(p,source)}))
+  expect(fromFiles(toFiles(p)).mappings.generic.bindings.map(b => b.action)).toEqual([
+    {type:'orchestra',cmd:'select',orchestraId:'ensemble'}, {type:'register',cmd:'toggle',index:2},
+    {type:'note',instrumentId:'piano',key:60,velocity:'control'},
+  ])
+  p.instruments[0].isDrum = true
+  expect(padAction(p,'instrument:piano')).toMatchObject({key:36})
+  expect(() => padAction(p,'section:ensemble:1')).toThrow()
+  expect(() => padAction(p,'instrument:missing')).toThrow()
+})

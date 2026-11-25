@@ -109,11 +109,12 @@ export const actionSchema = z.discriminatedUnion('type', [
   }),
   z.strictObject({
     type: z.literal('note'),
-    trackId: id,
+    trackId: id.optional(),
+    instrumentId: id.optional(),
     key: keySchema,
     velocity: z.union([enums(['control', 'speed']), byte]),
     gateMs: int.positive().optional(),
-  }),
+  }).refine(a => Number(!!a.trackId) + Number(!!a.instrumentId) === 1, {message:'Choose a track or instrument', path:['trackId']}),
   z.strictObject({
     type: z.literal('param'),
     target: enums([

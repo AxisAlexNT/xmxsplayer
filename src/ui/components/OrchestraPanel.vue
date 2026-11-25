@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { dragPadSource } from '../bindings/pad-drop'
 import EffectsDialog from "./EffectsDialog.vue"
 import { computed, ref, nextTick } from 'vue'
 import { useProjectStore } from '../stores/project'
@@ -143,8 +144,11 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
       <button
         v-for="o in doc.project.orchestras"
         :key="o.id"
+        draggable="true"
+        title="Select orchestra, or drag to a controller pad"
         :aria-pressed="o.id === current?.id"
         :style="{ borderColor: o.color }"
+        @dragstart="dragPadSource($event, 'orchestra:' + o.id)"
         @click="select(o.id)"
       >
         {{ o.name }}
@@ -186,7 +190,12 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
         v-for="(s, i) in current.sections"
         :key="i"
       >
-        <summary>{{ s.name }} · {{ s.register === null ? 'Always on' : 'Register ' + (s.register + 1) }}</summary>
+        <summary
+          :draggable="s.register !== null"
+          @dragstart="s.register !== null && dragPadSource($event, 'section:' + current.id + ':' + i)"
+        >
+          {{ s.name }} · {{ s.register === null ? 'Always on' : 'Register ' + (s.register + 1) }}
+        </summary>
         <label>Section level
           <input
             type="range"

@@ -292,12 +292,13 @@ export function flowGraph(
   for (const { deviceId, binding } of controlBindings) {
     if (binding.action.type !== 'note') continue
     const sourceId = `control:${JSON.stringify([deviceId, binding.control])}`,
-      trackId = binding.action.trackId
+      trackId = binding.action.trackId,
+      instrumentId = binding.action.instrumentId
     edge(
       `input:${sourceId}`,
-      `track:${trackId}`,
-      project.tracks.find((t) => t.id === trackId)?.color ?? '#4cc2ff',
-      routes.some((r) => r.sourceId === sourceId && r.trackId === trackId),
+      instrumentId ? `instrument:${instrumentId}` : `track:${trackId}`,
+      project.instruments.find(i => i.id === instrumentId)?.color ?? project.tracks.find((t) => t.id === trackId)?.color ?? '#4cc2ff',
+      routes.some((r) => r.sourceId === sourceId && (instrumentId ? r.instrumentId === instrumentId : r.trackId === trackId)),
       matchesCondition(binding.when, context),
       {
         condition: binding.when,
@@ -308,6 +309,7 @@ export function flowGraph(
   }
   const instrumentIds = new Set([
     ...patches.map((p) => p.instrumentId),
+    ...controlBindings.flatMap(({binding}) => binding.action.type === 'note' && binding.action.instrumentId ? [binding.action.instrumentId] : []),
     ...activity.instrumentIds,
   ])
   for (const id of instrumentIds) {
