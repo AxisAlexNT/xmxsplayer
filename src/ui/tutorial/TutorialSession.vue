@@ -122,27 +122,39 @@ async function finish(keep: boolean) {
       </button>
     </template>
     <template v-else-if="!ended">
-      <small>{{ t('tutorial.stepCount',{step:state.index+1,total:state.count}) }}</small>
+      <small class="step-count">{{ t(selected.titleKey) }} · {{ t('tutorial.stepCount',{step:state.index+1,total:state.count}) }}</small>
       <strong>{{ t(step.titleKey) }}</strong><p>{{ t(step.bodyKey) }}</p>
-      <button
-        :disabled="!state.index || busy"
-        @click="act('back')"
-      >
-        {{ t('tutorial.back') }}
-      </button>
-      <button
-        :disabled="busy"
-        @click="act('next')"
-      >
-        {{ state.index+1===state.count ? t('tutorial.finish') : t('tutorial.next') }}
-      </button>
-      <button @click="act('requestExit')">
-        {{ t('tutorial.skip') }}
-      </button>
+    </template>
+    <template #navigation>
+      <footer v-if="!ended && state.phase!=='confirmExit'">
+        <button
+          class="btn btn-sm btn-xm"
+          :disabled="!state.index || busy"
+          @click="act('back')"
+        >
+          {{ t('tutorial.back') }}
+        </button>
+        <button
+          class="btn btn-sm btn-primary"
+          :disabled="busy"
+          @click="act('next')"
+        >
+          {{ state.index+1===state.count ? t('tutorial.finish') : t('tutorial.next') }}
+        </button>
+        <button
+          class="btn btn-sm btn-ghost"
+          @click="act('requestExit')"
+        >
+          {{ t('tutorial.skip') }}
+        </button>
+      </footer>
     </template>
   </TourOverlay>
 </template>
 <style scoped>
 strong,small { display:block; margin-bottom:.4rem; }
-button { margin-right:.35rem; }
+footer { display:flex; gap:.4rem; margin-top:.6rem; }
+button { min-height:40px; }
+.step-count { font-size:10px; font-weight:600; letter-spacing:.8px; text-transform:uppercase; color:var(--xm-accent); }
+p { margin:0 0 .6rem; line-height:1.45; }
 </style>

@@ -202,19 +202,25 @@ onUnmounted(() => {
           role="status"
         >{{ t('tutorial.matched') }}</small>
         <small v-else-if="state.phase==='active' && !rect">{{ t('tutorial.missing') }}</small>
-        <small v-else-if="state.phase==='active' && (step.waitFor || step.controller)">{{ t('tutorial.waiting') }}</small>
+        <small
+          v-else-if="state.phase==='active' && (step.waitFor || step.controller)"
+          class="waiting"
+        >{{ t('tutorial.waiting') }}</small>
+        <slot name="navigation" />
       </aside>
     </div>
   </Teleport>
 </template>
 <style scoped>
 .tour-layer { pointer-events:none; position:fixed; inset:0; z-index:10000; }
-.tour-ring { position:fixed; border:2px solid #61d9c1; border-radius:5px; box-shadow:0 0 0 200vmax #05080c66; }
-.tour-bubble { position:fixed; pointer-events:auto; width:min(22rem,calc(100vw - 16px)); max-height:calc(100vh - 16px); overflow-y:auto; padding:1rem; border:1px solid #5e967f; border-radius:.5rem; background:#242d31; color:#f2f6f4; box-shadow:0 6px 20px #0007; }
-.tour-bubble.pointed::before { content:''; position:fixed; width:10px; height:10px; margin-left:-5px; background:#5e967f; transform:rotate(45deg); }
+.tour-ring { position:fixed; border:2px solid var(--xm-accent); border-radius:10px; box-shadow:0 0 0 200vmax rgba(6,8,12,.62); }
+.tour-bubble { position:fixed; pointer-events:auto; width:min(340px,calc(100vw - 16px)); max-height:calc(100vh - 16px); overflow-y:auto; padding:1rem; border:1px solid #4cc2ff88; border-radius:14px; background:linear-gradient(160deg,#1d2633,#161b24); color:#f2f6f4; box-shadow:0 0 28px #4cc2ff38,0 12px 36px #0009; }
+.tour-bubble.pointed::before { content:''; position:fixed; width:10px; height:10px; margin-left:-5px; background:var(--xm-accent); transform:rotate(45deg); }
 .tour-bubble.pointed { overflow:visible; }
 .tour-bubble.pointed::before { position:absolute; left:var(--arrow-x); top:var(--arrow-y); }
 small { display:block; margin-top:.5rem; }
-.matched { color:#82e5ae; }
-@media (prefers-reduced-motion:no-preference) { .tour-ring {animation:tour-glow 1.6s ease-in-out infinite alternate;} @keyframes tour-glow {to {border-color:#b6ffe8;}} }
+.waiting,.matched { padding:7px 10px; border-radius:6px; }
+.waiting { color:var(--xm-warn); border:1px dashed #ffb02099; background:#ffb02014; }
+.matched { color:var(--xm-ok); border:1px solid #3ddc9777; background:#3ddc9714; }
+@media (prefers-reduced-motion:no-preference) { .tour-ring {animation:tour-glow 1.6s ease-in-out infinite alternate;} @keyframes tour-glow {to {border-color:#b9e8ff;}} }
 </style>
