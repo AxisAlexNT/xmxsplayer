@@ -94,7 +94,8 @@ notation.onRebuilt = duration => {
     `Recording layout took ${Math.round(duration)} ms.${slow ? ' Updating every two bars.' : ''}` })
 }
 const display = useDisplayProject()
-const map = computed(() => new TimeMap(display.value)),
+const displayLength = computed(() => Math.max(doc.project.lengthTicks, runtime.liveLengthTicks))
+const map = computed(() => new TimeMap({ ...doc.project, lengthTicks: displayLength.value })),
   axis = computed<TimeAxis>(() =>
     hasStaves.value && notation.axis.value
       ? notation.axis.value
@@ -102,7 +103,7 @@ const map = computed(() => new TimeMap(display.value)),
           editor.activeTrackId
             ? new TimeMap({
                 ...doc.project,
-                lengthTicks: map.value.nextBar(display.value.lengthTicks),
+                lengthTicks: map.value.nextBar(displayLength.value),
               })
             : map.value,
           width.value,

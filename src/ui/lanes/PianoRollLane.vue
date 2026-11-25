@@ -55,9 +55,11 @@ const selectedNotes = computed(
     preview.value?.selection ??
     (editor.selection.trackId === props.track.id ? editor.selected : []),
 )
-let backgrounds = new Map<number, HTMLCanvasElement>()
+const backgrounds = new Map<number, HTMLCanvasElement>()
 let previousAxis = context.axis.value,
   previousTrack = props.track,
+  previousDpr = 0,
+  previousReplacing = false,
   previousHeight = 0
 let previousNotes: readonly Note[] | undefined,
   previousRange: readonly number[] | undefined
@@ -76,15 +78,19 @@ function draw(): void {
   const ctx = el.getContext('2d')!
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
   ctx.clearRect(0, 0, w, h)
+  const covered = props.track.armed ? runtime.transport.covered : undefined
+  const replacing = !!covered
   if (
-    (props.track.armed && !!runtime.transport.covered) ||
+    previousReplacing !== replacing || previousDpr !== dpr ||
     previousAxis !== axis ||
     previousTrack !== props.track ||
     previousHeight !== h ||
     previousNotes !== displayNotes.value ||
-    previousRange !== range.value
+    previousRange?.[0] !== range.value[0] || previousRange?.[1] !== range.value[1]
   ) {
     backgrounds.clear()
+    previousDpr = dpr
+    previousReplacing = replacing
     previousAxis = axis
     previousTrack = props.track
     previousHeight = h
@@ -93,6 +99,26 @@ function draw(): void {
   }
   const [lo, hi] = range.value,
     row = h / (hi - lo + 1)
+  function paintNotes(c: CanvasRenderingContext2D, page: number) {
+    const [start, end] = axis.pageRange(page)
+    c.save()
+    c.beginPath()
+    c.rect(96, 0, w - 96, h)
+    c.clip()
+    for (const note of displayNotes.value) {
+      if (note[0] >= end || note[0] + note[1] <= start) continue
+      const x = axis.xInPage(Math.max(start, note[0]), page),
+        right = axis.xInPage(Math.min(end, note[0] + note[1]), page),
+        y = (hi - note[2]) * row + 1
+      c.globalAlpha = covered?.some(([start,end]) => note[0]>=start && note[0]<end) ? 0.25 : 0.75
+      c.fillStyle = props.track.color
+      c.strokeStyle = props.track.color
+      if (props.track.mode === 'live')
+        c.strokeRect(x, y, Math.max(2, right - x - 1), Math.max(2, row - 2))
+      else c.fillRect(x, y, Math.max(2, right - x - 1), Math.max(2, row - 2))
+    }
+    c.restore()
+  }
   for (const page of frame.pages) {
     const origin = page * w - frame.offset
     let image = backgrounds.get(page)
@@ -134,28 +160,18 @@ function draw(): void {
           c.lineTo(x, h)
           c.stroke()
         }
-      c.save()
-      c.beginPath()
-      c.rect(96, 0, w - 96, h)
-      c.clip()
-      for (const note of displayNotes.value) {
-        if (note[0] >= end || note[0] + note[1] <= start) continue
-        const x = axis.xInPage(Math.max(start, note[0]), page),
-          right = axis.xInPage(Math.min(end, note[0] + note[1]), page),
-          y = (hi - note[2]) * row + 1
-        c.globalAlpha = props.track.armed && runtime.transport.covered?.some(([start,end]) => note[0]>=start && note[0]<end) ? 0.25 : 0.75
-        c.fillStyle = props.track.color
-        c.strokeStyle = props.track.color
-        if (props.track.mode === 'live')
-          c.strokeRect(x, y, Math.max(2, right - x - 1), Math.max(2, row - 2))
-        else c.fillRect(x, y, Math.max(2, right - x - 1), Math.max(2, row - 2))
-      }
-      c.restore()
-      if (!(props.track.armed && runtime.transport.covered)) backgrounds.set(page, image)
+      if (!replacing) paintNotes(c, page)
+      backgrounds.set(page, image)
       for (const cached of backgrounds.keys())
         if (!frame.pages.includes(cached)) backgrounds.delete(cached)
     }
     ctx.drawImage(image, origin, 0, w, h)
+    if (replacing) {
+      ctx.save()
+      ctx.translate(origin, 0)
+      paintNotes(ctx, page)
+      ctx.restore()
+    }
     if (
       props.track.mode !== 'mute' &&
       (runtime.transport.playing || props.track.mode === 'live')
