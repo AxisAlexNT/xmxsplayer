@@ -89,3 +89,35 @@ describe('measure edits', () => {
     expect(doc.project).toEqual(original)
   })
 })
+
+it('scales, rewrites and edits bounded tempo sections while preserving surrounding time', async () => {
+  const { scaleTempos, flattenTempo, setSectionTempo } =
+    await import('../../src/shared/bar-edit')
+  const project = newProject()
+  project.tempos = [
+    { tick: 0, bpm: 120 },
+    { tick: 1920, bpm: 90 },
+    { tick: 3840, bpm: 100 },
+  ]
+  expect(scaleTempos(project, 0.5).tempos.map((t) => t.bpm)).toEqual([
+    60, 45, 50,
+  ])
+  expect(flattenTempo(project, 75).tempos).toEqual([{ tick: 0, bpm: 75 }])
+  expect(setSectionTempo(project, 2000, 120).tempos).toEqual([
+    project.tempos[0],
+    project.tempos[2],
+  ])
+  project.loop = { enabled: true, startTick: 1440, endTick: 2400 }
+  expect(setSectionTempo(project, 0, 80).tempos).toEqual([
+    project.tempos[0],
+    { tick: 1440, bpm: 80 },
+    { tick: 2400, bpm: 90 },
+    project.tempos[2],
+  ])
+  expect(() => scaleTempos(project, 4)).toThrow()
+  project.mapOwner = 'score'
+  expect(() => flattenTempo(project, 60)).toThrow()
+  project.mapOwner = null
+  project.beatAnchors = [{ tick: 0, sec: 0 }]
+  expect(() => setSectionTempo(project, 0, 60)).toThrow()
+})

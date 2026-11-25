@@ -131,3 +131,26 @@ describe('project store', () => {
     vi.unstubAllGlobals()
   })
 })
+
+it('groups tempo gestures within 600 ms and preserves intervening edits', () => {
+  const store = opened()
+  const initial = store.project
+  const clock = vi.spyOn(performance, 'now')
+  function step(time: number) {
+    clock.mockReturnValue(time)
+    store.update(d => { d.tempos[0].bpm++ }, 'tempo-gesture')
+  }
+  try {
+    step(0)
+    step(590)
+    step(1189)
+    expect(store.history).toHaveLength(1)
+    step(1789)
+    expect(store.history).toHaveLength(2)
+    store.update(d => { d.name = 'Edited' })
+    step(1800)
+    expect(store.history).toHaveLength(4)
+    for(let i=0;i<4;i++)store.undo()
+    expect(store.project).toBe(initial)
+  } finally { clock.mockRestore() }
+})

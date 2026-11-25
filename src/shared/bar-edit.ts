@@ -1,5 +1,6 @@
 import { produce } from 'immer'
-import { PPQ, type Project } from './model'
+import { PPQ, type Project, type TempoMode } from './model'
+import { fitAudioLength } from './beat-grid'
 import { TimeMap } from './time-map'
 
 export type BarOperation =
@@ -168,4 +169,70 @@ export function setTimeSigFrom(
     previous = { ...entry, tick: anchored }
   }
   return { ...project, timeSigs }
+}
+
+function writtenTempoMap(project: Project) {
+  if (project.mapOwner !== null)
+    throw Error('Detach the linked score to edit tempo')
+  if (project.beatAnchors.length)
+    throw Error('Clear the tapped beat map to edit tempo')
+  return new TimeMap(project)
+}
+
+function withTempos(project: Project, entries: Project['tempos']): Project {
+  const tempos = uniqueTicks(entries).filter((entry, i, sorted) => {
+    if (!Number.isFinite(entry.bpm) || entry.bpm < 20 || entry.bpm > 400)
+      throw Error('Every tempo must be between 20 and 400 BPM')
+    return !i || Math.abs(entry.bpm - sorted[i - 1].bpm) > 1e-8
+  })
+  const next = { ...project, tempos }
+  next.lengthTicks = fitAudioLength(next)
+  return next
+}
+
+export function scaleTempos(project: Project, factor: number): Project {
+  const map = writtenTempoMap(project)
+  return withTempos(
+    project,
+    map.tempos.map(({ tick, bpm }) => ({ tick, bpm: bpm * factor })),
+  )
+}
+
+export function flattenTempo(project: Project, bpm: number): Project {
+  writtenTempoMap(project)
+  return withTempos(project, [{ tick: 0, bpm }])
+}
+
+export function setSectionTempo(
+  project: Project,
+  tick: number,
+  bpm: number,
+): Project {
+  const map = writtenTempoMap(project)
+  if (!Number.isFinite(tick) || tick < 0) throw Error('Invalid tempo position')
+  const { enabled, startTick, endTick } = project.loop
+  if (enabled && endTick <= startTick) throw Error('Invalid loop range')
+  const start = enabled
+    ? startTick
+    : map.tempos.filter((t) => t.tick <= tick).at(-1)!.tick
+  const end = enabled
+    ? endTick
+    : (map.tempos.find((t) => t.tick > tick)?.tick ?? Infinity)
+  const entries = map.tempos
+    .filter((t) => t.tick < start || t.tick >= end)
+    .map(({ tick, bpm }) => ({ tick, bpm }))
+  entries.push({ tick: start, bpm })
+  if (enabled) entries.push({ tick: end, bpm: map.tempoAt(end) })
+  return withTempos(project, entries)
+}
+
+export function editTempo(
+  project: Project,
+  tick: number,
+  bpm: number,
+  mode: TempoMode,
+): Project {
+  if (mode === 'rewrite') return flattenTempo(project, bpm)
+  if (mode === 'section') return setSectionTempo(project, tick, bpm)
+  return scaleTempos(project, bpm / new TimeMap(project).tempoAt(tick))
 }

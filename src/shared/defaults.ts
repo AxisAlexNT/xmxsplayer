@@ -64,6 +64,7 @@ export function newProject(name = 'Untitled'): Project {
 export function defaultSettings(): Settings {
   return {
     locale: 'en',
+    tempoMode: 'scale',
     chaseCuesOnSeek: true,
     audio: {
       defaultSynth: 'web',

@@ -1,8 +1,10 @@
-import type { Project } from '../../shared/model'
+import { editTempo } from '../../shared/bar-edit'
+import type { Project, TempoMode } from '../../shared/model'
 import type { EventMap } from '../../shared/protocol'
-import { TapTempo, applyBeatMap, fitAudioLength } from '../../shared/beat-grid'
+import { TapTempo, applyBeatMap } from '../../shared/beat-grid'
 import type { TransportClock } from './clock'
 export class BeatGrid {
+  tempoMode: TempoMode = 'scale'
   private tempo = new TapTempo()
   private session: EventMap['grid:taps'] = {
     active: false,
@@ -29,17 +31,19 @@ export class BeatGrid {
           Math.min(2, bpm / this.clock.map.tempoAt(this.clock.tick)),
         ),
       )
-    else if (p.mapOwner === null)
-      this.apply({
-        tempos: [{ tick: 0, bpm }],
-        beatAnchors: [],
-        lengthTicks: fitAudioLength({
-          ...p,
-          tempos: [{ tick: 0, bpm }],
-          beatAnchors: [],
-        }),
-      })
-    else this.warn('The linked score owns the tempo map')
+    else {
+      try {
+        const { tempos, lengthTicks } = editTempo(
+          p,
+          this.clock.tick,
+          bpm,
+          this.tempoMode,
+        )
+        this.apply({ tempos, lengthTicks })
+      } catch (error) {
+        this.warn(String(error))
+      }
+    }
   }
   setSession(value: {
     active: boolean

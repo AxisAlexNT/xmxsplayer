@@ -476,6 +476,7 @@ async function initialize(value: Settings): Promise<void> {
       ...value.fluid,
       sampleRate: value.audio.sampleRate,
     })
+    if (transport) transport.grid.tempoMode = value.tempoMode ?? 'scale'
     if (transport) transport.inputLatencyMs = value.audio.inputLatencyMs
     if (project)
       await transport?.audio.synchronize(performanceProject() ?? project)
@@ -727,6 +728,7 @@ async function initialize(value: Settings): Promise<void> {
       scriptTimeline?.reset()
       releaseScriptNotes()
     }
+    transport.grid.tempoMode = value.tempoMode ?? 'scale'
     transport.inputLatencyMs = value.audio.inputLatencyMs
     transport.resolveProject = (source) => performanceProject() ?? source
     transport.conditionContext = (tick) => ({

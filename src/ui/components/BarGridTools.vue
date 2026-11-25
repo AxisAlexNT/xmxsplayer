@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import { useI18n } from '../i18n'
+const { t } = useI18n()
 import { computed, ref } from 'vue'
+import { editTempo } from '../../shared/bar-edit'
+import { useSettingsStore } from '../stores/settings'
 import { TimeMap } from '../../shared/time-map'
 import { fitAudioLength, snapLoop } from '../../shared/beat-grid'
 import { useProjectStore } from '../stores/project'
@@ -20,20 +24,14 @@ const map = computed(() => new TimeMap(doc.project)),
       runtime.selectedAudioId = id
     },
   })
+const settings=useSettingsStore()
+const error=ref('')
 function tempo(value: number): void {
-  if (doc.project.mapOwner !== null) return
-  doc.update((d) => {
-    d.tempos = [{ tick: 0, bpm: Math.max(20, Math.min(400, value)) }]
-    d.beatAnchors = []
-    d.lengthTicks = fitAudioLength(d)
-  })
-}
-function scale(factor: number): void {
-  doc.update((d) => {
-    d.tempos = d.tempos.map((t) => ({ ...t, bpm: t.bpm * factor }))
-    d.beatAnchors = d.beatAnchors.map((a) => ({ ...a, tick: a.tick * factor }))
-    d.lengthTicks = fitAudioLength(d)
-  })
+  try {
+    const next=editTempo(doc.project,runtime.transport.tick,value,settings.value.tempoMode??'scale')
+    doc.update(()=>next)
+    error.value=''
+  } catch(e){error.value=String(e instanceof Error?e.message:e)}
 }
 function tapMap(active: boolean, discard = false): void {
   engineBus.value?.send('grid:tapMap', {
@@ -45,7 +43,7 @@ function tapMap(active: boolean, discard = false): void {
 }
 function clear(): void {
   doc.update((d) => {
-    d.tempos = [{ tick: 0, bpm: map.value.tempoAt(0) }]
+    d.tempos = map.value.tempos.map(({tick,bpm}) => ({tick,bpm}))
     d.beatAnchors = []
     d.lengthTicks = fitAudioLength(d)
   })
@@ -54,38 +52,43 @@ function clear(): void {
 <template>
   <details class="xm-grid-tools">
     <summary
-      title="Bar grid"
-      aria-label="Bar grid"
+      :title="t('control.barGrid')"
+      :aria-label="t('control.barGrid')"
     >
-      <i class="bi bi-rulers" /> Bars <i class="bi bi-chevron-down" />
+      <i class="bi bi-rulers" /> {{ t('control.bars') }} <i class="bi bi-chevron-down" />
     </summary>
     <div class="xm-grid-popover">
-      <b>Bar grid</b><span
+      <span
+        v-if="error"
+        role="alert"
+      >{{ error }}</span><b>{{ t('control.barGrid') }}</b><span
         v-if="doc.project.mapOwner !== null"
         class="xm-muted"
-      >Tempo comes from the linked score.</span>
+      >{{ t('control.tempoComesFromTheLinkedScore') }}</span>
       <fieldset :disabled="doc.project.mapOwner !== null">
-        <label>BPM<input
+        <label>{{ t('control.bpm') }}<input
           type="number"
           min="20"
           max="400"
           step=".1"
           :value="map.tempoAt(runtime.transport.tick).toFixed(1)"
-          :disabled="doc.project.beatAnchors.length > 1"
-          aria-label="Grid BPM"
+          :disabled="!!doc.project.beatAnchors.length"
+          :aria-label="t('control.gridBpm')"
           @change="tempo(Number(($event.target as HTMLInputElement).value))"
         ></label>
         <div class="xm-row">
           <button
             class="btn btn-sm btn-xm"
-            @click="scale(0.5)"
+            :disabled="!!doc.project.beatAnchors.length"
+            @click="tempo(map.tempoAt(runtime.transport.tick)*0.5)"
           >
-            Halve
+            {{ t('control.halve') }}
           </button><button
             class="btn btn-sm btn-xm"
-            @click="scale(2)"
+            :disabled="!!doc.project.beatAnchors.length"
+            @click="tempo(map.tempoAt(runtime.transport.tick)*2)"
           >
-            Double
+            {{ t('control.double') }}
           </button><button
             class="btn btn-sm btn-xm"
             @click="
@@ -94,13 +97,13 @@ function clear(): void {
               })
             "
           >
-            Tap tempo
+            {{ t('control.tapTempo') }}
           </button>
         </div>
-        <label>Reference<select
+        <label>{{ t('control.reference') }}<select
           v-model="selected"
           :disabled="runtime.tapMap.active"
-          aria-label="Grid reference"
+          :aria-label="t('control.gridReference')"
         >
           <option
             v-for="track in audio"
@@ -112,42 +115,42 @@ function clear(): void {
           <option
             v-if="!audio.length"
             value=""
-          >Import audio first</option>
+          >{{ t('control.importAudioFirst') }}</option>
         </select></label>
         <button
           class="btn btn-sm btn-xm"
           :disabled="!selected"
           @click="engineBus?.send('grid:barOne', { trackId: selected })"
         >
-          Set bar 1 at playhead
+          {{ t('control.setBar1AtPlayhead') }}
         </button>
         <div class="xm-row">
           <select
             v-model="unit"
             :disabled="runtime.tapMap.active"
-            aria-label="Tap map unit"
+            :aria-label="t('control.tapMapUnit')"
           >
             <option value="beat">
-              Tap beats
+              {{ t('control.tapBeats') }}
             </option>
             <option value="bar">
-              Tap bars
+              {{ t('control.tapBars') }}
             </option>
           </select><button
             v-if="!runtime.tapMap.active"
             class="btn btn-sm btn-xm"
             :disabled="!selected || doc.project.loop.enabled"
-            title="Turn looping off, start audio, then tap each beat or bar"
+            :title="t('control.turnLoopingOffStartAudioThenTapEachBeatOrBar')"
             @click="tapMap(true)"
           >
-            Tap beat map
+            {{ t('control.tapBeatMap') }}
           </button><button
             v-else
             class="btn btn-sm btn-primary"
             :disabled="runtime.tapMap.anchors.length < 2"
             @click="tapMap(false)"
           >
-            Use {{ runtime.tapMap.anchors.length }} taps
+            {{ t('control.use') }} {{ runtime.tapMap.anchors.length }} {{ t('control.taps') }}
           </button>
         </div>
         <div
@@ -165,68 +168,67 @@ function clear(): void {
               })
             "
           >
-            Tap beat
+            {{ t('control.tapBeat') }}
           </button><button
             class="btn btn-sm btn-ghost"
             @click="tapMap(false, true)"
           >
-            Cancel
-          </button><small>{{ runtime.tapMap.anchors.length }} taps</small>
+            {{ t('control.cancel') }}
+          </button><small>{{ runtime.tapMap.anchors.length }} {{ t('control.taps') }}</small>
         </div>
-        <small v-if="runtime.tapMap.active">Start audio, then tap. The first tap marks bar 1. Finish to apply the
-          map.</small>
+        <small v-if="runtime.tapMap.active">{{ t('control.startAudioThenTapTheFirstTapMarksBar1FinishToApplyTheMap') }}</small>
         <button
           v-if="doc.project.beatAnchors.length"
           class="btn btn-sm btn-ghost"
           @click="clear"
         >
-          Clear beat map
+          {{ t('control.clearBeatMap') }}
         </button>
       </fieldset>
       <hr>
-      <b>Metronome</b><label><input
-        type="checkbox"
-        :checked="doc.project.metronome.audible"
-        @change="
-          doc.update((d) => {
-            d.metronome.audible = ($event.target as HTMLInputElement).checked
-          })
-        "
-      >
-        Audible click</label><label><input
-        type="checkbox"
-        :checked="doc.project.metronome.visualScreen"
-        @change="
-          doc.update((d) => {
-            d.metronome.visualScreen = (
-              $event.target as HTMLInputElement
-            ).checked
-          })
-        "
-      >
-        Screen beats</label><label><input
-        type="checkbox"
-        :checked="doc.project.metronome.visualPads"
-        @change="
-          doc.update((d) => {
-            d.metronome.visualPads = (
-              $event.target as HTMLInputElement
-            ).checked
-          })
-        "
-      >
-        Pad beats</label><label><input
-        type="checkbox"
-        :checked="doc.project.metronome.toCue"
-        @change="
-          doc.update((d) => {
-            d.metronome.toCue = ($event.target as HTMLInputElement).checked
-          })
-        "
-      >
-        Click to cue</label><label>Count-in<select
+      <b>{{ t('control.metronome') }}</b><label><input
+                                                  type="checkbox"
+                                                  :checked="doc.project.metronome.audible"
+                                                  @change="
+                                                    doc.update((d) => {
+                                                      d.metronome.audible = ($event.target as HTMLInputElement).checked
+                                                    })
+                                                  "
+                                                >
+        {{ t('control.audibleClick') }}</label><label><input
+                                                      type="checkbox"
+                                                      :checked="doc.project.metronome.visualScreen"
+                                                      @change="
+                                                        doc.update((d) => {
+                                                          d.metronome.visualScreen = (
+                                                            $event.target as HTMLInputElement
+                                                          ).checked
+                                                        })
+                                                      "
+                                                    >
+        {{ t('control.screenBeats') }}</label><label><input
+                                                     type="checkbox"
+                                                     :checked="doc.project.metronome.visualPads"
+                                                     @change="
+                                                       doc.update((d) => {
+                                                         d.metronome.visualPads = (
+                                                           $event.target as HTMLInputElement
+                                                         ).checked
+                                                       })
+                                                     "
+                                                   >
+        {{ t('control.padBeats') }}</label><label><input
+                                                  type="checkbox"
+                                                  :checked="doc.project.metronome.toCue"
+                                                  @change="
+                                                    doc.update((d) => {
+                                                      d.metronome.toCue = ($event.target as HTMLInputElement).checked
+                                                    })
+                                                  "
+                                                >
+        {{ t('control.clickToCue') }}</label><label>{{ t('control.countIn') }}<select
         :value="doc.project.metronome.countInBars"
-        aria-label="Count-in bars"
+        :aria-label="t('control.countInBars')"
         @change="
           doc.update((d) => {
             d.metronome.countInBars = Number(
@@ -252,7 +254,7 @@ function clear(): void {
           })
         "
       >
-        Snap loop to bars
+        {{ t('control.snapLoopToBars') }}
       </button>
     </div>
   </details>

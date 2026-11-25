@@ -359,7 +359,9 @@ export interface ControlDef {
   ui: { group: string; row: number; col: number }
 }
 
+export type TempoMode = 'scale' | 'rewrite' | 'section'
 export interface Settings {
+  tempoMode?: TempoMode
   locale?: string
   chaseCuesOnSeek?: boolean
   audio: {

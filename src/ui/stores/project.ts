@@ -23,18 +23,31 @@ export const useProjectStore = defineStore('project', () => {
       ...new Set([...Object.keys(current), ...Object.keys(baseline.value)]),
     ].filter((p) => !sameContent(current[p], baseline.value[p]))
   })
-  function replace(next: Project): void {
+  let grouped: { key: string; time: number; last: Project } | undefined
+  function replace(next: Project, group?: string): void {
     if (next === project.value) return
-    history.value = [...history.value.slice(-199), project.value]
+    const now = performance.now()
+    if (
+      !group ||
+      grouped?.key !== group ||
+      grouped.last !== project.value ||
+      now - grouped.time >= 600
+    )
+      history.value = [...history.value.slice(-199), project.value]
+    grouped = group ? { key: group, time: now, last: next } : undefined
     future.value = []
     project.value = next
   }
-  function update(recipe: (draft: Draft<Project>) => void): void {
+  function update(
+    recipe: (draft: Draft<Project>) => void,
+    group?: string,
+  ): void {
     const next = produce(project.value, recipe)
     projectSchema.parse(next)
-    replace(next)
+    replace(next, group)
   }
   function undo(): void {
+    grouped = undefined
     const next = history.value.at(-1)
     if (!next) return
     future.value = [...future.value, project.value]
@@ -49,6 +62,7 @@ export const useProjectStore = defineStore('project', () => {
     project.value = next
   }
   function load(snapshot: ProjectSnapshot): void {
+    grouped = undefined
     const next = fromFiles(snapshot.files)
     project.value = next
     baseline.value = toFiles(next)

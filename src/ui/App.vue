@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useI18n } from './i18n'
+const { t } = useI18n()
+import TempoPopover from './components/TempoPopover.vue'
 import SourcesPanel from './components/SourcesPanel.vue'
 import { useSourcesStore } from './stores/sources'
 import FollowControl from './components/FollowControl.vue'
@@ -596,14 +599,14 @@ onUnmounted(() => {
       <div class="xm-tgroup">
         <button
           class="xm-tbtn"
-          title="Collapse left panel"
+          :title="t('control.collapseLeftPanel')"
           @click="settings.collapse()"
         >
           <i class="bi bi-list" />
         </button>
         <input
           class="xm-name"
-          aria-label="Project name"
+          :aria-label="t('control.projectName')"
           :value="p.name"
           @change="
             doc.update((d) => {
@@ -614,7 +617,7 @@ onUnmounted(() => {
         <span
           v-if="doc.dirtyFiles.length || scripts.dirty"
           class="xm-dot is-warn"
-          title="Unsaved changes"
+          :title="t('control.unsavedChanges')"
         />
       </div>
       <div class="xm-tsep" />
@@ -654,7 +657,7 @@ onUnmounted(() => {
         </button>
       </div>
       <details class="xm-record-settings">
-        <summary title="Recording settings">
+        <summary :title="t('control.recordingSettings')">
           {{ p.record?.mode === 'replace' ? 'Replace' : 'Overdub' }}
         </summary>
         <div class="xm-grid-popover">
@@ -662,9 +665,9 @@ onUnmounted(() => {
             :disabled="runtime.transport.recording"
             @click="transport('recordMode')"
           >
-            Switch to {{ p.record?.mode === 'replace' ? 'Overdub' : 'Replace' }}
+            {{ t('control.switchTo') }} {{ p.record?.mode === 'replace' ? 'Overdub' : 'Replace' }}
           </button>
-          <label>Pre-roll bars <select
+          <label>{{ t('control.preRollBars') }} <select
             :value="p.record?.preRollBars ?? 0"
             :disabled="runtime.transport.recording"
             @change="doc.update(d=>{d.record={mode:d.record?.mode ?? 'overdub',preRollBars:Number(($event.target as HTMLSelectElement).value)}})"
@@ -682,7 +685,7 @@ onUnmounted(() => {
       <div
         v-if="p.metronome.visualScreen"
         class="xm-beats"
-        title="Beat"
+        :title="t('control.beat')"
       >
         <span
           v-for="beat in position.num"
@@ -699,30 +702,12 @@ onUnmounted(() => {
         />
       </div>
       <div class="xm-tsep" />
-      <div class="xm-field">
-        <span>Tempo</span><b>{{
-          (
-            timeMap.tempoAt(runtime.transport.tick) *
-            (runtime.state.followMode === 'tempoTrack' ||
-              Math.abs(runtime.transport.followFactor - 1) > 0.005
-              ? runtime.transport.rate * runtime.transport.followFactor
-              : 1)
-          ).toFixed(1)
-        }}</b>
-        <small
-          v-if="
-            runtime.state.followMode === 'tempoTrack' ||
-              Math.abs(runtime.transport.followFactor - 1) > 0.005
-          "
-          class="xm-tempo-factor xm-mono"
-          aria-label="Live tempo factor"
-        >×{{ runtime.transport.followFactor.toFixed(2) }}</small>
-      </div>
+      <TempoPopover />
       <div class="xm-field xm-time-key">
-        <span>Time · Key</span><b>{{ position.num }}/{{ position.den }} · {{ keyName }}</b>
+        <span>{{ t('control.timeKey') }}</span><b>{{ position.num }}/{{ position.den }} · {{ keyName }}</b>
       </div>
       <div class="xm-field">
-        <span>Speed</span>
+        <span>{{ t('control.speed') }}</span>
         <div class="xm-row">
           <input
             type="range"
@@ -730,7 +715,8 @@ onUnmounted(() => {
             min="25"
             max="150"
             :value="Math.round(runtime.transport.rate * 100)"
-            aria-label="Speed"
+            :title="t('control.playbackSpeedOnlyDoesNotChangeTheSongTempo')"
+            :aria-label="t('control.speed')"
             @input="
               engineBus?.send('transport:setRate', {
                 rate: Number(($event.target as HTMLInputElement).value) / 100,
@@ -739,7 +725,7 @@ onUnmounted(() => {
             @dblclick="engineBus?.send('transport:setRate', { rate: 1 })"
           ><button
             class="xm-speed-reset xm-mono"
-            title="Reset speed"
+            :title="t('control.resetSpeed')"
             @click="engineBus?.send('transport:setRate', { rate: 1 })"
           >
             {{ Math.round(runtime.transport.rate * 100) }}%
@@ -747,7 +733,7 @@ onUnmounted(() => {
         </div>
       </div>
       <div class="xm-field xm-loop-field">
-        <span>Loop</span><b>{{
+        <span>{{ t('control.loop') }}</span><b>{{
           p.loop.enabled
             ? `${timeMap.tickToBarBeat(p.loop.startTick).bar} – ${timeMap.tickToBarBeat(p.loop.endTick).bar}`
             : '—'
@@ -758,7 +744,7 @@ onUnmounted(() => {
       <div class="flex-grow-1" />
       <div
         class="xm-seg"
-        title="Follow view"
+        :title="t('control.followView')"
       >
         <button
           v-for="mode in ['page', 'center'] as const"
@@ -789,13 +775,13 @@ onUnmounted(() => {
       <div class="xm-tgroup xm-zoom">
         <button
           class="xm-tbtn"
-          title="Smaller lanes"
+          :title="t('control.smallerLanes')"
           @click="laneZoom(1 / 1.1)"
         >
           <i class="bi bi-zoom-out" />
         </button><button
           class="xm-tbtn"
-          title="Larger lanes"
+          :title="t('control.largerLanes')"
           @click="laneZoom(1.1)"
         >
           <i class="bi bi-zoom-in" />
@@ -816,7 +802,7 @@ onUnmounted(() => {
             runtime.latency?.backend === 'fluid'
         "
         class="xm-engine-label"
-      >FluidSynth<small class="xm-configured-latency">Configured {{ runtime.latency.fluidMs.toFixed(1) }} ms</small></span><span
+      >{{ t('control.fluidsynth') }}<small class="xm-configured-latency">{{ t('control.configured') }} {{ runtime.latency.fluidMs.toFixed(1) }} {{ t('control.ms') }}</small></span><span
         v-else
         class="xm-engine-label"
       >{{
@@ -844,7 +830,7 @@ onUnmounted(() => {
       }}</span></span>
       <button
         class="xm-tbtn"
-        title="Audio settings"
+        :title="t('control.audioSettings')"
         @click="showAudio = true"
       >
         <i class="bi bi-gear" />
@@ -894,7 +880,7 @@ onUnmounted(() => {
               class="btn btn-sm btn-ghost mb-2"
               @click="runtime.logs = []"
             >
-              Clear
+              {{ t('control.clear') }}
             </button>
             <div
               class="xm-log"
@@ -912,7 +898,7 @@ onUnmounted(() => {
               <span
                 v-if="!runtime.logs.length"
                 class="xm-faint"
-              >No messages</span>
+              >{{ t('control.noMessages') }}</span>
             </div>
           </template>
           <ScriptPanel

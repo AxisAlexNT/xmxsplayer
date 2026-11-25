@@ -568,6 +568,7 @@ export const deviceProfileSchema = z.strictObject({
   feedback: z.literal('arturia-mk3').optional(),
 })
 export const settingsSchema = z.strictObject({
+  tempoMode: enums(['scale', 'rewrite', 'section']).default('scale'),
   locale: z.string().default('en'),
   chaseCuesOnSeek: z.boolean().default(true),
   audio: z.strictObject({

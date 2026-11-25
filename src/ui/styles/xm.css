@@ -210,3 +210,17 @@ body { background: var(--xm-bg-0); color: var(--xm-text); font-family: var(--xm-
 .xm-staff-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: var(--xm-fs-xs); }
 .xm-staff-controls label { display: inline-flex; align-items: center; gap: 3px; }
 .xm-staff-controls input[type="number"] { width: 4em; }
+
+.xm-tempo-big { display: flex; align-items: stretch; gap: 6px; }
+.xm-tempo-big input { font: 600 34px var(--xm-font-mono); text-align: center; height: 64px; flex: 1; min-width: 0; letter-spacing: .5px; }
+.xm-tempo-big .btn { width: 48px; font-size: 20px; }
+.xm-tap { height: 64px; border-radius: var(--xm-r); border: 1px dashed var(--xm-border-strong); background: var(--xm-bg-1); display: grid; place-items: center; font-weight: 600; color: var(--xm-text-muted); }
+.xm-tempo-button { display:grid; min-height:40px; border:0; background:transparent; color:inherit; text-align:left; touch-action:none; }
+.xm-tempo-button span { font-size:var(--xm-fs-xs); color:var(--xm-text-muted); }
+.xm-tempo-field input[type=number] { max-width:6em; }
+.xm-tempo-list { max-height:180px; overflow:auto; }
+
+.xm-editor-pop:has(.xm-tempo-big) { width: 400px; }
+.xm-editor-pop:has(.xm-tempo-big) > small { display: block; }
+.xm-tempo-list .xm-row { gap: 12px; }
+.xm-tempo-list .xm-row > span { min-width: 54px; }
