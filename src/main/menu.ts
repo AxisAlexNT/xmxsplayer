@@ -25,6 +25,8 @@ export function installMenu(ui: BrowserWindow): void {
         submenu: [
           action(t('menu.newProject'), 'new', 'CmdOrCtrl+N'),
           action(t('menu.open'), 'open', 'CmdOrCtrl+O'),
+          action(t('menu.openPortable'), 'open:portable'),
+          action(t('menu.exportPortable'), 'export:portable'),
           action(t('menu.save'), 'save', 'CmdOrCtrl+S'),
           { type: 'separator' },
           action(t('menu.importMidi'), 'import:midi'),

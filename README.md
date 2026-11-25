@@ -14,6 +14,8 @@ Right-click or long-press the timeline ruler to insert or delete measures or cha
 
 Open **Manage sound library** under Soundfonts or Settings → Files to scan folders, inspect presets, and add or replace a project font. Copying the font into the project is optional. The instrument picker searches across project soundfonts by preset, bank, program or GM family. Enable **Include library fonts** to audition a library preset and add its font when you choose **Use preset**.
 
+To move a song to another computer, choose **File → Export portable project…**. The ZIP includes the saved arrangement, project media, and the soundfonts it uses. On the other computer, choose **File → Open portable project…** and select an empty folder. The app verifies the files and opens the restored song. Portable projects must fit within the 4 GB ZIP limit.
+
 Click **Tempo** to change the whole tempo map proportionally, set one BPM throughout, or edit the current section or loop. Double-click to type directly. **Speed** controls playback independently.
 
 Generated piano parts default to a grand staff. The track header lets you choose a hand split, enable a second voice and show sustain pedal marks. These settings affect notation only.

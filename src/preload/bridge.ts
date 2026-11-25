@@ -47,6 +47,8 @@ export function installBridge(ui: boolean): void {
       restore: () => ipcRenderer.invoke('project:restore'),
       create: () => ipcRenderer.invoke('project:create'),
       open: () => ipcRenderer.invoke('project:open'),
+      openPortable: () => ipcRenderer.invoke('project:openPortable'),
+      exportPortable: () => ipcRenderer.invoke('project:exportPortable'),
       save: (files, hashes) =>
         ipcRenderer.invoke('project:save', files, hashes),
       importFile: (kind) => ipcRenderer.invoke('project:import', kind),

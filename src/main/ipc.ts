@@ -1,3 +1,5 @@
+import { exportPortable, importPortable } from './portable'
+import { fromFiles } from '../shared/project-files'
 import { stat } from 'node:fs/promises'
 import { readScoreXml } from './score-xml'
 import { FluidSynthProcess, detectFluid } from './fluidsynth'
@@ -184,6 +186,38 @@ export function installIpc(windows: Windows): () => Promise<void> {
       chosen.endsWith('.yaml') ? dirname(chosen) : chosen,
     )
     await watch()
+    return snapshot
+  })
+  handle('project:exportPortable', async () => {
+    if (!io.folder) throw new Error('Open a project first')
+    const project = fromFiles(await io.readAll())
+    const result = await dialog.showSaveDialog(ui, {
+      title: 'Export portable project',
+      defaultPath: join(dirname(io.folder), basename(io.folder) + '.xmxs.zip'),
+      filters: [{ name: 'Portable project', extensions: ['zip'] }],
+    })
+    if (result.canceled || !result.filePath) return null
+    await exportPortable(io.folder, result.filePath, project.soundfonts.map(font => font.file),
+      directories(), app.getVersion())
+    return result.filePath
+  })
+  handle('project:openPortable', async () => {
+    const archive = await dialog.showOpenDialog(ui, {
+      title: 'Open portable project', properties: ['openFile'],
+      filters: [{ name: 'Portable project', extensions: ['zip'] }],
+    })
+    if (archive.canceled) return null
+    const folder = await dialog.showOpenDialog(ui, {
+      title: 'Choose an empty folder for the project', properties: ['openDirectory', 'createDirectory'],
+    })
+    if (folder.canceled) return null
+    const manifest = await importPortable(archive.filePaths[0], folder.filePaths[0])
+    const snapshot = await io.open(folder.filePaths[0])
+    await watch()
+    if (manifest.requiredPlugins.length) await dialog.showMessageBox(ui, {
+      type: 'warning', message: 'This project requires additional plugins',
+      detail: manifest.requiredPlugins.join('\n'),
+    })
     return snapshot
   })
   handle('project:save', (files: FileMap, hashes: Record<string, string>) =>

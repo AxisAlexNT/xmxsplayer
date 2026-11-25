@@ -57,6 +57,8 @@ export interface DesktopApi {
   project: {
     restore: () => Promise<ProjectSnapshot | null>
     create: () => Promise<ProjectSnapshot | null>
+    openPortable: () => Promise<ProjectSnapshot | null>
+    exportPortable: () => Promise<string | null>
     open: () => Promise<ProjectSnapshot | null>
     save: (
       files: FileMap,

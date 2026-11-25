@@ -398,7 +398,7 @@ async function command(cmd: string): Promise<void> {
       }
       const file = await window.xm.project.importFile('audio')
       if (file) await addAudio(file)
-    } else if (cmd === 'new' || cmd === 'open') {
+    } else if (cmd === 'new' || cmd === 'open' || cmd === 'open:portable') {
       if (runtime.transport.recording)
         await engineBus.value?.request('recording:flush', undefined)
       if (
@@ -407,7 +407,7 @@ async function command(cmd: string): Promise<void> {
       )
         return
       const snapshot =
-        await window.xm.project[cmd === 'new' ? 'create' : 'open']()
+        await window.xm.project[cmd === 'new' ? 'create' : cmd === 'open:portable' ? 'openPortable' : 'open']()
       if (snapshot) {
         doc.load(snapshot)
         runtime.log({
@@ -435,14 +435,17 @@ async function command(cmd: string): Promise<void> {
         Object.assign(draft, next)
       })
       notify(`${file.split('/').at(-1)} imported`)
-    } else if (cmd === 'save') {
+    } else if (cmd === 'save' || cmd === 'export:portable') {
       if (!doc.folder) {
         notify('Create or open a project folder first')
         return
       }
       await scripts.commit()
       await doc.save()
-      notify('Project saved')
+      if (cmd === 'export:portable') {
+        const path = await window.xm.project.exportPortable()
+        if (path) notify(`Portable project saved to ${path}`)
+      } else notify('Project saved')
     } else if (cmd === 'undo') doc.undo()
     else if (cmd === 'redo') doc.redo()
     else if (cmd === 'toggleFollowView')

@@ -1,6 +1,8 @@
 export const en = {
   'menu.file': 'File',
   'menu.newProject': 'New Project',
+  'menu.openPortable': 'Open portable project…',
+  'menu.exportPortable': 'Export portable project…',
   'menu.open': 'Open',
   'menu.save': 'Save',
   'menu.importMidi': 'Import MIDI',
