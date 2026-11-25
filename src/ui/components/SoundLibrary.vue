@@ -84,11 +84,12 @@ async function loadFile() {
   await refresh()
 }
 async function choose(entry: SoundFontIndexEntry, confirmed = false) {
-  if (replacing.value && !confirmed) {
-    const old = doc.project.soundfonts.find((f) => f.id === replacing.value)
+  const id = replacing.value
+  if (id && !confirmed) {
+    const old = doc.project.soundfonts.find((f) => f.id === id)
     const preview = replaceFont(
       doc.project,
-      replacing.value,
+      id,
       entry.file,
       entries.value.find((e) => e.file === old?.file)?.presets ?? [],
       entry.presets,
@@ -96,7 +97,7 @@ async function choose(entry: SoundFontIndexEntry, confirmed = false) {
     if (preview.unmatched.length) {
       const names = preview.unmatched.join(', ')
       message.value = t('library.unmatched', { names })
-      pending.value = entry
+      pending.value = preview.matched ? entry : undefined
       return
     }
   }
@@ -106,8 +107,7 @@ async function choose(entry: SoundFontIndexEntry, confirmed = false) {
     ? await window.xm.soundfonts.copy(entry.file)
     : entry.file
   if (doc.folder !== folder) return
-  if (replacing.value) {
-    const id = replacing.value
+  if (id) {
     const old = doc.project.soundfonts.find((f) => f.id === id)
     const result = replaceFont(
       doc.project,
@@ -117,7 +117,10 @@ async function choose(entry: SoundFontIndexEntry, confirmed = false) {
       entry.presets,
     )
     doc.update(() => result.project)
-
+    if (result.unmatched.length) {
+      const names = result.unmatched.join(', ')
+      message.value = t('library.unmatched', { names })
+    }
     replacing.value = ''
   } else doc.update(() => addFont(doc.project, file))
   await refresh()
@@ -214,6 +217,7 @@ async function locate(id: string, file: string) {
         >
           {{ t('library.chooseReplacement') }} <button
             class="btn btn-ghost"
+            :disabled="busy"
             @click="replacing='';pending=undefined;message=''"
           >
             {{ t('library.cancel') }}
@@ -266,7 +270,8 @@ async function locate(id: string, file: string) {
               >{{ t('library.locate') }}</button>
               <button
                 class="btn btn-sm btn-xm"
-                @click="replacing=row.font.id;scope='all';query=''"
+                :disabled="busy"
+                @click="replacing=row.font.id;pending=undefined;message='';scope='all';query=''"
               >{{ t('library.replace') }}</button>
               <button
                 class="btn btn-sm btn-ghost"

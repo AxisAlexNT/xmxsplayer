@@ -27,6 +27,7 @@ it('replaces by address then exact or folded preset name and keeps unmatched ins
     { ...old[2], name: 'LEAD', program: 17 },
   ]
   const result = replaceFont(p, id, 'New.sf3', old, presets)
+  expect(result.matched).toBe(3)
   expect(result.unmatched).toEqual(['Missing'])
   expect(result.project.instruments.map((i) => i.program)).toEqual([
     0, 12, 17, 3,
@@ -35,4 +36,14 @@ it('replaces by address then exact or folded preset name and keeps unmatched ins
   expect(() => removeFont(result.project, id)).toThrow('Missing')
   expect(addFont(p, 'Old.sf2')).toBe(p)
   expect(p.soundfonts).toHaveLength(1)
+})
+
+it('keeps the project untouched when a replacement has no matching instruments', () => {
+  const project = liveProject('Piano', 'Old.sf2')
+  const result = replaceFont(project, project.soundfonts[0].id, 'Drums.sf2', [], [
+    { name: 'Kit', bank: 128, program: 1, isDrum: true },
+  ])
+  expect(result.matched).toBe(0)
+  expect(result.unmatched).toEqual(['Piano'])
+  expect(result.project).toBe(project)
 })

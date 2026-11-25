@@ -31,6 +31,7 @@ export function replaceFont(
   presets: FluidPreset[],
 ) {
   const unmatched: string[] = []
+  let matched = 0
   if (!project.soundfonts.some((f) => f.id === id))
     throw Error('Soundfont is no longer in the project')
   const next = produce(addFont(project, file), (d) => {
@@ -52,6 +53,7 @@ export function replaceFont(
         unmatched.push(instrument.name)
         continue
       }
+      matched++
       Object.assign(instrument, {
         soundfontId: target.id,
         bank: match.bank,
@@ -62,5 +64,5 @@ export function replaceFont(
     if (target.id !== id && !unmatched.length)
       d.soundfonts = d.soundfonts.filter((f) => f.id !== id)
   })
-  return { project: next, unmatched }
+  return { project: unmatched.length && !matched ? project : next, matched, unmatched }
 }
