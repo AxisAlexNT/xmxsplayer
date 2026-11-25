@@ -7,7 +7,7 @@ import { computed, ref, nextTick } from 'vue'
 import { useProjectStore } from '../stores/project'
 import { useRuntimeStore } from '../stores/runtime'
 import { engineBus } from '../bus'
-import { addPreset, presets } from '../../shared/orchestra-presets'
+import { addEmptyOrchestra, addPreset, presets } from '../../shared/orchestra-presets'
 import { uniqueId } from '../../shared/ids'
 import type { Orchestra, OrchestraMember } from '../../shared/model'
 const doc = useProjectStore(),
@@ -28,6 +28,40 @@ function select(id: string) {
   engineBus.value?.send('action:run', {
     action: { type: 'orchestra', cmd: 'select', orchestraId: id },
   })
+}
+const creating = ref(false)
+const orchestraName = ref('')
+const nameInput = ref<HTMLInputElement>()
+const sectionName = ref('')
+async function startCreating() {
+  creating.value = true
+  await nextTick()
+  nameInput.value?.focus()
+}
+async function createOrchestra() {
+  const name = orchestraName.value.trim()
+  if (!name) return
+  let id = ''
+  doc.update(p => { id = addEmptyOrchestra(p, name) })
+  creating.value = false
+  orchestraName.value = ''
+  await nextTick()
+  select(id)
+}
+function addSection() {
+  const name = sectionName.value.trim()
+  if (!name) return
+  edit(o => o.sections.push({name, register: null, startOn: true, members: []}))
+  sectionName.value = ''
+}
+function addMember(index: number, event: Event) {
+  const field = event.target as HTMLSelectElement
+  const instrumentId = field.value
+  field.value = ''
+  if (!instrumentId) return
+  edit(o => o.sections[index].members.push({
+    instrumentId, lo: 0, hi: 127, comfortLo: 0, comfortHi: 127, gain: 1, enabled: true, octave: 0,
+  }))
 }
 async function add(event: Event) {
   const el = event.target as HTMLSelectElement,
@@ -139,6 +173,28 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
         {{ p.name }}
       </option>
     </select>
+    <button @click="startCreating">
+      {{ t('orchestraPanel.new') }}
+    </button>
+    <form
+      v-if="creating"
+      @submit.prevent="createOrchestra"
+    >
+      <label>{{ t('orchestraPanel.name') }} <input
+        ref="nameInput"
+        v-model="orchestraName"
+        required
+      ></label>
+      <button :disabled="!orchestraName.trim()">
+        {{ t('orchestraPanel.create') }}
+      </button>
+      <button
+        type="button"
+        @click="creating = false"
+      >
+        {{ t('orchestraPanel.cancel') }}
+      </button>
+    </form>
     <small
       v-if="error"
       role="alert"
@@ -187,6 +243,15 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
           <option value="silent">{{ t('orchestraPanel.silent') }}</option>
           <option value="nearest">{{ t('orchestraPanel.nearestOctave') }}</option>
         </select></label>
+      <form @submit.prevent="addSection">
+        <label>{{ t('orchestraPanel.sectionName') }} <input
+          v-model="sectionName"
+          required
+        ></label>
+        <button :disabled="!sectionName.trim()">
+          {{ t('orchestraPanel.addSection') }}
+        </button>
+      </form>
       <details
         v-for="(s, i) in current.sections"
         :key="i"
@@ -209,6 +274,19 @@ function dragRange(e: PointerEvent, i: number, j: number, comfort: boolean) {
             @input="edit(o => { o.sections[i].gain = value($event) / 100 })"
           >
           {{ Math.round((s.gain ?? 1) * 100) }}%
+        </label>
+        <label>{{ t('orchestraPanel.addInstrument') }}
+          <select
+            value=""
+            @change="addMember(i, $event)"
+          >
+            <option value="">{{ t('orchestraPanel.chooseInstrument') }}</option>
+            <option
+              v-for="instrument in doc.project.instruments.filter(ins => !s.members.some(m => m.instrumentId === ins.id))"
+              :key="instrument.id"
+              :value="instrument.id"
+            >{{ instrument.name }}</option>
+          </select>
         </label>
         <EffectsDialog
           :orchestra-id="current.id"

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { addPreset, presets } from '../../src/shared/orchestra-presets'
+import { addEmptyOrchestra, addPreset, presets } from '../../src/shared/orchestra-presets'
 import {
   layerBalance,
   pickLayers,
@@ -7,6 +7,18 @@ import {
 } from '../../src/shared/orchestra'
 import { newProject } from '../../src/shared/defaults'
 import { toFiles, fromFiles } from '../../src/shared/project-files'
+it('creates independent custom orchestras sharing one playable track without a soundfont', () => {
+  const p = newProject()
+  const first = addEmptyOrchestra(p, 'My strings')
+  const second = addEmptyOrchestra(p, 'My strings')
+  expect(second).not.toBe(first)
+  const restored = fromFiles(toFiles(p))
+  expect(restored.orchestras?.map(o => o.id)).toEqual([first, second])
+  expect(restored.tracks).toHaveLength(1)
+  expect(restored.tracks[0]).toMatchObject({orchestraId: second})
+  expect(restored.base.zones[0].trackIds).toEqual([restored.tracks[0].id])
+  expect(restored.soundfonts).toHaveLength(0)
+})
 it('saves all presets and reloads member ranges and the orchestra track', () => {
   const p = newProject()
   for (const id of Object.keys(presets)) addPreset(p, id, 'gm')

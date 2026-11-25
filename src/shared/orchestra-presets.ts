@@ -117,9 +117,7 @@ export const presets: Record<string, Preset> = {
   },
 }
 
-export function addPreset(p: Project, id: string, soundfontId: string) {
-  const preset = presets[id]
-  if (!preset) throw Error('Unknown orchestra preset')
+function selectProjectOrchestra(p: Project, id: string) {
   const template = liveProject('Orchestra')
   const trackTemplate = template.tracks[0]
   if (trackTemplate.kind !== 'midi') throw Error('Missing MIDI template')
@@ -146,6 +144,21 @@ export function addPreset(p: Project, id: string, soundfontId: string) {
     })
   }
   track.orchestraId = id
+}
+
+export function addEmptyOrchestra(p: Project, name: string) {
+  const orchestras = p.orchestras ??= []
+  const id = uniqueId('custom-' + slugify(name), orchestras.map(o => o.id))
+  orchestras.push({ id, name, color: '#70b4e8', maxLayers: 2, outOfRange: 'nearest', sections: [] })
+  selectProjectOrchestra(p, id)
+  return id
+}
+
+export function addPreset(p: Project, id: string, soundfontId: string) {
+  const preset = presets[id]
+  if (!preset) throw Error('Unknown orchestra preset')
+  const template = liveProject('Orchestra')
+  selectProjectOrchestra(p, id)
   const orchestra: Orchestra = {
     id,
     name: preset.name,
