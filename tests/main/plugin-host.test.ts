@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest'
-import { mkdtemp, mkdir, readdir, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { decodeOsc, encodeOsc } from '../../src/main/osc'
@@ -115,7 +115,6 @@ it.skipIf(process.env.XM_CARLA_DUMMY_TEST !== '1')(
       undefined,
       'resources/plugins/carla-control.py',
     )
-    const { readFile } = await import('node:fs/promises')
     try {
       await host.configure(dir, session, '/usr/bin/carla')
       host.send('room', 'set_parameter_value', [
@@ -147,4 +146,47 @@ it.skipIf(process.env.XM_CARLA_DUMMY_TEST !== '1')(
     }
   },
   30000,
+)
+
+it.skipIf(process.env.XM_CARLA_DUMMY_TEST !== '1')(
+  'keeps each native Hall patch with its insert when a deferred reorder is applied', async () => {
+    const { ProjectPlugins } = await import('../../src/main/project-plugins')
+    const { liveProject } = await import('../../src/shared/template')
+    const dir = await mkdtemp(join(tmpdir(), 'xmxs-carla-reorder-'))
+    const host = new PluginHost(() => {}, 'SDL', undefined, 'resources/plugins/carla-control.py')
+    const manager = new ProjectPlugins(host, 'resources/plugins/lv2-ports.py', async () => [plugin])
+    const project = liveProject('Two halls')
+    project.masterEffects = ['near', 'far'].map(id => ({
+      id, type: 'plugin', enabled: true, params: {},
+      plugin: { format: plugin.format, uri: plugin.uri, name: plugin.name, stateFile: 'plugins/' + id + '.state' },
+    }))
+    const confirm = vi.fn(async () => true)
+    const apply = (playing: boolean) => manager.configure(dir, project, '/usr/bin/carla', confirm, playing)
+    async function checkLevels(near: number, far: number) {
+      await vi.waitFor(async () => {
+        await host.saveStates()
+        for (const [name, level] of [['near', near], ['far', far]]) {
+          const state = await readFile(join(dir, 'plugins', name + '.state'), 'utf8')
+          expect(state).toMatch(new RegExp('<Symbol>dry_level</Symbol>\\s*<Value>' + level + '</Value>'))
+        }
+      }, { timeout: 5000 })
+    }
+    try {
+      await apply(false)
+      manager.send('master-insert-0', 'set_parameter_value', [0, 25])
+      manager.send('master-insert-1', 'set_parameter_value', [0, 75])
+      await checkLevels(25, 75)
+      project.masterEffects.reverse()
+      confirm.mockResolvedValueOnce(false)
+      expect(await apply(true)).toBe(false)
+      manager.send('master-insert-0', 'set_parameter_value', [0, 30])
+      await checkLevels(30, 75)
+      expect(await apply(false)).toBe(true)
+      manager.send('master-insert-0', 'set_parameter_value', [0, 80])
+      await checkLevels(30, 80)
+    } finally {
+      await manager.stop()
+      await rm(dir, { recursive: true, force: true })
+    }
+  }, 30000,
 )

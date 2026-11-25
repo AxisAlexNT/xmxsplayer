@@ -2,6 +2,8 @@
 
 On Linux, open an instrument’s preset picker and choose **Plugin instrument…**. Select an installed instrument to assign it to the track. To add an effect to a plugin instrument, choose **FX → Add effect… → Plugin effect…**. **Master FX** can process the mix of plugin instruments. Carla starts when the project needs it. Changing the plugin order reloads the host, so applying the change during playback can cut off sounding notes.
 
+Changing the plugin order or audio connections reloads Carla. During playback, choose **Apply now** to reload immediately or **Apply after playback** to keep playing with the current connections. When playback stops, the player applies the pending edit. Parameter adjustments on the current graph take effect live.
+
 To try a first arrangement on this machine, select **Geonkick Single** and add **Dragonfly Hall Reverb** to the master. The Linux integration test played notes through this chain and measured output from both plugins with a dummy audio driver.
 
 ### Play a DrumGizmo kit
@@ -37,8 +39,6 @@ Use the supplier’s Linux package or build instructions, then choose **Rescan**
 ## Duck a plugin instrument when the kick plays
 
 Add **LSP Sidechain Compressor Mono** or **Stereo** to the instrument you want to turn down. In its effect card, choose the Geonkick track under **Sidechain track**. The player routes that track to the detector and selects the compressor’s external input. Set the compressor threshold and ratio while playing both instruments. Choose **None** to return to the internal detector.
-
-Changing the plugin order or audio connections reloads Carla. During playback, choose **Apply now** to reload immediately or **Apply after playback** to keep playing with the current connections. When playback stops, the player applies the pending edit. Parameter adjustments on the current graph take effect live.
 
 ## Moving a project
 
